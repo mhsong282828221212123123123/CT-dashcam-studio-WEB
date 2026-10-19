@@ -228,10 +228,11 @@ async function runEdgeFullTest() {
   // 4. Set 2-second range for export test
   console.log('Setting 2-second range for Export test...');
   await page.evaluate(() => {
-    (window).app.inPointSec = 5.0;
-    (window).app.outPointSec = 7.0;
-    (window).app.updateRangeUI();
-    (window).app.updateEstimatedSize();
+    const app = (window).app;
+    app.seekTo(5.0);
+    app.setInPoint();
+    app.seekTo(7.0);
+    app.setOutPoint();
   });
 
   const rangeText = await page.$eval('#range-text', el => el.textContent);

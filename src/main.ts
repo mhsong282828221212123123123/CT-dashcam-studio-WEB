@@ -187,6 +187,7 @@ class CTDashcamStudioApp {
         btnFloating.style.display = this.isMobileDevice() ? 'flex' : 'none';
       }
     }
+    this.updatePlayButton();
   }
 
   private toggleViewMode() {
@@ -199,13 +200,20 @@ class CTDashcamStudioApp {
   private async initCapabilities() {
     this.policy = await detectDeviceCapabilities();
     const tierBadge = document.getElementById('tier-badge');
+    const mobileTierBadge = document.getElementById('mobile-tier-badge');
     const tooltipTier = document.getElementById('tooltip-current-tier');
     const tooltipReason = document.getElementById('tooltip-reason');
+    const modalTier = document.getElementById('modal-current-tier');
+    const modalTierReason = document.getElementById('modal-tier-reason');
 
     const tierLower = this.policy.tier.toLowerCase();
     if (tierBadge) {
       tierBadge.textContent = `${this.policy.tier} Tier`;
       tierBadge.className = `tier-pill ${tierLower}`;
+    }
+    if (mobileTierBadge) {
+      mobileTierBadge.textContent = `${this.policy.tier} Tier`;
+      mobileTierBadge.className = `tier-pill-mobile ${tierLower}`;
     }
     if (tooltipTier) {
       tooltipTier.textContent = `${this.policy.tier} Tier`;
@@ -214,9 +222,41 @@ class CTDashcamStudioApp {
     if (tooltipReason) {
       tooltipReason.textContent = this.policy.specs.reason;
     }
+    if (modalTier) {
+      modalTier.textContent = `${this.policy.tier} Tier`;
+      modalTier.className = `tooltip-badge ${tierLower}`;
+    }
+    if (modalTierReason) {
+      modalTierReason.textContent = this.policy.specs.reason;
+    }
+
+    // Check secure context / WebCodecs availability
+    const warningEl = document.getElementById('webcodecs-warning');
+    if (warningEl) {
+      if (typeof VideoEncoder === 'undefined' || !window.isSecureContext) {
+        warningEl.style.display = 'block';
+      } else {
+        warningEl.style.display = 'none';
+      }
+    }
   }
 
   private setupEventListeners() {
+    // Tier Guide Modal (Mobile tap / Desktop click)
+    const tierModal = document.getElementById('tier-modal');
+    const openTierModal = () => {
+      if (tierModal) tierModal.style.display = 'flex';
+    };
+    const closeTierModal = () => {
+      if (tierModal) tierModal.style.display = 'none';
+    };
+    document.getElementById('mobile-tier-badge')?.addEventListener('click', openTierModal);
+    document.getElementById('tier-badge')?.addEventListener('click', openTierModal);
+    document.getElementById('btn-close-tier')?.addEventListener('click', closeTierModal);
+    document.getElementById('btn-confirm-tier')?.addEventListener('click', closeTierModal);
+    tierModal?.addEventListener('click', (e) => {
+      if (e.target === tierModal) closeTierModal();
+    });
     // 1. Open Folder Button & Fallback Input
     const btnOpenFolder = document.getElementById('btn-open-folder');
     const fallbackInput = document.getElementById('fallback-file-input') as HTMLInputElement;
@@ -357,29 +397,41 @@ class CTDashcamStudioApp {
       }
     });
 
-    // 6. Timeline Scrubber Click & Drag
+    // 6. Timeline Scrubber Click & Drag (Pointer Events for Touch & Mouse)
     const track = document.getElementById('timeline-track');
     let isScrubbing = false;
 
-    const handleScrub = (e: MouseEvent) => {
+    const handleScrub = (clientX: number) => {
       if (!track) return;
       const rect = track.getBoundingClientRect();
-      const posRatio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      if (rect.width <= 0) return;
+      const posRatio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
       this.seekTo(posRatio * this.durationSec);
     };
 
-    track?.addEventListener('mousedown', (e) => {
+    track?.addEventListener('pointerdown', (e: PointerEvent) => {
       isScrubbing = true;
-      handleScrub(e);
+      try {
+        track.setPointerCapture(e.pointerId);
+      } catch {}
+      handleScrub(e.clientX);
     });
 
-    window.addEventListener('mousemove', (e) => {
-      if (isScrubbing) handleScrub(e);
+    track?.addEventListener('pointermove', (e: PointerEvent) => {
+      if (isScrubbing) handleScrub(e.clientX);
     });
 
-    window.addEventListener('mouseup', () => {
-      isScrubbing = false;
-    });
+    const stopScrub = (e: PointerEvent) => {
+      if (isScrubbing) {
+        isScrubbing = false;
+        try {
+          track?.releasePointerCapture(e.pointerId);
+        } catch {}
+      }
+    };
+
+    track?.addEventListener('pointerup', stopScrub);
+    track?.addEventListener('pointercancel', stopScrub);
 
     // 7. In / Out Point Buttons
     document.getElementById('btn-set-in')?.addEventListener('click', () => {
@@ -423,26 +475,42 @@ class CTDashcamStudioApp {
     speedTag?.addEventListener('dblclick', resetSpeed);
     speedValBadge?.addEventListener('dblclick', resetSpeed);
 
-    // 10. Brightness & Contrast Sliders
+    // 10. Brightness & Contrast Sliders (Synced between main and mobile tabs)
     const brSlider = document.getElementById('slider-brightness') as HTMLInputElement;
+    const brSliderSub = document.getElementById('slider-brightness-sub') as HTMLInputElement;
+    const brSubVal = document.getElementById('lbl-brightness-sub-val');
     const brTag = document.getElementById('lbl-brightness-tag');
-    brSlider?.addEventListener('input', () => {
-      this.options.brightness = parseInt(brSlider.value);
-    });
-    brTag?.addEventListener('dblclick', () => {
-      if (brSlider) brSlider.value = '0';
-      this.options.brightness = 0;
-    });
+    const brSubTag = document.getElementById('lbl-brightness-sub-tag');
+
+    const setBrightness = (val: number) => {
+      this.options.brightness = val;
+      if (brSlider) brSlider.value = String(val);
+      if (brSliderSub) brSliderSub.value = String(val);
+      if (brSubVal) brSubVal.textContent = String(val);
+    };
+
+    brSlider?.addEventListener('input', () => setBrightness(parseInt(brSlider.value)));
+    brSliderSub?.addEventListener('input', () => setBrightness(parseInt(brSliderSub.value)));
+    brTag?.addEventListener('dblclick', () => setBrightness(0));
+    brSubTag?.addEventListener('dblclick', () => setBrightness(0));
 
     const ctSlider = document.getElementById('slider-contrast') as HTMLInputElement;
+    const ctSliderSub = document.getElementById('slider-contrast-sub') as HTMLInputElement;
+    const ctSubVal = document.getElementById('lbl-contrast-sub-val');
     const ctTag = document.getElementById('lbl-contrast-tag');
-    ctSlider?.addEventListener('input', () => {
-      this.options.contrast = parseInt(ctSlider.value) / 100.0;
-    });
-    ctTag?.addEventListener('dblclick', () => {
-      if (ctSlider) ctSlider.value = '100';
-      this.options.contrast = 1.0;
-    });
+    const ctSubTag = document.getElementById('lbl-contrast-sub-tag');
+
+    const setContrast = (val: number) => {
+      this.options.contrast = val / 100.0;
+      if (ctSlider) ctSlider.value = String(val);
+      if (ctSliderSub) ctSliderSub.value = String(val);
+      if (ctSubVal) ctSubVal.textContent = `${val}%`;
+    };
+
+    ctSlider?.addEventListener('input', () => setContrast(parseInt(ctSlider.value)));
+    ctSliderSub?.addEventListener('input', () => setContrast(parseInt(ctSliderSub.value)));
+    ctTag?.addEventListener('dblclick', () => setContrast(100));
+    ctSubTag?.addEventListener('dblclick', () => setContrast(100));
 
     // 11. Hotkey Guide Modal
     const hotkeyModal = document.getElementById('hotkey-modal');
@@ -457,7 +525,7 @@ class CTDashcamStudioApp {
     });
   }
 
-  private getCanvasCoordinates(e: MouseEvent): { cx: number; cy: number } | null {
+  private getCanvasCoordinatesFromPoint(clientX: number, clientY: number): { cx: number; cy: number } | null {
     const rect = this.canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return null;
 
@@ -477,8 +545,8 @@ class CTDashcamStudioApp {
       offY = (rect.height - contentH) / 2;
     }
 
-    const mouseX = e.clientX - rect.left - offX;
-    const mouseY = e.clientY - rect.top - offY;
+    const mouseX = clientX - rect.left - offX;
+    const mouseY = clientY - rect.top - offY;
 
     if (mouseX < 0 || mouseX > contentW || mouseY < 0 || mouseY > contentH) {
       return null;
@@ -487,6 +555,10 @@ class CTDashcamStudioApp {
     const cx = (mouseX / contentW) * this.canvas.width;
     const cy = (mouseY / contentH) * this.canvas.height;
     return { cx, cy };
+  }
+
+  private getCanvasCoordinates(e: MouseEvent): { cx: number; cy: number } | null {
+    return this.getCanvasCoordinatesFromPoint(e.clientX, e.clientY);
   }
 
   private hitTestTelemetryCol(cx: number, cy: number): string | null {
@@ -546,98 +618,123 @@ class CTDashcamStudioApp {
     return false;
   }
 
+  private handleCanvasSlotZoom(clientX: number, clientY: number) {
+    const coords = this.getCanvasCoordinatesFromPoint(clientX, clientY);
+    if (!coords) return;
+    const { cx, cy } = coords;
+
+    const scale = this.canvas.width / 1920.0;
+    const hasBottomHud = this.options.map || this.options.timestamp || this.options.speed || this.options.fsd || this.options.turn_signal || this.options.steering || this.options.pedal;
+    const bottomH = hasBottomHud ? Math.round(180 * scale) : 0;
+    const frontH = this.canvas.height - bottomH;
+
+    // If clicked inside HUD bottom bar, reset telemetry order
+    if (cy >= frontH) {
+      this.options.telemetryOrder = [...DEFAULT_TELEMETRY_ORDER];
+      localStorage.removeItem('ct_telemetry_order');
+      return;
+    }
+
+    // If already in single camera mode, restore previous layout
+    if (this.options.layout === '단일 카메라') {
+      this.setLayoutMode(this.prevLayoutBeforeSingle || '기본 (1:3 세로배치)');
+      return;
+    }
+
+    this.prevLayoutBeforeSingle = this.options.layout;
+    let targetCam: CameraKey | null = null;
+    const is2x2 = this.options.layout === '2x2 분할 (전후/좌우)';
+
+    // 1. Check Pillar PIP hits if active
+    if (this.options.pillar_pip) {
+      const pw = Math.round((is2x2 ? 236 : 320) * scale);
+      const ph = Math.round((is2x2 ? 132 : 180) * scale);
+      const lpX = Math.round(8 * scale);
+      const lpY = frontH - ph - Math.round(8 * scale);
+      const frontW = is2x2 ? this.canvas.width : this.canvas.width - Math.round(480 * scale);
+      const rpX = frontW - pw - Math.round(8 * scale);
+      const rpY = frontH - ph - Math.round(8 * scale);
+
+      if (cx >= lpX && cx <= lpX + pw && cy >= lpY && cy <= lpY + ph) {
+        targetCam = 'left_pillar';
+      } else if (cx >= rpX && cx <= rpX + pw && cy >= rpY && cy <= rpY + ph) {
+        targetCam = 'right_pillar';
+      }
+    }
+
+    // 2. Check main camera slots
+    if (!targetCam) {
+      if (is2x2) {
+        const halfW = this.canvas.width / 2;
+        const halfH = frontH / 2;
+        if (cx < halfW) {
+          targetCam = cy < halfH ? 'front' : 'back';
+        } else {
+          targetCam = cy < halfH ? 'left_repeater' : 'right_repeater';
+        }
+      } else {
+        // 1:3 layout
+        const subW = Math.round(480 * scale);
+        const frontW = this.canvas.width - subW;
+        if (cx < frontW) {
+          targetCam = 'front';
+        } else {
+          const slotIdx = Math.min(2, Math.max(0, Math.floor(cy / (frontH / 3.0))));
+          targetCam = (['back', 'left_repeater', 'right_repeater'] as CameraKey[])[slotIdx];
+        }
+      }
+    }
+
+    if (this.activeClip && targetCam) {
+      const availCams = this.activeClip.cams;
+      if (!availCams[targetCam]) {
+        return;
+      }
+    }
+
+    if (targetCam) {
+      this.options.single_cam = targetCam;
+      document.querySelectorAll('.btn-cam-option').forEach((b) => {
+        if (b.getAttribute('data-cam') === targetCam) {
+          b.classList.add('active');
+        } else {
+          b.classList.remove('active');
+        }
+      });
+      this.setLayoutMode('단일 카메라');
+    }
+  }
+
   private setupCanvasInteractions() {
     // 1. Double click on camera slot: Toggle Single Camera Fullscreen
     this.canvas.addEventListener('dblclick', (e) => {
-      const coords = this.getCanvasCoordinates(e);
-      if (!coords) return;
-      const { cx, cy } = coords;
+      this.handleCanvasSlotZoom(e.clientX, e.clientY);
+    });
 
-      const scale = this.canvas.width / 1920.0;
-      const hasBottomHud = this.options.map || this.options.timestamp || this.options.speed || this.options.fsd || this.options.turn_signal || this.options.steering || this.options.pedal;
-      const bottomH = hasBottomHud ? Math.round(180 * scale) : 0;
-      const frontH = this.canvas.height - bottomH;
+    // 1-1. Mobile Touch Double-Tap detection
+    let lastTapTime = 0;
+    let lastTapX = 0;
+    let lastTapY = 0;
 
-      // If clicked inside HUD bottom bar, reset telemetry order
-      if (cy >= frontH) {
-        this.options.telemetryOrder = [...DEFAULT_TELEMETRY_ORDER];
-        localStorage.removeItem('ct_telemetry_order');
-        return;
-      }
-
-      // If already in single camera mode, restore previous layout
-      if (this.options.layout === '단일 카메라') {
-        this.setLayoutMode(this.prevLayoutBeforeSingle || '기본 (1:3 세로배치)');
-        return;
-      }
-
-      this.prevLayoutBeforeSingle = this.options.layout;
-      let targetCam: CameraKey | null = null;
-      const is2x2 = this.options.layout === '2x2 분할 (전후/좌우)';
-
-      // 1. Check Pillar PIP hits if active
-      if (this.options.pillar_pip) {
-        const pw = Math.round((is2x2 ? 236 : 320) * scale);
-        const ph = Math.round((is2x2 ? 132 : 180) * scale);
-        const lpX = Math.round(8 * scale);
-        const lpY = frontH - ph - Math.round(8 * scale);
-        const frontW = is2x2 ? this.canvas.width : this.canvas.width - Math.round(480 * scale);
-        const rpX = frontW - pw - Math.round(8 * scale);
-        const rpY = frontH - ph - Math.round(8 * scale);
-
-        if (cx >= lpX && cx <= lpX + pw && cy >= lpY && cy <= lpY + ph) {
-          targetCam = 'left_pillar';
-        } else if (cx >= rpX && cx <= rpX + pw && cy >= rpY && cy <= rpY + ph) {
-          targetCam = 'right_pillar';
-        }
-      }
-
-      // 2. Check main camera slots
-      if (!targetCam) {
-        if (is2x2) {
-          const halfW = this.canvas.width / 2;
-          const halfH = frontH / 2;
-          if (cx < halfW) {
-            targetCam = cy < halfH ? 'front' : 'back';
-          } else {
-            targetCam = cy < halfH ? 'left_repeater' : 'right_repeater';
-          }
-        } else {
-          // 1:3 layout
-          const subW = Math.round(480 * scale);
-          const frontW = this.canvas.width - subW;
-          if (cx < frontW) {
-            targetCam = 'front';
-          } else {
-            const slotIdx = Math.min(2, Math.max(0, Math.floor(cy / (frontH / 3.0))));
-            targetCam = (['back', 'left_repeater', 'right_repeater'] as CameraKey[])[slotIdx];
-          }
-        }
-      }
-
-      if (this.activeClip && targetCam) {
-        const availCams = this.activeClip.cams;
-        if (!availCams[targetCam]) {
+    this.canvas.addEventListener('touchend', (e: TouchEvent) => {
+      if (e.changedTouches.length === 1) {
+        const touch = e.changedTouches[0];
+        const now = performance.now();
+        const dist = Math.hypot(touch.clientX - lastTapX, touch.clientY - lastTapY);
+        if (now - lastTapTime < 350 && dist < 30) {
+          this.handleCanvasSlotZoom(touch.clientX, touch.clientY);
+          lastTapTime = 0;
           return;
         }
-      }
-
-      if (targetCam) {
-        this.options.single_cam = targetCam;
-        document.querySelectorAll('.btn-cam-option').forEach((b) => {
-          if (b.getAttribute('data-cam') === targetCam) {
-            b.classList.add('active');
-          } else {
-            b.classList.remove('active');
-          }
-        });
-        this.setLayoutMode('단일 카메라');
+        lastTapTime = now;
+        lastTapX = touch.clientX;
+        lastTapY = touch.clientY;
       }
     });
 
-    // 2. Mouse drag inside HUD bar to reorder telemetry columns
-    this.canvas.addEventListener('mousedown', (e) => {
-      const coords = this.getCanvasCoordinates(e);
+    // 2. Mouse / Touch drag inside HUD bar to reorder telemetry columns (Pointer Events)
+    this.canvas.addEventListener('pointerdown', (e: PointerEvent) => {
+      const coords = this.getCanvasCoordinatesFromPoint(e.clientX, e.clientY);
       if (!coords) return;
       const hitKey = this.hitTestTelemetryCol(coords.cx, coords.cy);
       if (hitKey) {
@@ -645,11 +742,14 @@ class CTDashcamStudioApp {
         this.draggingColKey = hitKey;
         this.options.draggingCol = hitKey;
         this.canvas.style.cursor = 'grabbing';
+        try {
+          this.canvas.setPointerCapture(e.pointerId);
+        } catch {}
       }
     });
 
-    this.canvas.addEventListener('mousemove', (e) => {
-      const coords = this.getCanvasCoordinates(e);
+    this.canvas.addEventListener('pointermove', (e: PointerEvent) => {
+      const coords = this.getCanvasCoordinatesFromPoint(e.clientX, e.clientY);
       if (!coords) {
         if (!this.isDraggingTelemetry) this.canvas.style.cursor = 'default';
         return;
@@ -663,14 +763,20 @@ class CTDashcamStudioApp {
       }
     });
 
-    window.addEventListener('mouseup', () => {
+    const stopTelemetryDrag = (e: PointerEvent) => {
       if (this.isDraggingTelemetry) {
         this.isDraggingTelemetry = false;
         this.draggingColKey = null;
         this.options.draggingCol = null;
         this.canvas.style.cursor = 'default';
+        try {
+          this.canvas.releasePointerCapture(e.pointerId);
+        } catch {}
       }
-    });
+    };
+
+    this.canvas.addEventListener('pointerup', stopTelemetryDrag);
+    this.canvas.addEventListener('pointercancel', stopTelemetryDrag);
   }
 
   private setLayoutMode(mode: RenderOptions['layout']) {
@@ -1047,11 +1153,12 @@ class CTDashcamStudioApp {
   private updatePlayButton() {
     const btnPlay = document.getElementById('btn-play');
     if (btnPlay) {
+      const isMobile = this.viewMode === 'auto' ? this.isMobileDevice() : this.viewMode === 'mobile';
       if (this.isPlaying) {
-        btnPlay.textContent = '⏸ 일시정지 (Space)';
+        btnPlay.textContent = isMobile ? '⏸ 일시정지' : '⏸ 일시정지 (Space)';
         btnPlay.classList.add('playing');
       } else {
-        btnPlay.textContent = '▶ 재생 (Space)';
+        btnPlay.textContent = isMobile ? '▶ 재생' : '▶ 재생 (Space)';
         btnPlay.classList.remove('playing');
       }
     }
@@ -1350,6 +1457,11 @@ class CTDashcamStudioApp {
 
   private async startExport() {
     if (!this.activeClip) return;
+
+    if (typeof VideoEncoder === 'undefined') {
+      alert('브라우저 보안 정책상 HTTP 환경(공유기 IP)에서는 WebCodecs 비디오 인코딩이 지원되지 않습니다.\nHTTPS(dev:https)로 접속하거나 데스크톱 로컬(localhost)에서 내보내기를 진행해 주세요.');
+      return;
+    }
 
     const resSelect = document.getElementById('export-resolution') as HTMLSelectElement;
     const speedSelect = document.getElementById('export-speed-select') as HTMLSelectElement;

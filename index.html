@@ -2,7 +2,7 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>CT Dashcam Studio</title>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
@@ -15,6 +15,7 @@
           <span class="brand-title">CT Dash Studio <span class="brand-tag">WEB</span></span>
         </div>
         <div class="mobile-header-actions">
+          <div id="mobile-tier-badge" class="tier-pill-mobile">측정 중...</div>
           <button id="btn-toggle-view-mode" class="btn btn-view-mode" title="PC 버전으로 보기">
             🖥️ PC버전
           </button>
@@ -27,9 +28,9 @@
           <!-- 1-1. 클립 목록 섹션 (모바일 탭: clips) -->
           <div class="sidebar-section mobile-tab-section active" data-mobile-tab="clips">
             <button id="btn-open-folder" class="btn btn-folder-load">
-              📁 TeslaCam 폴더 지정
+              📁 TeslaCam 폴더 / 영상 선택
             </button>
-            <input type="file" id="fallback-file-input" multiple style="display: none;" />
+            <input type="file" id="fallback-file-input" multiple accept="video/mp4,video/*" style="display: none;" />
 
             <!-- 클립 탐색기 테이블 -->
             <div class="explorer-card">
@@ -39,7 +40,7 @@
               </div>
               <div id="clips-tree" class="explorer-body">
                 <div class="empty-state">
-                  폴더를 지정하면 클립 목록이 여기에 표시됩니다.
+                  폴더를 지정하거나 영상 파일을 선택하면 클립 목록이 여기에 표시됩니다.
                 </div>
               </div>
             </div>
@@ -58,6 +59,20 @@
                 <label class="chk-item"><input type="checkbox" id="chk-pillar-pip" checked /> 필러 카메라 (PIP)</label>
                 <label class="chk-item"><input type="checkbox" id="chk-turn-signal" checked /> 방향지시등 (점멸 깜빡이)</label>
                 <label class="chk-item"><input type="checkbox" id="chk-map" checked /> GPS 미니맵 (OSM)</label>
+              </div>
+            </div>
+
+            <div class="group-box mobile-adjust-box">
+              <div class="group-title">화면 밝기 및 대비 보정</div>
+              <div class="adjust-row">
+                <span id="lbl-brightness-sub-tag" class="slider-label clickable">☀ 화면 밝기</span>
+                <input type="range" id="slider-brightness-sub" min="-80" max="80" value="0" class="range-slider" />
+                <span id="lbl-brightness-sub-val" class="adjust-val">0</span>
+              </div>
+              <div class="adjust-row">
+                <span id="lbl-contrast-sub-tag" class="slider-label clickable">◐ 화면 대비</span>
+                <input type="range" id="slider-contrast-sub" min="50" max="200" value="100" class="range-slider" />
+                <span id="lbl-contrast-sub-val" class="adjust-val">100%</span>
               </div>
             </div>
           </div>
@@ -100,6 +115,10 @@
 
               <div class="est-size-row">
                 <span id="lbl-est-size" class="est-size-text">예상 크기: 약 0 MB</span>
+              </div>
+
+              <div id="webcodecs-warning" class="warning-banner" style="display: none;">
+                ⚠️ HTTP 연결 환경에서는 브라우저 보안 제약으로 WebCodecs 내보내기가 제한될 수 있습니다 (HTTPS 연결 권장).
               </div>
 
               <button id="btn-export" class="btn btn-export-main">
@@ -291,6 +310,36 @@
           </div>
           <div class="modal-footer">
             <button id="btn-confirm-hotkey" class="btn btn-primary">확인</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 기기 사양 티어 안내 모달 (모바일 터치 / 데스크톱 클릭 시) -->
+      <div id="tier-modal" class="modal-backdrop" style="display: none;">
+        <div class="modal-card">
+          <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 style="margin: 0; font-size: 14px;">기기 성능 등급 (Device Tier)</h3>
+              <span id="modal-current-tier" class="tooltip-badge">High Tier</span>
+            </div>
+            <button id="btn-close-tier" class="btn-close">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="tooltip-section">
+              <div class="section-title">📊 현재 기기 측정 및 산정 사유</div>
+              <div id="modal-tier-reason" class="tooltip-reason-text">하드웨어 성능을 측정 중입니다...</div>
+            </div>
+            <div class="tooltip-section" style="margin-top: 12px;">
+              <div class="section-title">🏷️ 티어 종류 및 사양 기준</div>
+              <ul class="tier-types-list">
+                <li><span class="tier-dot high"></span><div><strong>High Tier:</strong> 8코어+ / RAM 6GB+ / WebGPU 가속 ➔ 4채널 동시 고화질 동기 재생 및 초고속 내보내기</div></li>
+                <li><span class="tier-dot mid"></span><div><strong>Medium Tier:</strong> 4~6코어 / RAM 4GB+ ➔ 1:3 분할 재생 및 HD 비디오 내보내기 표준 지원</div></li>
+                <li><span class="tier-dot low"></span><div><strong>Low Tier:</strong> 2코어 이하 / RAM 2GB 이하 ➔ 단일 카메라 모드 중심 경량 재생 최적화</div></li>
+              </ul>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="btn-confirm-tier" class="btn btn-primary">확인</button>
           </div>
         </div>
       </div>
