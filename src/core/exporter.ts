@@ -129,14 +129,20 @@ export class WebCodecsExporter {
               const v = segVideos[k];
               if (!v) return Promise.resolve();
               return new Promise<void>((resolve) => {
-                if (Math.abs(v.currentTime - currentSourceSec) < 0.03) {
+                if (Math.abs(v.currentTime - currentSourceSec) < 0.0001) {
                   resolve();
                   return;
                 }
+                let timeoutId: any = null;
                 const onSeeked = () => {
                   v.removeEventListener('seeked', onSeeked);
+                  if (timeoutId) clearTimeout(timeoutId);
                   resolve();
                 };
+                timeoutId = setTimeout(() => {
+                  v.removeEventListener('seeked', onSeeked);
+                  resolve();
+                }, 400);
                 v.addEventListener('seeked', onSeeked);
                 v.currentTime = currentSourceSec;
               });

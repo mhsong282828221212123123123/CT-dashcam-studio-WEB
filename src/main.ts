@@ -82,6 +82,7 @@ class CTDashcamStudioApp {
     this.initViewMode();
     this.initCapabilities();
     this.setupEventListeners();
+    this.updateFpsOptions();
     this.setupShortcuts();
     this.setupCanvasInteractions();
     this.startRenderLoop();
@@ -473,6 +474,7 @@ class CTDashcamStudioApp {
     document.getElementById('export-speed-select')?.addEventListener('change', () => {
       const speedVal = parseFloat((document.getElementById('export-speed-select') as HTMLSelectElement).value);
       this.options.exportSpeed = speedVal;
+      this.updateFpsOptions();
       this.updateEstimatedSize();
     });
     document.getElementById('export-fps-select')?.addEventListener('change', () => this.updateEstimatedSize());
@@ -1074,9 +1076,12 @@ class CTDashcamStudioApp {
 
   async selectClip(clip: ClipItem) {
     this.activeClip = clip;
+    const hasPillars = Boolean(clip.cams.left_pillar || clip.cams.right_pillar);
+    this.fps = hasPillars ? 24.0 : 36.0;
     this.isPlaying = false;
     this.currentTimeSec = 0;
 
+    this.updateFpsOptions();
     this.updateRangeUI();
     this.updateEstimatedSize();
     this.updatePillarPipState();
@@ -1532,14 +1537,68 @@ class CTDashcamStudioApp {
     });
   }
 
+  private updateFpsOptions() {
+    const fpsSelect = document.getElementById('export-fps-select') as HTMLSelectElement;
+    const speedSelect = document.getElementById('export-speed-select') as HTMLSelectElement;
+    if (!fpsSelect) return;
+
+    const hasPillars = Boolean(
+      this.activeClip?.cams.left_pillar || this.activeClip?.cams.right_pillar
+    );
+    const baseFps = hasPillars ? 24.0 : 36.0;
+    const exportSpeed = parseFloat(speedSelect?.value || '1.0');
+    const maxFps = Math.min(120, Math.round(baseFps * exportSpeed));
+
+    const currentVal = parseInt(fpsSelect.value) || maxFps;
+
+    const candidates: Array<{ label: string; val: number }> = [
+      { label: `${maxFps} FPS (원본 최적)`, val: maxFps },
+      { label: '60 FPS', val: 60 },
+      { label: '36 FPS', val: 36 },
+      { label: '30 FPS (표준)', val: 30 },
+      { label: '24 FPS (시네마)', val: 24 },
+      { label: '15 FPS (절감)', val: 15 },
+    ];
+
+    fpsSelect.innerHTML = '';
+    const added = new Set<number>();
+
+    for (const c of candidates) {
+      if (c.val <= maxFps && !added.has(c.val)) {
+        const opt = document.createElement('option');
+        opt.value = String(c.val);
+        opt.textContent = c.label;
+        fpsSelect.appendChild(opt);
+        added.add(c.val);
+      }
+    }
+
+    if (added.size === 0) {
+      const opt = document.createElement('option');
+      opt.value = String(maxFps);
+      opt.textContent = `${maxFps} FPS`;
+      fpsSelect.appendChild(opt);
+      added.add(maxFps);
+    }
+
+    if (added.has(currentVal)) {
+      fpsSelect.value = String(currentVal);
+    } else {
+      fpsSelect.selectedIndex = 0;
+    }
+  }
+
   private updateEstimatedSize() {
     const resSelect = document.getElementById('export-resolution') as HTMLSelectElement;
     const speedSelect = document.getElementById('export-speed-select') as HTMLSelectElement;
+    const fpsSelect = document.getElementById('export-fps-select') as HTMLSelectElement;
     const estLabel = document.getElementById('lbl-est-size');
     if (!resSelect || !estLabel) return;
 
     const resConfig = RESOLUTIONS[resSelect.value] || RESOLUTIONS['FHD (1920x1080) - 권장 표준'];
     const exportSpeed = parseFloat(speedSelect?.value || '1.0');
+    const targetFps = fpsSelect ? parseFloat(fpsSelect.value) || 30.0 : 30.0;
+    const fpsRatio = Math.pow(targetFps / 30.0, 0.45);
 
     let durationSec = this.durationSec;
     if (this.startPoint && this.endPoint) {
@@ -1549,8 +1608,8 @@ class CTDashcamStudioApp {
       durationSec = chain.reduce((sum, seg) => sum + (seg.endSec - seg.startSec), 0);
     }
 
-    // Bitrate calculation matching Python original
-    const estMb = (resConfig.bitrate_mbps * 1_000_000 / 8 * durationSec) / (exportSpeed * 1024 * 1024);
+    // Bitrate calculation matching Python original with FPS ratio scaling
+    const estMb = (resConfig.bitrate_mbps * 1_000_000 / 8 * durationSec * fpsRatio) / (exportSpeed * 1024 * 1024);
     estLabel.textContent = `${i18n.t('est_size_prefix')}${estMb.toFixed(1)} MB`;
   }
 
