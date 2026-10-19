@@ -97,6 +97,7 @@ class CTDashcamStudioApp {
     this.initCapabilities();
     this.initClipsTreeEventDelegation();
     this.setupEventListeners();
+    this.initPWAInstall();
     this.updateFpsOptions();
     this.setupShortcuts();
     this.setupCanvasInteractions();
@@ -2043,6 +2044,111 @@ class CTDashcamStudioApp {
           if (statusLabel) statusLabel.style.display = 'none';
         }
       }, 4000);
+    }
+  }
+
+  // PWA / Add to Home Screen handler for Android & iOS
+  private initPWAInstall() {
+    let deferredPrompt: any = null;
+    const btnAddToHome = document.getElementById('btn-add-to-home');
+    const modalInstallGuide = document.getElementById('modal-install-guide');
+    const btnCloseInstallModal = document.getElementById('btn-close-install-modal');
+    const btnConfirmInstall = document.getElementById('btn-confirm-install');
+    const btnTriggerPwaInstall = document.getElementById('btn-trigger-pwa-install');
+    const btnCopyPageUrl = document.getElementById('btn-copy-page-url');
+    const copyStatusMsg = document.getElementById('copy-status-msg');
+
+    // Register service worker if supported
+    if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      navigator.serviceWorker.register('./sw.js').catch((err) => {
+        console.warn('[PWA] ServiceWorker registration failed:', err);
+      });
+    }
+
+    // Capture beforeinstallprompt for Android / Chrome / Edge / Samsung Internet
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (btnTriggerPwaInstall) {
+        btnTriggerPwaInstall.style.display = 'block';
+      }
+    });
+
+    const openInstallModal = () => {
+      if (modalInstallGuide) modalInstallGuide.style.display = 'flex';
+      // Detect platform
+      const ua = navigator.userAgent.toLowerCase();
+      const isIOS = /iphone|ipad|ipod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isAndroid = /android/.test(ua);
+      const guideAndroid = document.getElementById('guide-android');
+      const guideIOS = document.getElementById('guide-ios');
+
+      if (isIOS) {
+        if (guideIOS) guideIOS.style.display = 'block';
+        if (guideAndroid) guideAndroid.style.display = 'none';
+      } else if (isAndroid) {
+        if (guideAndroid) guideAndroid.style.display = 'block';
+        if (guideIOS) guideIOS.style.display = 'none';
+        if (deferredPrompt && btnTriggerPwaInstall) {
+          btnTriggerPwaInstall.style.display = 'block';
+        }
+      } else {
+        // Desktop / Other: show both
+        if (guideAndroid) guideAndroid.style.display = 'block';
+        if (guideIOS) guideIOS.style.display = 'block';
+      }
+    };
+
+    if (btnAddToHome) {
+      btnAddToHome.addEventListener('click', () => {
+        openInstallModal();
+      });
+    }
+
+    if (btnTriggerPwaInstall) {
+      btnTriggerPwaInstall.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const choiceResult = await deferredPrompt.userChoice;
+          if (choiceResult && choiceResult.outcome === 'accepted') {
+            if (modalInstallGuide) modalInstallGuide.style.display = 'none';
+          }
+          deferredPrompt = null;
+        } else {
+          alert('브라우저 메뉴(⋮ 또는 ≡)에서 "홈 화면에 추가" 또는 "현재 페이지 추가"를 선택하세요.');
+        }
+      });
+    }
+
+    const closeModal = () => {
+      if (modalInstallGuide) modalInstallGuide.style.display = 'none';
+    };
+
+    if (btnCloseInstallModal) btnCloseInstallModal.addEventListener('click', closeModal);
+    if (btnConfirmInstall) btnConfirmInstall.addEventListener('click', closeModal);
+
+    if (modalInstallGuide) {
+      modalInstallGuide.addEventListener('click', (e) => {
+        if (e.target === modalInstallGuide) {
+          closeModal();
+        }
+      });
+    }
+
+    if (btnCopyPageUrl) {
+      btnCopyPageUrl.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          if (copyStatusMsg) {
+            copyStatusMsg.textContent = '✓ 링크 복사 완료!';
+            setTimeout(() => { if (copyStatusMsg) copyStatusMsg.textContent = ''; }, 3000);
+          }
+        } catch {
+          if (copyStatusMsg) {
+            copyStatusMsg.textContent = window.location.href;
+          }
+        }
+      });
     }
   }
 }

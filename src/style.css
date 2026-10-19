@@ -1231,6 +1231,143 @@ kbd {
   color: var(--accent-cyan);
 }
 
+/* 홈 화면 바로가기 추가 안내 모달 */
+.install-guide-card {
+  max-width: 420px;
+  width: calc(100vw - 32px);
+  background: #0d111a;
+  border: 1px solid #233047;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
+}
+
+.install-modal-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.install-app-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #141924;
+  border: 1px solid #242e42;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.install-preview-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+}
+
+.install-preview-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.install-app-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.install-app-sub {
+  font-size: 11px;
+  color: #8b97a8;
+}
+
+.platform-guide {
+  background: #121824;
+  border: 1px solid #1f2b3e;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.platform-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.guide-steps {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #c9d4e5;
+}
+
+.guide-steps li {
+  margin-bottom: 4px;
+}
+
+.guide-steps strong {
+  color: #ffffff;
+}
+
+.btn-pwa-action {
+  width: 100%;
+  margin-top: 10px;
+  background: linear-gradient(135deg, #00b4d8 0%, #0077b6 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 12.5px;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 180, 216, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-pwa-action:active {
+  filter: brightness(1.15);
+}
+
+.install-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.btn-copy-link {
+  background: #182030;
+  border: 1px solid #29364d;
+  color: #8b97a8;
+  font-size: 11.5px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-copy-link:hover, .btn-copy-link:active {
+  color: #ffffff;
+  border-color: var(--accent-cyan);
+  background: #202b40;
+}
+
+.copy-feedback {
+  font-size: 11px;
+  color: #39ff14;
+  font-weight: 600;
+}
+
 /* =========================================================================
    모바일 전용 반응형 및 뷰 모드 (Portrait / Landscape / PC버전 보기)
    ========================================================================= */
@@ -1350,6 +1487,27 @@ kbd {
     background: rgba(255, 153, 0, 0.12);
   }
 
+  .btn-add-home {
+    background: rgba(0, 230, 255, 0.1);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(0, 230, 255, 0.35);
+    border-radius: 5px;
+    padding: 5px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .btn-add-home:active {
+    background: rgba(0, 230, 255, 0.25);
+    border-color: var(--accent-cyan);
+  }
+
   .btn-view-mode {
     background: #182030;
     color: #c9d4e5;
@@ -1369,6 +1527,21 @@ kbd {
     background: #202b40;
     color: #ffffff;
     border-color: var(--accent-cyan);
+  }
+
+  @media (max-width: 380px) {
+    .btn-add-home {
+      padding: 4px 6px;
+      font-size: 10.5px;
+    }
+    .btn-view-mode {
+      padding: 4px 6px;
+      font-size: 10.5px;
+    }
+    .tier-pill-mobile {
+      padding: 3px 5px;
+      font-size: 10px;
+    }
   }
 
   /* ── 세로 모드 (Portrait) 레이아웃 ── */

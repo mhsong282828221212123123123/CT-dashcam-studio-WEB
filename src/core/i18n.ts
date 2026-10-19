@@ -47,6 +47,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     cam_right_repeater: '우측 펜더 (Right)',
     cam_left_pillar: '좌측 B필러',
     cam_right_pillar: '우측 B필러',
+    btn_add_home: '📲 바로가기',
   },
   en: {
     btn_open_folder: '📁 Open TeslaCam Folder',
@@ -94,6 +95,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     cam_right_repeater: 'Right Repeater',
     cam_left_pillar: 'Left B-Pillar',
     cam_right_pillar: 'Right B-Pillar',
+    btn_add_home: '📲 Shortcut',
   },
   ja: {
     btn_open_folder: '📁 TeslaCamフォルダー指定',
@@ -141,6 +143,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     cam_right_repeater: '右フェンダー (Right)',
     cam_left_pillar: '左Bピラー',
     cam_right_pillar: '右Bピラー',
+    btn_add_home: '📲 ショートカット',
   },
   'zh-CN': {
     btn_open_folder: '📁 指定TeslaCam文件夹',
@@ -188,6 +191,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     cam_right_repeater: '右侧翼子板 (Right)',
     cam_left_pillar: '左B柱',
     cam_right_pillar: '右B柱',
+    btn_add_home: '📲 快捷方式',
   },
   'zh-TW': {
     btn_open_folder: '📁 指定TeslaCam資料夾',
@@ -235,6 +239,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     cam_right_repeater: '右側葉子板 (Right)',
     cam_left_pillar: '左B柱',
     cam_right_pillar: '右B柱',
+    btn_add_home: '📲 捷徑',
   },
 };
 
@@ -389,6 +394,12 @@ export class I18nManager {
     // 11. Camera popup title
     const popupTitle = document.querySelector('.popup-title');
     if (popupTitle) popupTitle.textContent = dict.cam_select_title;
+
+    // 12. Add to home button
+    const btnAddHome = document.getElementById('btn-add-to-home');
+    if (btnAddHome && dict.btn_add_home) {
+      btnAddHome.textContent = dict.btn_add_home;
+    }
   }
 }
 
