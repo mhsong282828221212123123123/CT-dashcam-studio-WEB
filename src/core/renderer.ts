@@ -58,7 +58,8 @@ export class OverlayRenderer {
   static {
     if (typeof window !== 'undefined') {
       const img = new Image();
-      img.src = '/models/steering_hud.png';
+      const baseUrl = import.meta.env?.BASE_URL || '/';
+      img.src = `${baseUrl.endsWith('/') ? baseUrl : baseUrl + '/'}models/steering_hud.png`;
       img.onload = () => {
         this.steeringImg = img;
       };
