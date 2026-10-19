@@ -333,27 +333,18 @@ class CTDashcamStudioApp {
     });
     // 1. Open Folder Button & Fallback Inputs
     const btnOpenFolder = document.getElementById('btn-open-folder');
-    const btnOpenFiles = document.getElementById('btn-open-files');
     const fallbackFolderInput = document.getElementById('fallback-folder-input') as HTMLInputElement;
-    const fallbackFileInput = document.getElementById('fallback-file-input') as HTMLInputElement;
 
     btnOpenFolder?.addEventListener('click', async () => {
-      // 모바일 기기는 브라우저 webkitdirectory 폴더 지정을 지원하지 않으므로 곧바로 다중 파일 선택기 실행
-      if (this.isMobileDevice()) {
-        if (fallbackFileInput) {
-          fallbackFileInput.value = '';
-          fallbackFileInput.click();
-        }
-        return;
-      }
-
-      // 1) 데스크톱 보안 컨텍스트(HTTPS or localhost)에서 File System Access API 지원 시 우선 사용
+      // 1) 보안 컨텍스트에서 File System Access API(showDirectoryPicker) 지원 시 우선 사용
       if ('showDirectoryPicker' in window && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
         try {
           const dirHandle = await (window as any).showDirectoryPicker();
           const files = await scanFileSystemDirectory(dirHandle);
-          this.loadFiles(files);
-          return;
+          if (files && files.length > 0) {
+            this.loadFiles(files);
+            return;
+          }
         } catch (e: any) {
           if (e.name === 'AbortError') {
             return; // 사용자가 취소함
@@ -362,20 +353,10 @@ class CTDashcamStudioApp {
         }
       }
 
-      // 2) 데스크톱 브라우저 HTML5 표준 webkitdirectory 폴더 선택 창 실행
+      // 2) HTML5 표준 webkitdirectory 폴더 선택 창 실행
       if (fallbackFolderInput) {
         fallbackFolderInput.value = '';
         fallbackFolderInput.click();
-      } else if (fallbackFileInput) {
-        fallbackFileInput.value = '';
-        fallbackFileInput.click();
-      }
-    });
-
-    btnOpenFiles?.addEventListener('click', () => {
-      if (fallbackFileInput) {
-        fallbackFileInput.value = '';
-        fallbackFileInput.click();
       }
     });
 
@@ -385,6 +366,7 @@ class CTDashcamStudioApp {
       }
     });
 
+    const fallbackFileInput = document.getElementById('fallback-file-input') as HTMLInputElement;
     fallbackFileInput?.addEventListener('change', () => {
       if (fallbackFileInput.files && fallbackFileInput.files.length > 0) {
         this.loadFiles(Array.from(fallbackFileInput.files));

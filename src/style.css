@@ -91,45 +91,6 @@ body {
   box-shadow: 0 0 10px rgba(0, 120, 215, 0.45);
 }
 
-.folder-load-deck {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex-shrink: 0;
-  margin-bottom: 2px;
-}
-
-.btn-files-load {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-color: #059669;
-}
-
-.btn-files-load:hover {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.45);
-}
-
-.mobile-file-tip {
-  display: none;
-  font-size: 11px;
-  color: #94a3b8;
-  background: rgba(30, 41, 59, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  border-radius: 6px;
-  padding: 6px 8px;
-  line-height: 1.4;
-  margin-bottom: 4px;
-}
-
-@media (max-width: 850px) {
-  .mobile-file-tip {
-    display: block;
-  }
-}
-.view-mobile .mobile-file-tip {
-  display: block;
-}
-
 /* 동기 재생용 숨김 비디오 풀: display: none 사용 금지 (iOS/Android 미디어 엔진 중단 방지) */
 .hidden-video-pool {
   position: fixed;

@@ -3,7 +3,6 @@ export type SupportedLang = 'ko' | 'en' | 'ja' | 'zh-CN' | 'zh-TW';
 export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   ko: {
     btn_open_folder: '📁 TeslaCam 폴더 지정',
-    btn_open_files: '📹 영상 파일(들) 직접 선택 (모바일 권장)',
     col_name: '클립 탐색기',
     col_type: '유형 / 채널',
     empty_state: '폴더를 지정하거나 영상 파일을 선택하면 클립 목록이 여기에 표시됩니다.',
@@ -51,7 +50,6 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
   en: {
     btn_open_folder: '📁 Open TeslaCam Folder',
-    btn_open_files: '📹 Select Video File(s) (Mobile)',
     col_name: 'Clip Explorer',
     col_type: 'Type / Channels',
     empty_state: 'Select a TeslaCam folder to load clips here.',
@@ -99,7 +97,6 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
   ja: {
     btn_open_folder: '📁 TeslaCamフォルダー指定',
-    btn_open_files: '📹 動画ファイルを直接選択 (モバイル推奨)',
     col_name: 'クリップエクスプローラー',
     col_type: 'タイプ / チャンネル',
     empty_state: 'フォルダーを指定するとクリップ一覧がここに表示されます。',
@@ -147,7 +144,6 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
   'zh-CN': {
     btn_open_folder: '📁 指定TeslaCam文件夹',
-    btn_open_files: '📹 直接选择视频文件 (手机推荐)',
     col_name: '片段浏览器',
     col_type: '类型 / 通道',
     empty_state: '指定文件夹或选择视频文件后，片段列表将在此显示。',
@@ -195,7 +191,6 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
   'zh-TW': {
     btn_open_folder: '📁 指定TeslaCam資料夾',
-    btn_open_files: '📹 直接選取影片檔案 (手機推薦)',
     col_name: '片段瀏覽器',
     col_type: '類型 / 頻道',
     empty_state: '指定資料夾或選取影片檔案後，片段清單將在此顯示。',
@@ -273,11 +268,9 @@ export class I18nManager {
     const lang = this.currentLang;
     const dict = TRANSLATIONS[lang] || TRANSLATIONS['ko'];
 
-    // 1. Folder & File buttons
+    // 1. Folder button
     const btnOpenFolder = document.getElementById('btn-open-folder');
     if (btnOpenFolder) btnOpenFolder.textContent = dict.btn_open_folder;
-    const btnOpenFiles = document.getElementById('btn-open-files');
-    if (btnOpenFiles) btnOpenFiles.textContent = dict.btn_open_files;
 
     // 2. Explorer header
     const colName = document.querySelector('.explorer-header .col-name');
