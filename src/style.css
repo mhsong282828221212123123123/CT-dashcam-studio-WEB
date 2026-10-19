@@ -1278,9 +1278,78 @@ kbd {
       font-size: 11px;
     }
 
+    body:not(.view-desktop) .btn-range,
+    body.view-mobile .btn-range {
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+      padding: 3px 7px !important;
+    }
+
     body:not(.view-desktop) .control-row-playback,
     body.view-mobile .control-row-playback {
+      display: flex;
+      align-items: center;
       justify-content: space-between;
+      gap: 6px;
+    }
+
+    body:not(.view-desktop) .transport-group,
+    body.view-mobile .transport-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    body:not(.view-desktop) .btn-transport-sub,
+    body.view-mobile .btn-transport-sub {
+      padding: 4px 8px !important;
+      font-size: 11px !important;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+    }
+
+    body:not(.view-desktop) .btn-play-main,
+    body.view-mobile .btn-play-main {
+      min-width: 76px !important;
+      padding: 4px 10px !important;
+      font-size: 11.5px !important;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+    }
+
+    body:not(.view-desktop) .speed-cluster,
+    body.view-mobile .speed-cluster {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    body:not(.view-desktop) #lbl-speed-tag,
+    body.view-mobile #lbl-speed-tag {
+      font-size: 11px !important;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+    }
+
+    body:not(.view-desktop) #slider-preview-speed,
+    body.view-mobile #slider-preview-speed {
+      width: 52px !important;
+      min-width: 44px !important;
+    }
+
+    body:not(.view-desktop) .speed-value-badge,
+    body.view-mobile .speed-value-badge {
+      font-size: 10px !important;
+      padding: 1px 4px !important;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+    }
+
+    body:not(.view-desktop) .speed-cluster .chk-item,
+    body.view-mobile .speed-cluster .chk-item {
+      display: none; /* 공간 절약을 위해 세로 모드에서는 체크박스 숨김 */
     }
 
     body:not(.view-desktop) .filter-cluster,
