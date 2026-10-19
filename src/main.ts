@@ -327,9 +327,8 @@ class CTDashcamStudioApp {
     tierModal?.addEventListener('click', (e) => {
       if (e.target === tierModal) closeTierModal();
     });
-    // 1. Open Folder / Files Buttons & Fallback Inputs
+    // 1. Open Folder Button & Fallback Inputs
     const btnOpenFolder = document.getElementById('btn-open-folder');
-    const btnOpenFiles = document.getElementById('btn-open-files');
     const fallbackFolderInput = document.getElementById('fallback-folder-input') as HTMLInputElement;
     const fallbackFileInput = document.getElementById('fallback-file-input') as HTMLInputElement;
 
@@ -349,18 +348,11 @@ class CTDashcamStudioApp {
         }
       }
 
-      // 2) 다른 컴퓨터(HTTP 원격 접속 등)나 구형 브라우저에서는 HTML5 표준 webkitdirectory 폴더 선택 창 실행
+      // 2) 다른 컴퓨터(HTTP 원격 접속 등)에서는 HTML5 표준 webkitdirectory 폴더 선택 창 실행
       if (fallbackFolderInput) {
         fallbackFolderInput.value = '';
         fallbackFolderInput.click();
       } else if (fallbackFileInput) {
-        fallbackFileInput.value = '';
-        fallbackFileInput.click();
-      }
-    });
-
-    btnOpenFiles?.addEventListener('click', () => {
-      if (fallbackFileInput) {
         fallbackFileInput.value = '';
         fallbackFileInput.click();
       }
