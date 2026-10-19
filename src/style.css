@@ -1073,3 +1073,460 @@ kbd {
   font-size: 11px;
   color: var(--accent-cyan);
 }
+
+/* =========================================================================
+   모바일 전용 반응형 및 뷰 모드 (Portrait / Landscape / PC버전 보기)
+   ========================================================================= */
+
+/* 기본 상태 (PC): 모바일 전용 요소 숨김 */
+.mobile-top-bar,
+.mobile-tabs-nav,
+.btn-floating-mode,
+.btn-floating-drawer {
+  display: none;
+}
+
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* -------------------------------------------------------------------------
+   모바일 모드 활성화 상태 (미디어 쿼리 850px 이하 또는 .view-mobile 클래스 적용 시)
+   ------------------------------------------------------------------------- */
+@media (max-width: 850px), (pointer: coarse) {
+  /* PC 버전 강제 모드가 아닐 때 기본적으로 모바일 UI 적용 */
+  body:not(.view-desktop) #app,
+  body.view-mobile #app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  body:not(.view-desktop) .mobile-top-bar,
+  body.view-mobile .mobile-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 46px;
+    background: #0d111a;
+    border-bottom: 1px solid #1f2738;
+    padding: 0 12px;
+    flex-shrink: 0;
+    z-index: 20;
+  }
+
+  .mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .brand-bolt {
+    color: var(--accent-cyan);
+    font-size: 16px;
+  }
+
+  .brand-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.2px;
+  }
+
+  .brand-tag {
+    font-size: 11px;
+    color: var(--accent-cyan);
+    background: rgba(0, 230, 255, 0.15);
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 3px;
+  }
+
+  .btn-view-mode {
+    background: #182030;
+    color: #c9d4e5;
+    border: 1px solid #29364d;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 11.5px;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+  }
+
+  .btn-view-mode:hover {
+    background: #202b40;
+    color: #ffffff;
+    border-color: var(--accent-cyan);
+  }
+
+  /* ── 세로 모드 (Portrait) 레이아웃 ── */
+  @media (orientation: portrait), (max-width: 600px) {
+    body:not(.view-desktop) .main-container,
+    body.view-mobile .main-container {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      height: calc(100vh - 46px - 48px);
+      height: calc(100dvh - 46px - 48px);
+      overflow: hidden;
+    }
+
+    /* 1. 상단 비디오 플레이어 뷰포트 고정 (order: 1) */
+    body:not(.view-desktop) .main-viewport,
+    body.view-mobile .main-viewport {
+      order: 1 !important;
+      flex: 0 0 auto;
+      width: 100vw;
+      background: #000000;
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+    }
+
+    body:not(.view-desktop) .canvas-container,
+    body.view-mobile .canvas-container {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      max-height: 36vh;
+      background: #000000;
+      position: relative;
+    }
+
+    body:not(.view-desktop) #player-canvas,
+    body.view-mobile #player-canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* 모바일 타임라인 컨트롤 덱 슬림화 */
+    body:not(.view-desktop) .timeline-deck,
+    body.view-mobile .timeline-deck {
+      padding: 6px 10px;
+      gap: 5px;
+      background: #0d111a;
+      border-top: 1px solid #1a2233;
+    }
+
+    body:not(.view-desktop) .timeline-track,
+    body.view-mobile .timeline-track {
+      height: 8px;
+    }
+
+    body:not(.view-desktop) .timeline-thumb,
+    body.view-mobile .timeline-thumb {
+      width: 18px;
+      height: 18px;
+      top: -5px;
+    }
+
+    body:not(.view-desktop) .control-row-info,
+    body.view-mobile .control-row-info {
+      flex-wrap: wrap;
+      gap: 5px;
+      font-size: 11px;
+    }
+
+    body:not(.view-desktop) .control-row-playback,
+    body.view-mobile .control-row-playback {
+      justify-content: space-between;
+    }
+
+    body:not(.view-desktop) .filter-cluster,
+    body:not(.view-desktop) #btn-hotkey-guide,
+    body.view-mobile .filter-cluster,
+    body.view-mobile #btn-hotkey-guide {
+      display: none; /* 모바일 세로에서는 공간 절약을 위해 보정 슬라이더 숨김 */
+    }
+
+    body:not(.view-desktop) .app-footer,
+    body.view-mobile .app-footer {
+      display: none; /* 모바일에서는 하단 탭 바가 푸터 역할을 수행 */
+    }
+
+    /* 2. 하단 탭 바 */
+    body:not(.view-desktop) .mobile-tabs-nav,
+    body.view-mobile .mobile-tabs-nav {
+      display: flex;
+      height: 48px;
+      background: #0a0d14;
+      border-top: 1px solid #1f2738;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .mobile-tab-btn {
+      flex: 1;
+      height: 100%;
+      background: transparent;
+      border: none;
+      color: #8b97a8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      font-size: 11px;
+      transition: all 0.15s ease;
+    }
+
+    .mobile-tab-btn.active {
+      color: var(--accent-cyan);
+      background: rgba(0, 230, 255, 0.08);
+      font-weight: bold;
+      border-top: 2px solid var(--accent-cyan);
+    }
+
+    .mobile-tab-btn .tab-icon {
+      font-size: 15px;
+    }
+
+    /* 3. 사이드바 패널 ➔ 모바일 탭 컨텐츠 드로어로 변환 (order: 2) */
+    body:not(.view-desktop) .sidebar-panel,
+    body.view-mobile .sidebar-panel {
+      order: 2 !important;
+      flex: 1;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      background: #0d111a;
+      border-right: none;
+      padding: 10px;
+      overflow-y: auto;
+      gap: 10px;
+    }
+
+    /* 비활성 탭 섹션 숨김 */
+    body:not(.view-desktop) .mobile-tab-section,
+    body.view-mobile .mobile-tab-section {
+      display: none;
+    }
+
+    body:not(.view-desktop) .mobile-tab-section.active,
+    body.view-mobile .mobile-tab-section.active {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    body:not(.view-desktop) .explorer-card,
+    body.view-mobile .explorer-card {
+      min-height: 240px;
+      flex: 1;
+    }
+
+    body:not(.view-desktop) .clip-node,
+    body.view-mobile .clip-node {
+      padding: 10px 12px; /* 모바일 터치 친화적 패딩 */
+      font-size: 12.5px;
+    }
+
+    body:not(.view-desktop) .btn,
+    body.view-mobile .btn {
+      min-height: 38px; /* 터치 타깃 38px 이상 */
+    }
+  }
+
+  /* ── 가로 모드 (Landscape) 시네마 레이아웃 ── */
+  @media (orientation: landscape) and (max-height: 600px) {
+    body:not(.view-desktop) .main-container,
+    body.view-mobile .main-container {
+      display: flex;
+      height: 100vh;
+      height: 100dvh;
+      width: 100vw;
+      overflow: hidden;
+      position: relative;
+    }
+
+    body:not(.view-desktop) .main-viewport,
+    body.view-mobile .main-viewport {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background: #000;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    body:not(.view-desktop) .canvas-container,
+    body.view-mobile .canvas-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    body:not(.view-desktop) #player-canvas,
+    body.view-mobile #player-canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* 가로 모드 플로팅 타임라인 덱 */
+    body:not(.view-desktop) .timeline-deck,
+    body.view-mobile .timeline-deck {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(10, 14, 22, 0.88);
+      backdrop-filter: blur(10px);
+      padding: 6px 14px 10px;
+      z-index: 25;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    body:not(.view-desktop) .mobile-top-bar,
+    body.view-mobile .mobile-top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: rgba(10, 14, 22, 0.88);
+      backdrop-filter: blur(8px);
+      z-index: 30;
+      height: 40px;
+    }
+
+    body:not(.view-desktop) .mobile-tabs-nav,
+    body.view-mobile .mobile-tabs-nav {
+      display: none;
+    }
+
+    body:not(.view-desktop) .btn-floating-drawer,
+    body.view-mobile .btn-floating-drawer {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      position: fixed;
+      top: 48px;
+      left: 12px;
+      z-index: 40;
+      background: rgba(0, 120, 215, 0.85);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: bold;
+      backdrop-filter: blur(6px);
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    /* 가로 모드 슬라이드 아웃 사이드바 드로어 */
+    body:not(.view-desktop) .sidebar-panel,
+    body.view-mobile .sidebar-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 320px !important;
+      z-index: 60;
+      background: rgba(12, 16, 25, 0.96);
+      backdrop-filter: blur(16px);
+      box-shadow: 8px 0 30px rgba(0, 0, 0, 0.85);
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex !important;
+    }
+
+    body:not(.view-desktop) .sidebar-panel.landscape-drawer-open,
+    body.view-mobile .sidebar-panel.landscape-drawer-open {
+      transform: translateX(0);
+    }
+
+    body:not(.view-desktop) .mobile-tab-section,
+    body.view-mobile .mobile-tab-section {
+      display: flex !important;
+    }
+  }
+}
+
+/* -------------------------------------------------------------------------
+   PC 버전 강제 모드 (.view-desktop) - 모바일 기기에서도 데스크톱 UI로 표시
+   ------------------------------------------------------------------------- */
+body.view-desktop {
+  overflow-x: auto !important;
+}
+
+body.view-desktop #app {
+  min-width: 1100px;
+  height: 100vh;
+}
+
+body.view-desktop .mobile-top-bar,
+body.view-desktop .mobile-tabs-nav,
+body.view-desktop .btn-floating-drawer {
+  display: none !important;
+}
+
+body.view-desktop .main-container {
+  display: flex !important;
+  flex-direction: row !important;
+  height: 100vh !important;
+}
+
+body.view-desktop .sidebar-panel {
+  display: flex !important;
+  width: 395px !important;
+  min-width: 370px !important;
+  max-width: 440px !important;
+  transform: none !important;
+  position: static !important;
+}
+
+body.view-desktop .mobile-tab-section {
+  display: flex !important;
+}
+
+body.view-desktop .main-viewport {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* PC 버전 상태에서 모바일 화면 복귀용 우측 하단 플로팅 캡슐 버튼 */
+.btn-floating-mode {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #0078d7, #00b4d8);
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 13px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 18px rgba(0, 120, 215, 0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-floating-mode:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(0, 120, 215, 0.7);
+}
+

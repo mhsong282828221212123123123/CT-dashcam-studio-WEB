@@ -68,11 +68,16 @@ class CTDashcamStudioApp {
   private exporter = new WebCodecsExporter();
   private isExporting = false;
 
+  // View Mode ('auto' | 'mobile' | 'desktop')
+  private viewMode: 'auto' | 'mobile' | 'desktop' = 'auto';
+  private isLandscapeDrawerOpen = false;
+
   constructor() {
     this.canvas = document.getElementById('player-canvas') as HTMLCanvasElement;
     this.videoContainer = document.getElementById('hidden-video-container') as HTMLElement;
 
     this.loadSavedSettings();
+    this.initViewMode();
     this.initCapabilities();
     this.setupEventListeners();
     this.setupShortcuts();
@@ -96,6 +101,99 @@ class CTDashcamStudioApp {
     } catch {
       // fallback
     }
+  }
+
+  private isMobileDevice(): boolean {
+    const ua = navigator.userAgent || '';
+    const isTouch = navigator.maxTouchPoints > 0;
+    const isMobileUa = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    const isSmallScreen = window.innerWidth <= 850;
+    return isMobileUa || (isTouch && isSmallScreen) || isSmallScreen;
+  }
+
+  private initViewMode() {
+    const saved = localStorage.getItem('ct_view_mode') as 'auto' | 'mobile' | 'desktop' | null;
+    this.viewMode = saved || 'auto';
+    this.applyViewMode();
+
+    // 1. Mobile top bar toggle button
+    document.getElementById('btn-toggle-view-mode')?.addEventListener('click', () => {
+      this.toggleViewMode();
+    });
+
+    // 2. Floating toggle button (shown in PC mode on mobile device)
+    document.getElementById('btn-floating-view-mode')?.addEventListener('click', () => {
+      this.toggleViewMode();
+    });
+
+    // 3. Mobile tab buttons switching
+    const tabBtns = document.querySelectorAll('.mobile-tab-btn');
+    tabBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetTab = btn.getAttribute('data-tab');
+        if (!targetTab) return;
+        tabBtns.forEach((b) => b.classList.toggle('active', b === btn));
+        const sections = document.querySelectorAll('.mobile-tab-section');
+        sections.forEach((sec) => {
+          sec.classList.toggle('active', sec.getAttribute('data-mobile-tab') === targetTab);
+        });
+      });
+    });
+
+    // 4. Landscape drawer button
+    const btnDrawer = document.getElementById('btn-landscape-drawer');
+    const sidebar = document.getElementById('sidebar-panel');
+    btnDrawer?.addEventListener('click', () => {
+      this.isLandscapeDrawerOpen = !this.isLandscapeDrawerOpen;
+      sidebar?.classList.toggle('landscape-drawer-open', this.isLandscapeDrawerOpen);
+      if (btnDrawer) btnDrawer.textContent = this.isLandscapeDrawerOpen ? '✕ 닫기' : '🎬 클립 목록';
+    });
+
+    // Close drawer when selecting a clip in landscape
+    document.getElementById('clips-tree')?.addEventListener('click', () => {
+      if (this.isLandscapeDrawerOpen) {
+        this.isLandscapeDrawerOpen = false;
+        sidebar?.classList.remove('landscape-drawer-open');
+        if (btnDrawer) btnDrawer.textContent = '🎬 클립 목록';
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (this.viewMode === 'auto') {
+        this.applyViewMode();
+      }
+    });
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => this.applyViewMode(), 150);
+    });
+  }
+
+  private applyViewMode() {
+    const isMobile = this.viewMode === 'auto' ? this.isMobileDevice() : this.viewMode === 'mobile';
+    const body = document.body;
+    const btnToggle = document.getElementById('btn-toggle-view-mode');
+    const btnFloating = document.getElementById('btn-floating-view-mode');
+
+    if (isMobile) {
+      body.classList.add('view-mobile');
+      body.classList.remove('view-desktop');
+      if (btnToggle) btnToggle.textContent = '🖥️ PC버전';
+      if (btnFloating) btnFloating.style.display = 'none';
+    } else {
+      body.classList.add('view-desktop');
+      body.classList.remove('view-mobile');
+      if (btnToggle) btnToggle.textContent = '📱 모바일';
+      if (btnFloating) {
+        btnFloating.style.display = this.isMobileDevice() ? 'flex' : 'none';
+      }
+    }
+  }
+
+  private toggleViewMode() {
+    const isCurrentlyMobile = this.viewMode === 'auto' ? this.isMobileDevice() : this.viewMode === 'mobile';
+    this.viewMode = isCurrentlyMobile ? 'desktop' : 'mobile';
+    localStorage.setItem('ct_view_mode', this.viewMode);
+    this.applyViewMode();
   }
 
   private async initCapabilities() {
