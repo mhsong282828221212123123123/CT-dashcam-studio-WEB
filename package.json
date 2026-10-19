@@ -1,0 +1,22 @@
+{
+  "name": "ct-dashcam-studio-web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "mp4-muxer": "^5.1.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.4",
+    "puppeteer-core": "^25.14.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2",
+    "vitest": "^2.0.5"
+  }
+}
