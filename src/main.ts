@@ -5,6 +5,7 @@ import { OverlayRenderer, RenderOptions, DEFAULT_RENDER_OPTIONS, DEFAULT_TELEMET
 import { detectDeviceCapabilities, CapabilityPolicy } from './core/capability';
 import { WebCodecsExporter, ExportClipSegment } from './core/exporter';
 import { RESOLUTIONS, CameraKey } from './core/constants';
+import { i18n, SupportedLang } from './core/i18n';
 
 export interface RangePoint {
   clipId: string;
@@ -77,6 +78,7 @@ class CTDashcamStudioApp {
     this.videoContainer = document.getElementById('hidden-video-container') as HTMLElement;
 
     this.loadSavedSettings();
+    i18n.applyDOM();
     this.initViewMode();
     this.initCapabilities();
     this.setupEventListeners();
@@ -474,6 +476,16 @@ class CTDashcamStudioApp {
       this.updateEstimatedSize();
     });
     document.getElementById('export-fps-select')?.addEventListener('change', () => this.updateEstimatedSize());
+    const selectLanguage = document.getElementById('select-language') as HTMLSelectElement;
+    if (selectLanguage) {
+      selectLanguage.value = i18n.getLang();
+      selectLanguage.addEventListener('change', (e) => {
+        const targetLang = (e.target as HTMLSelectElement).value as SupportedLang;
+        i18n.setLang(targetLang);
+        this.updateEstimatedSize();
+        this.updateRangeUI();
+      });
+    }
 
     // 5. Main Export Button
     document.getElementById('btn-export')?.addEventListener('click', () => {
@@ -1539,7 +1551,7 @@ class CTDashcamStudioApp {
 
     // Bitrate calculation matching Python original
     const estMb = (resConfig.bitrate_mbps * 1_000_000 / 8 * durationSec) / (exportSpeed * 1024 * 1024);
-    estLabel.textContent = `예상 크기: 약 ${estMb.toFixed(1)} MB`;
+    estLabel.textContent = `${i18n.t('est_size_prefix')}${estMb.toFixed(1)} MB`;
   }
 
   private async startExport() {
