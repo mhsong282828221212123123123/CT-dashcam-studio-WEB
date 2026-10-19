@@ -48,9 +48,17 @@
 
           <!-- 1-1. 클립 목록 섹션 (모바일 탭: clips) -->
           <div class="sidebar-section mobile-tab-section active" data-mobile-tab="clips">
-            <button id="btn-open-folder" class="btn btn-folder-load">
-              📁 TeslaCam 폴더 / 영상 선택
-            </button>
+            <div class="load-btn-group">
+              <button id="btn-open-folder" class="btn btn-folder-load" title="TeslaCam 폴더 지정 (권장)">
+                📁 TeslaCam 폴더 선택
+              </button>
+              <button id="btn-open-files" class="btn btn-folder-load-sub" title="개별 MP4 파일 직접 선택">
+                📄 파일 선택
+              </button>
+            </div>
+            <!-- 폴더 선택 전용 인풋 (다른 PC / HTTP 접속 환경 지원) -->
+            <input type="file" id="fallback-folder-input" webkitdirectory directory multiple style="display: none;" />
+            <!-- 개별 파일 선택 전용 인풋 -->
             <input type="file" id="fallback-file-input" multiple accept="video/mp4,video/*" style="display: none;" />
 
             <!-- 클립 탐색기 테이블 -->

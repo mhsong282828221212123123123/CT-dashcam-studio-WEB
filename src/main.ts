@@ -327,29 +327,54 @@ class CTDashcamStudioApp {
     tierModal?.addEventListener('click', (e) => {
       if (e.target === tierModal) closeTierModal();
     });
-    // 1. Open Folder Button & Fallback Input
+    // 1. Open Folder / Files Buttons & Fallback Inputs
     const btnOpenFolder = document.getElementById('btn-open-folder');
-    const fallbackInput = document.getElementById('fallback-file-input') as HTMLInputElement;
+    const btnOpenFiles = document.getElementById('btn-open-files');
+    const fallbackFolderInput = document.getElementById('fallback-folder-input') as HTMLInputElement;
+    const fallbackFileInput = document.getElementById('fallback-file-input') as HTMLInputElement;
 
     btnOpenFolder?.addEventListener('click', async () => {
-      if ('showDirectoryPicker' in window) {
+      // 1) 보안 컨텍스트(HTTPS or localhost)에서 File System Access API 지원 시 우선 사용
+      if ('showDirectoryPicker' in window && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
         try {
           const dirHandle = await (window as any).showDirectoryPicker();
           const files = await scanFileSystemDirectory(dirHandle);
           this.loadFiles(files);
+          return;
         } catch (e: any) {
-          if (e.name !== 'AbortError') {
-            fallbackInput.click();
+          if (e.name === 'AbortError') {
+            return; // 사용자가 취소함
           }
+          console.warn('showDirectoryPicker failed, falling back to folder input:', e);
         }
-      } else {
-        fallbackInput.click();
+      }
+
+      // 2) 다른 컴퓨터(HTTP 원격 접속 등)나 구형 브라우저에서는 HTML5 표준 webkitdirectory 폴더 선택 창 실행
+      if (fallbackFolderInput) {
+        fallbackFolderInput.value = '';
+        fallbackFolderInput.click();
+      } else if (fallbackFileInput) {
+        fallbackFileInput.value = '';
+        fallbackFileInput.click();
       }
     });
 
-    fallbackInput?.addEventListener('change', () => {
-      if (fallbackInput.files && fallbackInput.files.length > 0) {
-        this.loadFiles(Array.from(fallbackInput.files));
+    btnOpenFiles?.addEventListener('click', () => {
+      if (fallbackFileInput) {
+        fallbackFileInput.value = '';
+        fallbackFileInput.click();
+      }
+    });
+
+    fallbackFolderInput?.addEventListener('change', () => {
+      if (fallbackFolderInput.files && fallbackFolderInput.files.length > 0) {
+        this.loadFiles(Array.from(fallbackFolderInput.files));
+      }
+    });
+
+    fallbackFileInput?.addEventListener('change', () => {
+      if (fallbackFileInput.files && fallbackFileInput.files.length > 0) {
+        this.loadFiles(Array.from(fallbackFileInput.files));
       }
     });
 
