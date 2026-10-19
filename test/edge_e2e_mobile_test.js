@@ -5,6 +5,8 @@ import * as fs from 'fs';
 const EDGE_PATH = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 const TEST_DIR = 'E:\\tesla\\project\\testfile\\SavedClips\\2026-08-17_12-48-22';
 const PORTRAIT_SCREENSHOT = 'E:\\tesla\\project\\CT-dashcam-studio-web\\docs\\mobile_portrait_ui.png';
+const OVERLAYS_SCREENSHOT = 'E:\\tesla\\project\\CT-dashcam-studio-web\\docs\\mobile_overlays_ui.png';
+const EXPORT_SCREENSHOT = 'E:\\tesla\\project\\CT-dashcam-studio-web\\docs\\mobile_export_ui.png';
 const LANDSCAPE_SCREENSHOT = 'E:\\tesla\\project\\CT-dashcam-studio-web\\docs\\mobile_landscape_ui.png';
 const DESKTOP_MODE_SCREENSHOT = 'E:\\tesla\\project\\CT-dashcam-studio-web\\docs\\mobile_pc_mode_ui.png';
 
@@ -177,6 +179,10 @@ async function runEdgeMobileTest() {
   console.log('✓ Overlays tab active and visible:', overlaysVisible);
   if (!overlaysVisible) throw new Error('Overlays section should be displayed!');
 
+  // Capture Overlays tab screenshot
+  await page.screenshot({ path: OVERLAYS_SCREENSHOT });
+  console.log(`✓ Saved Overlays screenshot to ${OVERLAYS_SCREENSHOT}`);
+
   // Test brightness sub slider sync
   await page.evaluate(() => {
     const subBr = document.getElementById('slider-brightness-sub');
@@ -198,6 +204,10 @@ async function runEdgeMobileTest() {
   });
   console.log('✓ Export tab active and visible:', exportVisible);
   if (!exportVisible) throw new Error('Export section should be displayed!');
+
+  // Capture Export tab screenshot
+  await page.screenshot({ path: EXPORT_SCREENSHOT });
+  console.log(`✓ Saved Export screenshot to ${EXPORT_SCREENSHOT}`);
 
   // Switch back to [🎬 클립 탐색] tab
   const tabClips = await page.$('.mobile-tab-btn[data-tab="clips"]');
@@ -275,12 +285,102 @@ async function runEdgeMobileTest() {
   });
   await new Promise(r => setTimeout(r, 500));
 
-  const drawerOpen = await page.evaluate(() => {
+  let drawerOpen = await page.evaluate(() => {
     const sidebar = document.getElementById('sidebar-panel');
     return sidebar.classList.contains('landscape-drawer-open');
   });
   console.log('✓ Landscape clip drawer opened:', drawerOpen);
   if (!drawerOpen) throw new Error('Landscape drawer should be open!');
+
+  // Test 7-1: Close drawer via ✕ 닫기 button inside drawer header
+  console.log('Testing drawer close button (✕ 닫기)...');
+  await page.click('#btn-close-drawer');
+  await new Promise(r => setTimeout(r, 500));
+
+  let drawerClosed = await page.evaluate(() => {
+    const sidebar = document.getElementById('sidebar-panel');
+    return !sidebar.classList.contains('landscape-drawer-open');
+  });
+  console.log('✓ Landscape drawer closed via ✕ 닫기 button:', drawerClosed);
+  if (!drawerClosed) throw new Error('Drawer should be closed via close button!');
+
+  // Test 7-2: Reopen and close via Backdrop click
+  console.log('Testing drawer backdrop tap to close...');
+  await page.evaluate(() => document.getElementById('btn-landscape-drawer').click());
+  await new Promise(r => setTimeout(r, 400));
+  await page.click('#mobile-drawer-backdrop');
+  await new Promise(r => setTimeout(r, 400));
+
+  drawerClosed = await page.evaluate(() => {
+    const sidebar = document.getElementById('sidebar-panel');
+    return !sidebar.classList.contains('landscape-drawer-open');
+  });
+  console.log('✓ Landscape drawer closed via backdrop click:', drawerClosed);
+  if (!drawerClosed) throw new Error('Drawer should be closed via backdrop click!');
+
+  // Test 7-3: Reopen and close via Swipe Left touch gesture
+  console.log('Testing swipe-to-close gesture on drawer...');
+  await page.evaluate(() => document.getElementById('btn-landscape-drawer').click());
+  await new Promise(r => setTimeout(r, 400));
+
+  await page.evaluate(() => {
+    const sidebar = document.getElementById('sidebar-panel');
+    const tStart = new Touch({
+      identifier: 1,
+      target: sidebar,
+      clientX: 250,
+      clientY: 200
+    });
+    const tMove = new Touch({
+      identifier: 1,
+      target: sidebar,
+      clientX: 120,
+      clientY: 200
+    });
+    
+    sidebar.dispatchEvent(new TouchEvent('touchstart', {
+      touches: [tStart],
+      targetTouches: [tStart],
+      changedTouches: [tStart],
+      bubbles: true
+    }));
+    sidebar.dispatchEvent(new TouchEvent('touchmove', {
+      touches: [tMove],
+      targetTouches: [tMove],
+      changedTouches: [tMove],
+      bubbles: true
+    }));
+    sidebar.dispatchEvent(new TouchEvent('touchend', {
+      touches: [],
+      targetTouches: [],
+      changedTouches: [tMove],
+      bubbles: true
+    }));
+  });
+  await new Promise(r => setTimeout(r, 500));
+
+  drawerClosed = await page.evaluate(() => {
+    const sidebar = document.getElementById('sidebar-panel');
+    return !sidebar.classList.contains('landscape-drawer-open');
+  });
+  console.log('✓ Landscape drawer closed via swipe-left gesture:', drawerClosed);
+  if (!drawerClosed) throw new Error('Drawer should be closed via swipe-left gesture!');
+
+  // Test 7-4: Landscape tabs switching inside drawer
+  await page.evaluate(() => document.getElementById('btn-landscape-drawer').click());
+  await new Promise(r => setTimeout(r, 400));
+  await page.click('.drawer-tab-btn[data-tab="overlays"]');
+  await new Promise(r => setTimeout(r, 300));
+  const landscapeOverlayTabActive = await page.evaluate(() => {
+    const sec = document.querySelector('.mobile-tab-section[data-mobile-tab="overlays"]');
+    return window.getComputedStyle(sec).display !== 'none';
+  });
+  console.log('✓ Drawer tab switched to overlays in landscape:', landscapeOverlayTabActive);
+  if (!landscapeOverlayTabActive) throw new Error('Overlays section should be active in landscape drawer!');
+
+  // Reset to clips tab for screenshot
+  await page.click('.drawer-tab-btn[data-tab="clips"]');
+  await new Promise(r => setTimeout(r, 300));
 
   await page.screenshot({ path: LANDSCAPE_SCREENSHOT });
   console.log(`✓ Saved Landscape screenshot to ${LANDSCAPE_SCREENSHOT}`);
@@ -326,6 +426,8 @@ async function runEdgeMobileTest() {
   // Copy screenshots to artifact directory
   const artifactDir = 'C:\\Users\\ddno2\\.gemini\\antigravity\\brain\\1296f195-8d13-4c1e-ae90-bae2100cf725';
   fs.copyFileSync(PORTRAIT_SCREENSHOT, path.join(artifactDir, 'mobile_portrait_ui.png'));
+  fs.copyFileSync(OVERLAYS_SCREENSHOT, path.join(artifactDir, 'mobile_overlays_ui.png'));
+  fs.copyFileSync(EXPORT_SCREENSHOT, path.join(artifactDir, 'mobile_export_ui.png'));
   fs.copyFileSync(LANDSCAPE_SCREENSHOT, path.join(artifactDir, 'mobile_landscape_ui.png'));
 
   await browser.close();

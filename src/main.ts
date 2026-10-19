@@ -126,37 +126,107 @@ class CTDashcamStudioApp {
       this.toggleViewMode();
     });
 
-    // 3. Mobile tab buttons switching
-    const tabBtns = document.querySelectorAll('.mobile-tab-btn');
-    tabBtns.forEach((btn) => {
+    // 3. Mobile & Drawer tab buttons switching
+    const updateActiveTab = (targetTab: string) => {
+      document.querySelectorAll('.mobile-tab-btn, .drawer-tab-btn').forEach((b) => {
+        b.classList.toggle('active', b.getAttribute('data-tab') === targetTab);
+      });
+      document.querySelectorAll('.mobile-tab-section').forEach((sec) => {
+        sec.classList.toggle('active', sec.getAttribute('data-mobile-tab') === targetTab);
+      });
+    };
+
+    document.querySelectorAll('.mobile-tab-btn, .drawer-tab-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const targetTab = btn.getAttribute('data-tab');
-        if (!targetTab) return;
-        tabBtns.forEach((b) => b.classList.toggle('active', b === btn));
-        const sections = document.querySelectorAll('.mobile-tab-section');
-        sections.forEach((sec) => {
-          sec.classList.toggle('active', sec.getAttribute('data-mobile-tab') === targetTab);
-        });
+        if (targetTab) updateActiveTab(targetTab);
       });
     });
 
-    // 4. Landscape drawer button
+    // 4. Landscape Drawer controls: open, close, backdrop, swipe-to-close
     const btnDrawer = document.getElementById('btn-landscape-drawer');
+    const btnCloseDrawer = document.getElementById('btn-close-drawer');
+    const backdrop = document.getElementById('mobile-drawer-backdrop');
     const sidebar = document.getElementById('sidebar-panel');
+
+    const openDrawer = () => {
+      this.isLandscapeDrawerOpen = true;
+      if (sidebar) {
+        sidebar.style.transform = '';
+        sidebar.classList.add('landscape-drawer-open');
+      }
+      if (backdrop) backdrop.style.display = 'block';
+      if (btnDrawer) btnDrawer.textContent = '✕ 닫기';
+    };
+
+    const closeDrawer = () => {
+      this.isLandscapeDrawerOpen = false;
+      if (sidebar) {
+        sidebar.style.transform = '';
+        sidebar.classList.remove('landscape-drawer-open');
+      }
+      if (backdrop) backdrop.style.display = 'none';
+      if (btnDrawer) btnDrawer.textContent = '🎬 메뉴 / 클립';
+    };
+
     btnDrawer?.addEventListener('click', () => {
-      this.isLandscapeDrawerOpen = !this.isLandscapeDrawerOpen;
-      sidebar?.classList.toggle('landscape-drawer-open', this.isLandscapeDrawerOpen);
-      if (btnDrawer) btnDrawer.textContent = this.isLandscapeDrawerOpen ? '✕ 닫기' : '🎬 클립 목록';
+      if (this.isLandscapeDrawerOpen) closeDrawer();
+      else openDrawer();
     });
+
+    btnCloseDrawer?.addEventListener('click', () => closeDrawer());
+    backdrop?.addEventListener('click', () => closeDrawer());
 
     // Close drawer when selecting a clip in landscape
     document.getElementById('clips-tree')?.addEventListener('click', () => {
-      if (this.isLandscapeDrawerOpen) {
-        this.isLandscapeDrawerOpen = false;
-        sidebar?.classList.remove('landscape-drawer-open');
-        if (btnDrawer) btnDrawer.textContent = '🎬 클립 목록';
-      }
+      if (this.isLandscapeDrawerOpen) closeDrawer();
     });
+
+    // Swipe-to-close touch gesture on sidebar drawer
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isDrawerSwiping = false;
+
+    sidebar?.addEventListener('touchstart', (e: TouchEvent) => {
+      if (this.isLandscapeDrawerOpen && e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        isDrawerSwiping = true;
+      }
+    }, { passive: true });
+
+    sidebar?.addEventListener('touchmove', (e: TouchEvent) => {
+      if (!isDrawerSwiping || !this.isLandscapeDrawerOpen || e.touches.length !== 1) return;
+      const currentX = e.touches[0].clientX;
+      const currentY = e.touches[0].clientY;
+      const deltaX = currentX - touchStartX;
+      const deltaY = currentY - touchStartY;
+
+      // Only handle horizontal swipe left (negative deltaX)
+      if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX < 0 && sidebar) {
+        sidebar.style.transition = 'none';
+        sidebar.style.transform = `translateX(${deltaX}px)`;
+      }
+    }, { passive: true });
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (!isDrawerSwiping || !this.isLandscapeDrawerOpen) return;
+      isDrawerSwiping = false;
+      if (sidebar) sidebar.style.transition = '';
+      const currentX = e.changedTouches[0]?.clientX || touchStartX;
+      const deltaX = currentX - touchStartX;
+
+      if (deltaX < -40) {
+        // Swiped left by more than 40px -> close drawer!
+        closeDrawer();
+      } else {
+        // Snap back open
+        if (sidebar) sidebar.style.transform = '';
+      }
+    };
+
+    sidebar?.addEventListener('touchend', handleTouchEnd);
+    sidebar?.addEventListener('touchcancel', handleTouchEnd);
 
     window.addEventListener('resize', () => {
       if (this.viewMode === 'auto') {
