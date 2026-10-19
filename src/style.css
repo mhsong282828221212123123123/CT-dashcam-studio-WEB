@@ -164,11 +164,20 @@ body {
   padding-right: 6px;
 }
 
+/* 기본 상태 (PC 및 가로 모드)에서 모바일 바텀시트 UI 숨김 */
+.explorer-drag-handle,
+.btn-sheet-close,
+.mobile-sheet-backdrop {
+  display: none;
+}
+
 .explorer-body {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 2px 0;
+  contain: content;
+  overscroll-behavior: contain;
 }
 
 .empty-state {
@@ -183,16 +192,36 @@ body {
   margin-bottom: 2px;
 }
 
+.folder-arrow {
+  display: inline-block;
+  font-size: 10px;
+  width: 14px;
+  text-align: center;
+  transition: transform 0.15s ease;
+  user-select: none;
+  color: #8b949e;
+}
+
+.folder-node.collapsed .folder-arrow {
+  transform: rotate(-90deg);
+}
+
+.folder-node.collapsed .folder-clips {
+  display: none;
+}
+
 .folder-header {
   font-size: 11.5px;
   font-weight: bold;
   color: #c9d1d9;
-  padding: 4px 8px;
+  padding: 5px 8px;
   background: #121620;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
+  user-select: none;
+  transition: background 0.15s ease;
 }
 
 .folder-header:hover {
@@ -209,6 +238,8 @@ body {
   align-items: center;
   color: #8b949e;
   border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 44px;
 }
 
 .clip-node:hover {
@@ -1210,7 +1241,7 @@ kbd {
     border-bottom: 1px solid #1f2738;
     padding: 0 12px;
     flex-shrink: 0;
-    z-index: 20;
+    z-index: 60;
   }
 
   body:not(.view-desktop) .mobile-adjust-box,
@@ -1468,7 +1499,7 @@ kbd {
       background: #0a0d14;
       border-top: 1px solid #1f2738;
       flex-shrink: 0;
-      z-index: 20;
+      z-index: 60;
     }
 
     .mobile-tab-btn {
@@ -1530,6 +1561,89 @@ kbd {
     body.view-mobile .explorer-card {
       min-height: 240px;
       flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 모바일 세로 모드 바텀시트 핸들 바 */
+    body:not(.view-desktop) .explorer-drag-handle,
+    body.view-mobile:not(.view-desktop) .explorer-drag-handle {
+      display: block;
+      width: 38px;
+      height: 4px;
+      background: #3a4559;
+      border-radius: 2px;
+      margin: 6px auto 4px auto;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    body:not(.view-desktop) .explorer-drag-handle:active,
+    body.view-mobile:not(.view-desktop) .explorer-drag-handle:active {
+      background: var(--accent-cyan);
+    }
+
+    /* 모바일 바텀시트 딤드 배경 */
+    body:not(.view-desktop) .mobile-sheet-backdrop,
+    body.view-mobile:not(.view-desktop) .mobile-sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      z-index: 49;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      pointer-events: none;
+    }
+
+    body:not(.view-desktop).explorer-expanded .mobile-sheet-backdrop,
+    body.view-mobile:not(.view-desktop).explorer-expanded .mobile-sheet-backdrop {
+      display: block !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+
+    /* 바텀시트 확장 시 바디 스크롤 잠금 */
+    body:not(.view-desktop).explorer-expanded,
+    body.view-mobile:not(.view-desktop).explorer-expanded {
+      overflow: hidden !important;
+    }
+
+    /* 바텀시트 확장: 상단으로 85dvh 늘어남 (플레이어 위를 덮고 탭바 위에 고정) */
+    body:not(.view-desktop).explorer-expanded .sidebar-section[data-mobile-tab="clips"] .explorer-card,
+    body.view-mobile:not(.view-desktop).explorer-expanded .sidebar-section[data-mobile-tab="clips"] .explorer-card {
+      position: fixed !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: calc(48px + env(safe-area-inset-bottom, 0px)) !important;
+      height: 85dvh !important;
+      max-height: 85dvh !important;
+      z-index: 50 !important;
+      background: #0d111a !important;
+      border: 1px solid #28374f !important;
+      border-bottom: none !important;
+      border-radius: 16px 16px 0 0 !important;
+      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.85) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      animation: sheetSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    }
+
+    body:not(.view-desktop).explorer-expanded .btn-sheet-close,
+    body.view-mobile:not(.view-desktop).explorer-expanded .btn-sheet-close {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-width: 44px !important;
+      min-height: 44px !important;
+      padding: 0 8px !important;
+      background: transparent !important;
+      border: none !important;
+      color: var(--accent-cyan) !important;
+      font-size: 16px !important;
+      cursor: pointer !important;
+      line-height: 1 !important;
     }
 
     body:not(.view-desktop) .clip-node,
@@ -2110,4 +2224,22 @@ body.view-desktop .mobile-adjust-box {
   transform: translateY(-2px);
   box-shadow: 0 6px 22px rgba(0, 120, 215, 0.7);
 }
+
+/* 바텀시트 슬라이드업 애니메이션 */
+@keyframes sheetSlideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* 데스크톱(PC) 모드에서는 바텀시트 UI 절대 비활성화 */
+body.view-desktop .explorer-drag-handle,
+body.view-desktop .btn-sheet-close,
+body.view-desktop .mobile-sheet-backdrop {
+  display: none !important;
+}
+
 

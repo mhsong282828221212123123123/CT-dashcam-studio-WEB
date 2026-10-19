@@ -3,6 +3,7 @@ import { CameraKey } from './constants';
 
 export interface ClipItem {
   id: string; // e.g. "SavedClips/2026-08-17_12-48-22/2026-08-17_12-37-37"
+  safeId: string; // precomputed for DOM ID: e.g. "SavedClips_2026-08-17_12-48-22_2026-08-17_12-37-37"
   folder: string; // e.g. "SavedClips/2026-08-17_12-48-22"
   timestampStr: string; // "2026-08-17 12:37:37"
   timestampRaw: string; // "2026-08-17_12-37-37"
@@ -17,7 +18,11 @@ export interface FolderGroup {
   clips: ClipItem[];
 }
 
-const CAM_REGEX = /(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})-(front|back|left_repeater|right_repeater|left_pillar|right_pillar)(?: \(\d+\))?\.mp4$/i;
+export const CAM_REGEX = /(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})-(front|back|left_repeater|right_repeater|left_pillar|right_pillar)(?: \(\d+\))?\.mp4$/i;
+
+export function isTeslaCamVideo(filename: string): boolean {
+  return CAM_REGEX.test(filename);
+}
 
 export function groupFilesIntoClips(files: File[]): FolderGroup[] {
   const mapByFolderAndTimestamp = new Map<string, { folder: string; timestampRaw: string; cams: Partial<Record<CameraKey, File>> }>();
@@ -60,6 +65,7 @@ export function groupFilesIntoClips(files: File[]): FolderGroup[] {
 
     const clipItem: ClipItem = {
       id: groupKey,
+      safeId: groupKey.replace(/[^a-zA-Z0-9_-]/g, '_'),
       folder: info.folder,
       timestampStr: formattedTime,
       timestampRaw: info.timestampRaw,
@@ -91,24 +97,44 @@ export async function scanFileSystemDirectory(dirHandle: FileSystemDirectoryHand
   const files: File[] = [];
 
   async function traverse(handle: FileSystemDirectoryHandle, currentPath: string) {
+    const entries: any[] = [];
     for await (const entry of (handle as any).values()) {
-      const entryPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
-      if (entry.kind === 'file') {
-        const file = await (entry as FileSystemFileHandle).getFile();
-        // store relative path for groupFilesIntoClips
-        try {
-          Object.defineProperty(file, 'webkitRelativePath', {
-            value: entryPath,
-            writable: false,
-            configurable: true,
-          });
-        } catch {
-          (file as any)._relativePath = entryPath;
-        }
-        files.push(file);
-      } else if (entry.kind === 'directory') {
-        await traverse(entry as FileSystemDirectoryHandle, entryPath);
-      }
+      entries.push(entry);
+    }
+
+    // Filter candidate video files before getFile() to avoid loading thumb.png, event.json, etc.
+    const fileEntries = entries.filter((e) => e.kind === 'file' && isTeslaCamVideo(e.name));
+    const dirEntries = entries.filter((e) => e.kind === 'directory');
+
+    // Concurrency pool (max 6) to keep memory usage low on mobile
+    const CONCURRENCY = 6;
+    for (let i = 0; i < fileEntries.length; i += CONCURRENCY) {
+      const batch = fileEntries.slice(i, i + CONCURRENCY);
+      await Promise.all(
+        batch.map(async (entry) => {
+          try {
+            const file = await (entry as FileSystemFileHandle).getFile();
+            const entryPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+            try {
+              Object.defineProperty(file, 'webkitRelativePath', {
+                value: entryPath,
+                writable: false,
+                configurable: true,
+              });
+            } catch {
+              (file as any)._relativePath = entryPath;
+            }
+            files.push(file);
+          } catch (err) {
+            console.warn('[Scanner] Failed to read file handle:', entry.name, err);
+          }
+        })
+      );
+    }
+
+    for (const dirEntry of dirEntries) {
+      const dirPath = currentPath ? `${currentPath}/${dirEntry.name}` : dirEntry.name;
+      await traverse(dirEntry as FileSystemDirectoryHandle, dirPath);
     }
   }
 

@@ -74,6 +74,19 @@ class CTDashcamStudioApp {
   private viewMode: 'auto' | 'mobile' | 'desktop' = 'auto';
   private isLandscapeDrawerOpen = false;
 
+  // Clip Map for O(1) lookup
+  private clipMap: Map<string, ClipItem> = new Map();
+
+  // Parking detection worker state
+  private loadGeneration = 0;
+  private parkingQueue: string[] = [];
+  private isProcessingParking = false;
+  private isSelectingClip = false;
+  private parkingObserver: IntersectionObserver | null = null;
+
+  // Mobile portrait bottom sheet state
+  private isExplorerExpanded = false;
+
   constructor() {
     this.canvas = document.getElementById('player-canvas') as HTMLCanvasElement;
     this.videoContainer = document.getElementById('hidden-video-container') as HTMLElement;
@@ -82,6 +95,7 @@ class CTDashcamStudioApp {
     i18n.applyDOM();
     this.initViewMode();
     this.initCapabilities();
+    this.initClipsTreeEventDelegation();
     this.setupEventListeners();
     this.updateFpsOptions();
     this.setupShortcuts();
@@ -115,6 +129,37 @@ class CTDashcamStudioApp {
     return isMobileUa || (isTouch && isSmallScreen) || isSmallScreen;
   }
 
+  private isMobilePortrait(): boolean {
+    if (document.body.classList.contains('view-desktop')) return false;
+    const isPortrait = window.matchMedia('(orientation: portrait)').matches || window.innerHeight > window.innerWidth;
+    return this.isMobileDevice() && isPortrait;
+  }
+
+  toggleExplorerSheet(force?: boolean) {
+    if (!this.isMobilePortrait()) {
+      document.body.classList.remove('explorer-expanded');
+      const backdrop = document.getElementById('mobile-sheet-backdrop');
+      if (backdrop) backdrop.style.display = 'none';
+      this.isExplorerExpanded = false;
+      return;
+    }
+
+    const shouldExpand = force !== undefined ? force : !this.isExplorerExpanded;
+    this.isExplorerExpanded = shouldExpand;
+    document.body.classList.toggle('explorer-expanded', shouldExpand);
+    const backdrop = document.getElementById('mobile-sheet-backdrop');
+    if (backdrop) backdrop.style.display = shouldExpand ? 'block' : 'none';
+
+    if (shouldExpand) {
+      requestAnimationFrame(() => {
+        if (this.activeClip) {
+          const activeEl = document.getElementById(`clip-item-${this.activeClip.safeId}`);
+          activeEl?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      });
+    }
+  }
+
   private initViewMode() {
     const saved = localStorage.getItem('ct_view_mode') as 'auto' | 'mobile' | 'desktop' | null;
     this.viewMode = saved || 'auto';
@@ -131,21 +176,86 @@ class CTDashcamStudioApp {
     });
 
     // 3. Mobile & Drawer tab buttons switching
+    let currentMobileTab = 'clips';
     const updateActiveTab = (targetTab: string) => {
+      currentMobileTab = targetTab;
       document.querySelectorAll('.mobile-tab-btn, .drawer-tab-btn').forEach((b) => {
         b.classList.toggle('active', b.getAttribute('data-tab') === targetTab);
       });
       document.querySelectorAll('.mobile-tab-section').forEach((sec) => {
         sec.classList.toggle('active', sec.getAttribute('data-mobile-tab') === targetTab);
       });
+      if (targetTab !== 'clips') {
+        this.toggleExplorerSheet(false);
+      }
     };
 
     document.querySelectorAll('.mobile-tab-btn, .drawer-tab-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const targetTab = btn.getAttribute('data-tab');
-        if (targetTab) updateActiveTab(targetTab);
+        if (!targetTab) return;
+        if (targetTab === 'clips') {
+          if (currentMobileTab === 'clips') {
+            this.toggleExplorerSheet();
+          } else {
+            updateActiveTab(targetTab);
+            this.toggleExplorerSheet(true);
+          }
+        } else {
+          updateActiveTab(targetTab);
+        }
       });
     });
+
+    // 3-1. Mobile bottom sheet header & backdrop controls
+    const btnCloseSheet = document.getElementById('btn-close-explorer-sheet');
+    const sheetBackdrop = document.getElementById('mobile-sheet-backdrop');
+    const explorerHeader = document.querySelector('.explorer-header') as HTMLElement | null;
+    const dragHandle = document.querySelector('.explorer-drag-handle') as HTMLElement | null;
+
+    btnCloseSheet?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleExplorerSheet(false);
+    });
+
+    sheetBackdrop?.addEventListener('click', () => {
+      this.toggleExplorerSheet(false);
+    });
+
+    explorerHeader?.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('#btn-close-explorer-sheet')) return;
+      if (!this.isExplorerExpanded && this.isMobilePortrait()) {
+        this.toggleExplorerSheet(true);
+      }
+    });
+
+    dragHandle?.addEventListener('click', () => {
+      if (this.isMobilePortrait()) {
+        this.toggleExplorerSheet(!this.isExplorerExpanded);
+      }
+    });
+
+    // Vertical swipe gestures for sheet
+    let sheetTouchStartY = 0;
+    const onSheetTouchStart = (e: Event) => {
+      const te = e as TouchEvent;
+      if (te.touches && te.touches.length === 1) sheetTouchStartY = te.touches[0].clientY;
+    };
+    const onSheetTouchEnd = (e: Event) => {
+      const te = e as TouchEvent;
+      if (te.changedTouches && te.changedTouches.length === 1 && this.isMobilePortrait()) {
+        const deltaY = te.changedTouches[0].clientY - sheetTouchStartY;
+        if (deltaY < -25 && !this.isExplorerExpanded) {
+          this.toggleExplorerSheet(true);
+        } else if (deltaY > 25 && this.isExplorerExpanded) {
+          this.toggleExplorerSheet(false);
+        }
+      }
+    };
+    explorerHeader?.addEventListener('touchstart', onSheetTouchStart as any, { passive: true });
+    explorerHeader?.addEventListener('touchend', onSheetTouchEnd as any, { passive: true });
+    dragHandle?.addEventListener('touchstart', onSheetTouchStart as any, { passive: true });
+    dragHandle?.addEventListener('touchend', onSheetTouchEnd as any, { passive: true });
 
     // 4. Landscape Drawer controls: open, close, backdrop, swipe-to-close
     const btnDrawer = document.getElementById('btn-landscape-drawer');
@@ -991,43 +1101,216 @@ class CTDashcamStudioApp {
 
   loadFiles(files: File[]) {
     console.log('[App] loadFiles called with', files.length, 'files');
-    this.folderGroups = groupFilesIntoClips(files);
+
+    // 1. Invalidate previous parking detection generation & queue
+    this.loadGeneration++;
+    this.parkingQueue = [];
+    if (this.parkingObserver) {
+      this.parkingObserver.disconnect();
+    }
+
+    // 2. Pre-filter candidate files with regex
+    const validFiles = files.filter((f) => {
+      const relPath = (f as any).webkitRelativePath || (f as any)._relativePath || f.name;
+      return /(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})-(front|back|left_repeater|right_repeater|left_pillar|right_pillar)(?: \(\d+\))?\.mp4$/i.test(relPath);
+    });
+
+    this.folderGroups = groupFilesIntoClips(validFiles.length > 0 ? validFiles : files);
     console.log('[App] Parsed folderGroups count:', this.folderGroups.length);
+
+    // 3. Populate clipMap
+    this.clipMap.clear();
+    for (const group of this.folderGroups) {
+      for (const clip of group.clips) {
+        this.clipMap.set(clip.id, clip);
+      }
+    }
+
+    // 4. Render tree with collapsible folders
     this.renderClipsTree();
 
-    // Select first clip if available
+    // 5. Select first clip if available
     if (this.folderGroups.length > 0 && this.folderGroups[0].clips.length > 0) {
       this.selectClip(this.folderGroups[0].clips[0]);
     }
 
-    // Background parking/driving determination
-    this.determineClipsParkingStatus();
+    // 6. On mobile portrait, expand bottom sheet so user sees clips
+    if (this.isMobilePortrait()) {
+      this.toggleExplorerSheet(true);
+    }
   }
 
-  private async determineClipsParkingStatus() {
-    for (const group of this.folderGroups) {
-      for (const clip of group.clips) {
-        if (clip.isParking !== undefined) continue;
-        const frontFile = clip.cams.front;
-        if (frontFile) {
-          try {
-            const handle = new BlobFileHandle(frontFile);
-            const isParking = await RealTeslaSEIDecoder.quickCheckIsParking(handle);
-            clip.isParking = isParking;
+  private isClipInRange(c: ClipItem): boolean {
+    if (!this.activeClip) return false;
+    const curClipBaseMs = parseClipTimeMs(this.activeClip.timestampRaw);
+    const curClipEndMs = curClipBaseMs + this.durationSec * 1000;
+    const sMs = this.startPoint ? this.startPoint.absTimeMs : (this.endPoint ? curClipBaseMs : null);
+    const eMs = this.endPoint ? this.endPoint.absTimeMs : (this.startPoint ? curClipEndMs : null);
+    if (sMs !== null && eMs !== null) {
+      const cBase = parseClipTimeMs(c.timestampRaw);
+      const cEnd = cBase + (c.durationSec || 60.0) * 1000;
+      return cBase < eMs && cEnd > sMs;
+    }
+    return false;
+  }
 
-            // Update UI row badge
-            const tagEl = document.getElementById(`tag-${clip.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
-            if (tagEl) {
-              tagEl.className = `clip-type-tag ${isParking ? 'parking' : 'driving'}`;
-              tagEl.textContent = `[${isParking ? '주차' : '주행'}] ${Object.keys(clip.cams).length}채널`;
-            }
-          } catch (e) {
-            console.warn('[App] quickCheckIsParking error:', e);
+  private initClipsTreeEventDelegation() {
+    const tree = document.getElementById('clips-tree');
+    if (!tree) return;
+
+    tree.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+
+      // 1. Folder Header Click -> Toggle collapse & lazy render
+      const folderHeader = target.closest('.folder-header') as HTMLElement | null;
+      if (folderHeader) {
+        const folderNode = folderHeader.closest('.folder-node') as HTMLElement | null;
+        if (!folderNode) return;
+        const isCollapsed = folderNode.classList.toggle('collapsed');
+        const clipsContainer = folderNode.querySelector('.folder-clips') as HTMLElement | null;
+        if (clipsContainer && !isCollapsed) {
+          const isRendered = clipsContainer.getAttribute('data-rendered') === 'true';
+          if (!isRendered) {
+            const groupIdx = parseInt(folderNode.getAttribute('data-group-idx') || '0', 10);
+            this.renderFolderClips(groupIdx, clipsContainer);
           }
         }
-        // Yield to event loop to keep UI completely responsive on mobile
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        return;
       }
+
+      // 2. Clip Node Click -> Select clip
+      const clipNode = target.closest('.clip-node') as HTMLElement | null;
+      if (clipNode) {
+        const clipId = clipNode.getAttribute('data-clip-id');
+        if (!clipId) return;
+        const clip = this.clipMap.get(clipId);
+        if (clip) {
+          if (this.isMobilePortrait() && this.isExplorerExpanded) {
+            this.toggleExplorerSheet(false);
+          }
+          this.selectClip(clip);
+        }
+        return;
+      }
+    });
+  }
+
+  private renderFolderClips(groupIndex: number, container: HTMLElement) {
+    const group = this.folderGroups[groupIndex];
+    if (!group || !group.clips) return;
+
+    const htmlParts: string[] = [];
+    for (const clip of group.clips) {
+      const isActive = this.activeClip?.id === clip.id;
+      const inRange = this.isClipInRange(clip);
+      const camCount = Object.keys(clip.cams).length;
+      const isParking = clip.isParking ?? (clip.folder.includes('Sentry') || clip.folder.includes('Parking'));
+      const tagClass = isParking ? 'parking' : 'driving';
+      const tagText = `[${isParking ? '주차' : '주행'}] ${camCount}채널`;
+
+      let classes = 'clip-node';
+      if (isActive) classes += ' active';
+      if (inRange) classes += ' in-range';
+
+      htmlParts.push(
+        `<div class="${classes}" id="clip-item-${clip.safeId}" data-clip-id="${clip.id}">` +
+          `<span>🎬 ${clip.timestampStr}</span>` +
+          `<span id="tag-${clip.safeId}" class="clip-type-tag ${tagClass}">${tagText}</span>` +
+        `</div>`
+      );
+    }
+
+    container.innerHTML = htmlParts.join('');
+    container.setAttribute('data-rendered', 'true');
+    this.observeClipNodes(container);
+  }
+
+  private observeClipNodes(container: HTMLElement) {
+    if (!this.parkingObserver) {
+      const rootEl = document.getElementById('clips-tree');
+      this.parkingObserver = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          const target = entry.target as HTMLElement;
+          const clipId = target.getAttribute('data-clip-id');
+          if (!clipId) continue;
+          const clip = this.clipMap.get(clipId);
+          if (!clip || clip.isParking !== undefined) continue;
+
+          if (entry.isIntersecting) {
+            if (!this.parkingQueue.includes(clipId)) {
+              this.parkingQueue.push(clipId);
+              this.processNextParkingCheck();
+            }
+          } else {
+            const qIdx = this.parkingQueue.indexOf(clipId);
+            if (qIdx !== -1) {
+              this.parkingQueue.splice(qIdx, 1);
+            }
+          }
+        }
+      }, {
+        root: rootEl,
+        rootMargin: '100px',
+        threshold: 0,
+      });
+    }
+
+    const rows = container.querySelectorAll('.clip-node');
+    rows.forEach((r) => this.parkingObserver?.observe(r));
+  }
+
+  private async processNextParkingCheck() {
+    if (this.isProcessingParking) return;
+    if (this.isSelectingClip && this.isMobileDevice()) return;
+    if (this.parkingQueue.length === 0) return;
+
+    this.isProcessingParking = true;
+    const currentGen = this.loadGeneration;
+
+    const clipId = this.parkingQueue.shift();
+    if (!clipId) {
+      this.isProcessingParking = false;
+      return;
+    }
+
+    const clip = this.clipMap.get(clipId);
+    if (!clip || clip.isParking !== undefined || !clip.cams.front) {
+      this.isProcessingParking = false;
+      this.scheduleNextParkingCheck();
+      return;
+    }
+
+    try {
+      const handle = new BlobFileHandle(clip.cams.front);
+      const isParking = await RealTeslaSEIDecoder.quickCheckIsParking(handle);
+      if (currentGen !== this.loadGeneration) {
+        this.isProcessingParking = false;
+        return;
+      }
+      clip.isParking = isParking;
+
+      // Update badge in DOM if visible
+      const tagEl = document.getElementById(`tag-${clip.safeId}`);
+      if (tagEl) {
+        tagEl.className = `clip-type-tag ${isParking ? 'parking' : 'driving'}`;
+        tagEl.textContent = `[${isParking ? '주차' : '주행'}] ${Object.keys(clip.cams).length}채널`;
+      }
+    } catch (e) {
+      console.warn('[App] quickCheckIsParking error:', e);
+    } finally {
+      this.isProcessingParking = false;
+      if (currentGen === this.loadGeneration) {
+        this.scheduleNextParkingCheck();
+      }
+    }
+  }
+
+  private scheduleNextParkingCheck() {
+    if (this.parkingQueue.length === 0) return;
+    if (typeof (window as any).requestIdleCallback === 'function') {
+      (window as any).requestIdleCallback(() => this.processNextParkingCheck(), { timeout: 200 });
+    } else {
+      setTimeout(() => this.processNextParkingCheck(), 50);
     }
   }
 
@@ -1041,137 +1324,150 @@ class CTDashcamStudioApp {
       return;
     }
 
-    this.folderGroups.forEach((group) => {
+    const activeFolder = this.activeClip?.folder;
+    const isSingleFolder = this.folderGroups.length === 1;
+    const docFrag = document.createDocumentFragment();
+
+    this.folderGroups.forEach((group, idx) => {
       const folderDiv = document.createElement('div');
-      folderDiv.className = 'folder-node';
+      const isFolderOpen = isSingleFolder || (activeFolder ? group.folderName === activeFolder || group.clips.some((c) => c.folder === activeFolder) : idx === 0);
+
+      folderDiv.className = `folder-node ${isFolderOpen ? '' : 'collapsed'}`;
+      folderDiv.setAttribute('data-group-idx', String(idx));
 
       const folderHeader = document.createElement('div');
       folderHeader.className = 'folder-header';
-      folderHeader.innerHTML = `<span>📁</span> <span>${group.folderName} (${group.clips.length})</span>`;
+      folderHeader.setAttribute('data-group-idx', String(idx));
+      folderHeader.innerHTML = `<span class="folder-arrow">▼</span> <span>📁</span> <span class="folder-name">${group.folderName} (${group.clips.length})</span>`;
 
       const clipsContainer = document.createElement('div');
       clipsContainer.className = 'folder-clips';
-
-      group.clips.forEach((clip) => {
-        const clipDiv = document.createElement('div');
-        clipDiv.className = `clip-node ${this.activeClip?.id === clip.id ? 'active' : ''}`;
-        clipDiv.id = `clip-item-${clip.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-
-        const camCount = Object.keys(clip.cams).length;
-        const isParking = clip.isParking ?? (clip.folder.includes('Sentry') || clip.folder.includes('Parking'));
-        const tagClass = isParking ? 'parking' : 'driving';
-        const tagText = `[${isParking ? '주차' : '주행'}] ${camCount}채널`;
-
-        clipDiv.innerHTML = `
-          <span>🎬 ${clip.timestampStr}</span>
-          <span id="tag-${clip.id.replace(/[^a-zA-Z0-9_-]/g, '_')}" class="clip-type-tag ${tagClass}">${tagText}</span>
-        `;
-
-        clipDiv.addEventListener('click', () => {
-          this.selectClip(clip);
-        });
-
-        clipsContainer.appendChild(clipDiv);
-      });
+      clipsContainer.setAttribute('data-group-idx', String(idx));
 
       folderDiv.appendChild(folderHeader);
       folderDiv.appendChild(clipsContainer);
-      container.appendChild(folderDiv);
+      docFrag.appendChild(folderDiv);
+
+      if (isFolderOpen) {
+        this.renderFolderClips(idx, clipsContainer);
+      }
     });
+
+    container.appendChild(docFrag);
   }
 
   async selectClip(clip: ClipItem) {
-    this.activeClip = clip;
-    const hasPillars = Boolean(clip.cams.left_pillar || clip.cams.right_pillar);
-    this.fps = hasPillars ? 24.0 : 36.0;
-    this.isPlaying = false;
-    this.currentTimeSec = 0;
+    this.isSelectingClip = true;
+    try {
+      this.activeClip = clip;
+      const hasPillars = Boolean(clip.cams.left_pillar || clip.cams.right_pillar);
+      this.fps = hasPillars ? 24.0 : 36.0;
+      this.isPlaying = false;
+      this.currentTimeSec = 0;
 
-    this.updateFpsOptions();
-    this.updateRangeUI();
-    this.updateEstimatedSize();
-    this.updatePillarPipState();
+      this.updateFpsOptions();
+      this.updateRangeUI();
+      this.updateEstimatedSize();
+      this.updatePillarPipState();
 
-    // Update active row in explorer table
-    document.querySelectorAll('.clip-node').forEach((el) => el.classList.remove('active'));
-    const activeEl = document.getElementById(`clip-item-${clip.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
-    if (activeEl) activeEl.classList.add('active');
+      // Update active row in explorer table
+      document.querySelectorAll('.clip-node.active').forEach((el) => el.classList.remove('active'));
+      const activeEl = document.getElementById(`clip-item-${clip.safeId}`);
+      if (activeEl) activeEl.classList.add('active');
 
-    // Setup Video Elements
-    this.videoContainer.innerHTML = '';
-    // Revoke previous URLs to prevent memory bloat on mobile devices
-    if (this.currentVideoUrls && this.currentVideoUrls.length > 0) {
-      this.currentVideoUrls.forEach((url) => {
-        try {
-          URL.revokeObjectURL(url);
-        } catch {}
-      });
-    }
-    this.currentVideoUrls = [];
-    this.videoPool = {};
-
-    const camKeys = Object.keys(clip.cams) as CameraKey[];
-    for (const key of camKeys) {
-      const file = clip.cams[key];
-      if (!file) continue;
-
-      const video = document.createElement('video');
-      const url = URL.createObjectURL(file);
-      this.currentVideoUrls.push(url);
-      video.src = url;
-      video.muted = true;
-      video.playsInline = true;
-      video.setAttribute('playsinline', '');
-      video.setAttribute('webkit-playsinline', '');
-      video.preload = 'auto';
-      this.videoContainer.appendChild(video);
-      this.videoPool[key] = video;
-      try {
-        video.load();
-      } catch {}
-    }
-
-    // Get duration from master video with safe timeout for mobile browsers
-    const masterVideo = this.videoPool.front || Object.values(this.videoPool)[0];
-    if (masterVideo) {
-      await new Promise<void>((resolve) => {
-        if (masterVideo.readyState >= 1) {
-          resolve();
-          return;
+      // Setup Video Elements - cleanly detach old videos
+      Object.values(this.videoPool).forEach((v) => {
+        if (v) {
+          try {
+            v.pause();
+            v.removeAttribute('src');
+            v.load();
+          } catch {}
         }
-        let done = false;
-        const finish = () => {
-          if (!done) {
-            done = true;
-            resolve();
-          }
-        };
-        masterVideo.onloadedmetadata = finish;
-        masterVideo.onloadeddata = finish;
-        masterVideo.oncanplay = finish;
-        masterVideo.onerror = finish;
-        // 1.5s fallback timeout: ensures mobile UI never freezes if metadata is delayed or blocked
-        setTimeout(finish, 1500);
       });
-      this.durationSec = masterVideo.duration && !isNaN(masterVideo.duration) && masterVideo.duration > 0
-        ? masterVideo.duration
-        : 60.0;
-    }
+      this.videoContainer.innerHTML = '';
 
-    // Parse SEI data from front camera
-    if (clip.cams.front && !this.clipDecoders.has(clip.id)) {
-      try {
-        const decoder = new RealTeslaSEIDecoder();
-        const handle = new BlobFileHandle(clip.cams.front);
-        await decoder.parseMp4Sei(handle);
-        this.clipDecoders.set(clip.id, decoder);
-      } catch (err) {
-        console.warn('[App] Failed to parse SEI metadata for clip', clip.id, err);
+      // Revoke previous URLs to prevent memory bloat
+      if (this.currentVideoUrls && this.currentVideoUrls.length > 0) {
+        this.currentVideoUrls.forEach((url) => {
+          try {
+            URL.revokeObjectURL(url);
+          } catch {}
+        });
       }
-    }
+      this.currentVideoUrls = [];
+      this.videoPool = {};
 
-    this.seekTo(0);
-    this.updatePlayButton();
+      const camKeys = Object.keys(clip.cams) as CameraKey[];
+      for (const key of camKeys) {
+        const file = clip.cams[key];
+        if (!file) continue;
+
+        const video = document.createElement('video');
+        const url = URL.createObjectURL(file);
+        this.currentVideoUrls.push(url);
+        video.src = url;
+        video.muted = true;
+        video.playsInline = true;
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+
+        // Master camera preloads 'auto', other cameras preload 'metadata'
+        const isMaster = key === 'front' || key === camKeys[0];
+        video.preload = isMaster ? 'auto' : 'metadata';
+
+        this.videoContainer.appendChild(video);
+        this.videoPool[key] = video;
+        try {
+          video.load();
+        } catch {}
+      }
+
+      // Get duration from master video with safe timeout for mobile browsers
+      const masterVideo = this.videoPool.front || Object.values(this.videoPool)[0];
+      if (masterVideo) {
+        await new Promise<void>((resolve) => {
+          if (masterVideo.readyState >= 1) {
+            resolve();
+            return;
+          }
+          let done = false;
+          const finish = () => {
+            if (!done) {
+              done = true;
+              resolve();
+            }
+          };
+          masterVideo.onloadedmetadata = finish;
+          masterVideo.onloadeddata = finish;
+          masterVideo.oncanplay = finish;
+          masterVideo.onerror = finish;
+          // 1.5s fallback timeout: ensures mobile UI never freezes if metadata is delayed or blocked
+          setTimeout(finish, 1500);
+        });
+        this.durationSec = masterVideo.duration && !isNaN(masterVideo.duration) && masterVideo.duration > 0
+          ? masterVideo.duration
+          : 60.0;
+      }
+
+      // Parse SEI data from front camera
+      if (clip.cams.front && !this.clipDecoders.has(clip.id)) {
+        try {
+          const decoder = new RealTeslaSEIDecoder();
+          const handle = new BlobFileHandle(clip.cams.front);
+          await decoder.parseMp4Sei(handle);
+          this.clipDecoders.set(clip.id, decoder);
+        } catch (err) {
+          console.warn('[App] Failed to parse SEI metadata for clip', clip.id, err);
+        }
+      }
+
+      this.seekTo(0);
+      this.updatePlayButton();
+    } finally {
+      this.isSelectingClip = false;
+      this.scheduleNextParkingCheck();
+    }
   }
 
   private togglePlay() {
@@ -1182,8 +1478,12 @@ class CTDashcamStudioApp {
       if (masterVideo && masterVideo.ended) {
         this.seekTo(0);
       }
+      // Upgrade any metadata preload to auto for smooth multi-cam playback
       Object.values(this.videoPool).forEach((v) => {
-        if (v) v.play().catch(() => {});
+        if (v) {
+          if (v.preload !== 'auto') v.preload = 'auto';
+          v.play().catch(() => {});
+        }
       });
     } else {
       Object.values(this.videoPool).forEach((v) => {
@@ -1563,7 +1863,7 @@ class CTDashcamStudioApp {
     const eMs = this.endPoint ? this.endPoint.absTimeMs : (this.startPoint ? curClipEndMs : null);
 
     allClips.forEach((c) => {
-      const elId = `clip-item-${c.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+      const elId = `clip-item-${c.safeId}`;
       const el = document.getElementById(elId);
       if (!el) return;
       if (sMs !== null && eMs !== null) {
