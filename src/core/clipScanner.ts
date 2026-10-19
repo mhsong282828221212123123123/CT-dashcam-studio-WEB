@@ -17,13 +17,13 @@ export interface FolderGroup {
   clips: ClipItem[];
 }
 
-const CAM_REGEX = /(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})-(front|back|left_repeater|right_repeater|left_pillar|right_pillar)\.mp4$/i;
+const CAM_REGEX = /(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})-(front|back|left_repeater|right_repeater|left_pillar|right_pillar)(?: \(\d+\))?\.mp4$/i;
 
 export function groupFilesIntoClips(files: File[]): FolderGroup[] {
   const mapByFolderAndTimestamp = new Map<string, { folder: string; timestampRaw: string; cams: Partial<Record<CameraKey, File>> }>();
 
   for (const file of files) {
-    const relPath = file.webkitRelativePath || file.name;
+    const relPath = (file as any)._relativePath || file.webkitRelativePath || file.name;
     const match = relPath.match(CAM_REGEX);
     if (!match) continue;
 
@@ -96,10 +96,15 @@ export async function scanFileSystemDirectory(dirHandle: FileSystemDirectoryHand
       if (entry.kind === 'file') {
         const file = await (entry as FileSystemFileHandle).getFile();
         // store relative path for groupFilesIntoClips
-        Object.defineProperty(file, 'webkitRelativePath', {
-          value: entryPath,
-          writable: false,
-        });
+        try {
+          Object.defineProperty(file, 'webkitRelativePath', {
+            value: entryPath,
+            writable: false,
+            configurable: true,
+          });
+        } catch {
+          (file as any)._relativePath = entryPath;
+        }
         files.push(file);
       } else if (entry.kind === 'directory') {
         await traverse(entry as FileSystemDirectoryHandle, entryPath);

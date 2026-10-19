@@ -44,7 +44,7 @@ async function runEdgeMobileTest() {
     console.log(`[Browser ${msg.type()}]`, msg.text());
   });
 
-  await page.goto('http://localhost:5173', { waitUntil: 'networkidle0' });
+  await page.goto('http://localhost:5173/CT-dashcam-studio-WEB/', { waitUntil: 'networkidle0' });
 
   // 1. Check Mobile Portrait Auto-detection
   const isMobileDetected = await page.evaluate(() => {

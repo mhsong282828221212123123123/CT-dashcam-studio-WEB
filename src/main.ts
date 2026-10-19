@@ -41,6 +41,7 @@ class CTDashcamStudioApp {
 
   // Video elements pool
   private videoPool: Partial<Record<CameraKey, HTMLVideoElement>> = {};
+  private currentVideoUrls: string[] = [];
   private videoContainer: HTMLElement;
   private canvas: HTMLCanvasElement;
 
@@ -332,11 +333,21 @@ class CTDashcamStudioApp {
     });
     // 1. Open Folder Button & Fallback Inputs
     const btnOpenFolder = document.getElementById('btn-open-folder');
+    const btnOpenFiles = document.getElementById('btn-open-files');
     const fallbackFolderInput = document.getElementById('fallback-folder-input') as HTMLInputElement;
     const fallbackFileInput = document.getElementById('fallback-file-input') as HTMLInputElement;
 
     btnOpenFolder?.addEventListener('click', async () => {
-      // 1) 보안 컨텍스트(HTTPS or localhost)에서 File System Access API 지원 시 우선 사용
+      // 모바일 기기는 브라우저 webkitdirectory 폴더 지정을 지원하지 않으므로 곧바로 다중 파일 선택기 실행
+      if (this.isMobileDevice()) {
+        if (fallbackFileInput) {
+          fallbackFileInput.value = '';
+          fallbackFileInput.click();
+        }
+        return;
+      }
+
+      // 1) 데스크톱 보안 컨텍스트(HTTPS or localhost)에서 File System Access API 지원 시 우선 사용
       if ('showDirectoryPicker' in window && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
         try {
           const dirHandle = await (window as any).showDirectoryPicker();
@@ -351,11 +362,18 @@ class CTDashcamStudioApp {
         }
       }
 
-      // 2) 다른 컴퓨터(HTTP 원격 접속 등)에서는 HTML5 표준 webkitdirectory 폴더 선택 창 실행
+      // 2) 데스크톱 브라우저 HTML5 표준 webkitdirectory 폴더 선택 창 실행
       if (fallbackFolderInput) {
         fallbackFolderInput.value = '';
         fallbackFolderInput.click();
       } else if (fallbackFileInput) {
+        fallbackFileInput.value = '';
+        fallbackFileInput.click();
+      }
+    });
+
+    btnOpenFiles?.addEventListener('click', () => {
+      if (fallbackFileInput) {
         fallbackFileInput.value = '';
         fallbackFileInput.click();
       }
@@ -1010,17 +1028,23 @@ class CTDashcamStudioApp {
         if (clip.isParking !== undefined) continue;
         const frontFile = clip.cams.front;
         if (frontFile) {
-          const handle = new BlobFileHandle(frontFile);
-          const isParking = await RealTeslaSEIDecoder.quickCheckIsParking(handle);
-          clip.isParking = isParking;
+          try {
+            const handle = new BlobFileHandle(frontFile);
+            const isParking = await RealTeslaSEIDecoder.quickCheckIsParking(handle);
+            clip.isParking = isParking;
 
-          // Update UI row badge
-          const tagEl = document.getElementById(`tag-${clip.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
-          if (tagEl) {
-            tagEl.className = `clip-type-tag ${isParking ? 'parking' : 'driving'}`;
-            tagEl.textContent = `[${isParking ? '주차' : '주행'}] ${Object.keys(clip.cams).length}채널`;
+            // Update UI row badge
+            const tagEl = document.getElementById(`tag-${clip.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`);
+            if (tagEl) {
+              tagEl.className = `clip-type-tag ${isParking ? 'parking' : 'driving'}`;
+              tagEl.textContent = `[${isParking ? '주차' : '주행'}] ${Object.keys(clip.cams).length}채널`;
+            }
+          } catch (e) {
+            console.warn('[App] quickCheckIsParking error:', e);
           }
         }
+        // Yield to event loop to keep UI completely responsive on mobile
+        await new Promise((resolve) => setTimeout(resolve, 10));
       }
     }
   }
@@ -1093,6 +1117,15 @@ class CTDashcamStudioApp {
 
     // Setup Video Elements
     this.videoContainer.innerHTML = '';
+    // Revoke previous URLs to prevent memory bloat on mobile devices
+    if (this.currentVideoUrls && this.currentVideoUrls.length > 0) {
+      this.currentVideoUrls.forEach((url) => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {}
+      });
+    }
+    this.currentVideoUrls = [];
     this.videoPool = {};
 
     const camKeys = Object.keys(clip.cams) as CameraKey[];
@@ -1101,30 +1134,58 @@ class CTDashcamStudioApp {
       if (!file) continue;
 
       const video = document.createElement('video');
-      video.src = URL.createObjectURL(file);
+      const url = URL.createObjectURL(file);
+      this.currentVideoUrls.push(url);
+      video.src = url;
       video.muted = true;
       video.playsInline = true;
+      video.setAttribute('playsinline', '');
+      video.setAttribute('webkit-playsinline', '');
       video.preload = 'auto';
       this.videoContainer.appendChild(video);
       this.videoPool[key] = video;
+      try {
+        video.load();
+      } catch {}
     }
 
-    // Get duration from master video
+    // Get duration from master video with safe timeout for mobile browsers
     const masterVideo = this.videoPool.front || Object.values(this.videoPool)[0];
     if (masterVideo) {
       await new Promise<void>((resolve) => {
-        if (masterVideo.readyState >= 1) resolve();
-        else masterVideo.onloadedmetadata = () => resolve();
+        if (masterVideo.readyState >= 1) {
+          resolve();
+          return;
+        }
+        let done = false;
+        const finish = () => {
+          if (!done) {
+            done = true;
+            resolve();
+          }
+        };
+        masterVideo.onloadedmetadata = finish;
+        masterVideo.onloadeddata = finish;
+        masterVideo.oncanplay = finish;
+        masterVideo.onerror = finish;
+        // 1.5s fallback timeout: ensures mobile UI never freezes if metadata is delayed or blocked
+        setTimeout(finish, 1500);
       });
-      this.durationSec = masterVideo.duration || 60.0;
+      this.durationSec = masterVideo.duration && !isNaN(masterVideo.duration) && masterVideo.duration > 0
+        ? masterVideo.duration
+        : 60.0;
     }
 
     // Parse SEI data from front camera
     if (clip.cams.front && !this.clipDecoders.has(clip.id)) {
-      const decoder = new RealTeslaSEIDecoder();
-      const handle = new BlobFileHandle(clip.cams.front);
-      await decoder.parseMp4Sei(handle);
-      this.clipDecoders.set(clip.id, decoder);
+      try {
+        const decoder = new RealTeslaSEIDecoder();
+        const handle = new BlobFileHandle(clip.cams.front);
+        await decoder.parseMp4Sei(handle);
+        this.clipDecoders.set(clip.id, decoder);
+      } catch (err) {
+        console.warn('[App] Failed to parse SEI metadata for clip', clip.id, err);
+      }
     }
 
     this.seekTo(0);
