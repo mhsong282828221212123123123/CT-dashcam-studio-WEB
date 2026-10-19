@@ -323,7 +323,218 @@ export class RealTeslaSEIDecoder {
     return null;
   }
 
-  async parseMp4Sei(file: AsyncFileHandle): Promise<void> {
+  static async findAtom(file: AsyncFileHandle, targetType: string): Promise<{ offset: number; size: number } | null> {
+    let pos = 0;
+    while (pos < file.size) {
+      const chunk = await file.read(pos, 16);
+      if (chunk.length < 8) break;
+      const view = new DataView(chunk.buffer, chunk.byteOffset, chunk.byteLength);
+      const size32 = view.getUint32(0, false);
+      const atomType = String.fromCharCode(chunk[4], chunk[5], chunk[6], chunk[7]);
+
+      let headerSize = 8;
+      let size = size32 - 8;
+
+      if (size32 === 1) {
+        if (chunk.length < 16) break;
+        const high = view.getUint32(8, false);
+        const low = view.getUint32(12, false);
+        const size64 = (BigInt(high) << 32n) | BigInt(low);
+        size = Number(size64 - 16n);
+        headerSize = 16;
+      } else if (size32 === 0) {
+        size = file.size - (pos + 8);
+      }
+
+      if (atomType === targetType) {
+        return { offset: pos + headerSize, size: Math.max(0, size) };
+      }
+
+      const nextPos = pos + headerSize + Math.max(0, size);
+      if (nextPos <= pos) break;
+      pos = nextPos;
+    }
+    return null;
+  }
+
+  async parseMp4SeiSampleTable(
+    file: AsyncFileHandle,
+    onProgress?: (pct: number, parsedFrames: number, totalFrames: number) => void
+  ): Promise<boolean> {
+    try {
+      const moov = await RealTeslaSEIDecoder.findAtom(file, "moov");
+      if (!moov || moov.size <= 0) return false;
+
+      const moovData = await file.read(moov.offset, moov.size);
+      if (!moovData || moovData.length === 0) return false;
+
+      function findBoxInMemory(data: Uint8Array, targetType: string, start = 0, end = data.length): { offset: number; size: number } | null {
+        let p = start;
+        const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+        while (p + 8 <= end) {
+          const sz = view.getUint32(p, false);
+          const type = String.fromCharCode(data[p + 4], data[p + 5], data[p + 6], data[p + 7]);
+          if (type === targetType) {
+            return { offset: p + 8, size: sz - 8 };
+          }
+          if (['moov', 'trak', 'mdia', 'minf', 'stbl'].includes(type)) {
+            const child = findBoxInMemory(data, targetType, p + 8, p + sz);
+            if (child) return child;
+          }
+          if (sz <= 0) break;
+          p += sz;
+        }
+        return null;
+      }
+
+      const stszBox = findBoxInMemory(moovData, 'stsz');
+      if (!stszBox) return false;
+      const view = new DataView(moovData.buffer, moovData.byteOffset, moovData.byteLength);
+      const uniformSize = view.getUint32(stszBox.offset + 4, false);
+      const sampleCount = view.getUint32(stszBox.offset + 8, false);
+      if (sampleCount <= 0 || sampleCount > 500000) return false;
+
+      const sampleSizes = new Uint32Array(sampleCount);
+      if (uniformSize === 0) {
+        for (let i = 0; i < sampleCount; i++) {
+          sampleSizes[i] = view.getUint32(stszBox.offset + 12 + i * 4, false);
+        }
+      } else {
+        sampleSizes.fill(uniformSize);
+      }
+
+      let chunkOffsets: Float64Array | null = null;
+      const stcoBox = findBoxInMemory(moovData, 'stco');
+      if (stcoBox) {
+        const chunkCount = view.getUint32(stcoBox.offset + 4, false);
+        chunkOffsets = new Float64Array(chunkCount);
+        for (let i = 0; i < chunkCount; i++) {
+          chunkOffsets[i] = view.getUint32(stcoBox.offset + 8 + i * 4, false);
+        }
+      } else {
+        const co64Box = findBoxInMemory(moovData, 'co64');
+        if (!co64Box) return false;
+        const chunkCount = view.getUint32(co64Box.offset + 4, false);
+        chunkOffsets = new Float64Array(chunkCount);
+        for (let i = 0; i < chunkCount; i++) {
+          const high = view.getUint32(co64Box.offset + 8 + i * 8, false);
+          const low = view.getUint32(co64Box.offset + 12 + i * 8, false);
+          chunkOffsets[i] = Number((BigInt(high) << 32n) | BigInt(low));
+        }
+      }
+
+      const stscBox = findBoxInMemory(moovData, 'stsc');
+      if (!stscBox) return false;
+      const stscCount = view.getUint32(stscBox.offset + 4, false);
+      const stscEntries: { firstChunk: number; samplesPerChunk: number }[] = [];
+      for (let i = 0; i < stscCount; i++) {
+        stscEntries.push({
+          firstChunk: view.getUint32(stscBox.offset + 8 + i * 12, false),
+          samplesPerChunk: view.getUint32(stscBox.offset + 12 + i * 12, false),
+        });
+      }
+
+      const sampleOffsets = new Float64Array(sampleCount);
+      let curSample = 0;
+      let stscIdx = 0;
+      for (let c = 0; c < chunkOffsets.length; c++) {
+        const chunkNo = c + 1;
+        if (stscIdx + 1 < stscEntries.length && chunkNo >= stscEntries[stscIdx + 1].firstChunk) {
+          stscIdx++;
+        }
+        const samplesInChunk = stscEntries[stscIdx].samplesPerChunk;
+        let offset = chunkOffsets[c];
+        for (let s = 0; s < samplesInChunk && curSample < sampleCount; s++) {
+          sampleOffsets[curSample] = offset;
+          offset += sampleSizes[curSample];
+          curSample++;
+        }
+      }
+
+      // Read samples in batches of 64
+      const BATCH_SIZE = 64;
+      let lastValid: TelemetryData | null = null;
+
+      for (let i = 0; i < sampleCount; i += BATCH_SIZE) {
+        const endIdx = Math.min(i + BATCH_SIZE, sampleCount);
+        const reads: Promise<Uint8Array>[] = [];
+        for (let j = i; j < endIdx; j++) {
+          const readLen = Math.min(sampleSizes[j], 384);
+          reads.push(file.read(sampleOffsets[j], readLen));
+        }
+        const chunks = await Promise.all(reads);
+
+        for (let k = 0; k < chunks.length; k++) {
+          const frameIdx = i + k;
+          const buf = chunks[k];
+          let p = 0;
+          const bView = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+
+          while (p < buf.length - 4) {
+            const nalLen = bView.getUint32(p, false);
+            p += 4;
+            if (nalLen < 2 || p + nalLen > buf.length) {
+              if ((buf[p] & 0x1f) === 6) {
+                const peek = buf.subarray(p, p + Math.min(nalLen, 256));
+                const payload = RealTeslaSEIDecoder.extractProtoPayload(peek);
+                if (payload) {
+                  const parsed = RealTeslaSEIDecoder.parseProtobufWire(payload);
+                  if (parsed) {
+                    lastValid = parsed;
+                    this.telemetryCache.set(frameIdx, parsed);
+                    this.hasSeiData = true;
+                    if (parsed.speed_kmh > this.maxSpeedKmh) {
+                      this.maxSpeedKmh = parsed.speed_kmh;
+                    }
+                  } else if (lastValid) {
+                    this.telemetryCache.set(frameIdx, { ...lastValid });
+                  }
+                }
+              }
+              break;
+            }
+
+            const nalType = buf[p] & 0x1f;
+            if (nalType === 6) {
+              const peek = buf.subarray(p, p + Math.min(nalLen, 256));
+              const payload = RealTeslaSEIDecoder.extractProtoPayload(peek);
+              if (payload) {
+                const parsed = RealTeslaSEIDecoder.parseProtobufWire(payload);
+                if (parsed) {
+                  lastValid = parsed;
+                  this.telemetryCache.set(frameIdx, parsed);
+                  this.hasSeiData = true;
+                  if (parsed.speed_kmh > this.maxSpeedKmh) {
+                    this.maxSpeedKmh = parsed.speed_kmh;
+                  }
+                } else if (lastValid) {
+                  this.telemetryCache.set(frameIdx, { ...lastValid });
+                }
+              }
+              break;
+            }
+            p += nalLen;
+          }
+        }
+
+        if (onProgress && (i % 64 === 0 || endIdx === sampleCount)) {
+          const pct = Math.round((endIdx / sampleCount) * 100);
+          onProgress(pct, endIdx, sampleCount);
+        }
+      }
+
+      this.sortedKeys = Array.from(this.telemetryCache.keys()).sort((a, b) => a - b);
+      return this.hasSeiData;
+    } catch (e) {
+      console.warn('[SEIDecoder] Sample table indexing failed, falling back to sequential scan:', e);
+      return false;
+    }
+  }
+
+  async parseMp4SeiSequential(
+    file: AsyncFileHandle,
+    onProgress?: (pct: number, parsedFrames: number, totalFrames: number) => void
+  ): Promise<void> {
     const mdat = await RealTeslaSEIDecoder.findMdat(file);
     if (!mdat) return;
 
@@ -332,6 +543,7 @@ export class RealTeslaSEIDecoder {
 
     let frameNo = 0;
     let lastValid: TelemetryData | null = null;
+    const estTotalFrames = 2160;
 
     while (true) {
       const nalSize = await reader.readUint32();
@@ -363,10 +575,27 @@ export class RealTeslaSEIDecoder {
           }
         }
         frameNo++;
+        if (onProgress && frameNo % 100 === 0) {
+          const pct = Math.min(99, Math.round((frameNo / estTotalFrames) * 100));
+          onProgress(pct, frameNo, estTotalFrames);
+        }
       }
     }
 
     this.sortedKeys = Array.from(this.telemetryCache.keys()).sort((a, b) => a - b);
+    if (onProgress) {
+      onProgress(100, frameNo, frameNo);
+    }
+  }
+
+  async parseMp4Sei(
+    file: AsyncFileHandle,
+    onProgress?: (pct: number, parsedFrames: number, totalFrames: number) => void
+  ): Promise<void> {
+    const ok = await this.parseMp4SeiSampleTable(file, onProgress);
+    if (!ok) {
+      await this.parseMp4SeiSequential(file, onProgress);
+    }
   }
 
   getFrameTelemetry(frameIdx: number): TelemetryData {

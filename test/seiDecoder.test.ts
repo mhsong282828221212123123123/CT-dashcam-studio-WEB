@@ -75,4 +75,40 @@ print(json.dumps(results))
     const isParking = await RealTeslaSEIDecoder.quickCheckIsParking(handle);
     expect(isParking).toBe(false); // Since max speed is > 0
   });
+
+  it('sample table indexing matches sequential scan exactly and reports progress', async () => {
+    const handle = new NodeFileHandle(testMp4);
+
+    // 1. Run sequential decoder
+    const seqDec = new RealTeslaSEIDecoder();
+    await seqDec.parseMp4SeiSequential(handle);
+
+    // 2. Run sample table decoder with progress
+    const sampleDec = new RealTeslaSEIDecoder();
+    const progressList: number[] = [];
+    const ok = await sampleDec.parseMp4SeiSampleTable(handle, (pct) => {
+      progressList.push(pct);
+    });
+
+    expect(ok).toBe(true);
+    expect(progressList.length).toBeGreaterThan(0);
+    expect(progressList[progressList.length - 1]).toBe(100);
+
+    expect(sampleDec.hasSeiData).toBe(seqDec.hasSeiData);
+    expect(sampleDec.maxSpeedKmh).toBe(seqDec.maxSpeedKmh);
+    expect(sampleDec.sortedKeys.length).toBe(seqDec.sortedKeys.length);
+
+    // Compare all frames
+    for (const frame of [0, 50, 100, 250, 500, 750, 1000, 1500, 2000, 2148]) {
+      const seqT = seqDec.getFrameTelemetry(frame);
+      const samT = sampleDec.getFrameTelemetry(frame);
+      expect(samT.speed_kmh).toBe(seqT.speed_kmh);
+      expect(samT.steering_deg).toBe(seqT.steering_deg);
+      expect(samT.accel_pct).toBe(seqT.accel_pct);
+      expect(samT.brake_applied).toBe(seqT.brake_applied);
+      expect(samT.ap_mode).toBe(seqT.ap_mode);
+      expect(samT.lat).toBe(seqT.lat);
+      expect(samT.lon).toBe(seqT.lon);
+    }
+  });
 });

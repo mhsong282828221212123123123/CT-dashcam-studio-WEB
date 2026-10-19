@@ -3,7 +3,7 @@ import * as Mp4Muxer from 'mp4-muxer';
 import { OverlayRenderer, RenderOptions } from './renderer';
 import { RealTeslaSEIDecoder, TelemetryData } from './seiDecoder';
 import { RESOLUTIONS, CameraKey } from './constants';
-import { ClipItem } from './clipScanner';
+import { ClipItem, ensureClipFiles } from './clipScanner';
 
 export interface ExportClipSegment {
   clip: ClipItem;
@@ -87,6 +87,7 @@ export class WebCodecsExporter {
         const segment = config.segments[segIdx];
 
         // Prepare video elements for this clip's cameras
+        await ensureClipFiles(segment.clip);
         const segVideos: Partial<Record<CameraKey, HTMLVideoElement>> = {};
         const objectUrls: string[] = [];
         const camKeys = Object.keys(segment.clip.cams) as CameraKey[];

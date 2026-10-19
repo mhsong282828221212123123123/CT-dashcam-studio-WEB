@@ -1,6 +1,16 @@
 // Main Application Entrypoint for CT Dashcam Studio Web
 import { RealTeslaSEIDecoder, BlobFileHandle, TelemetryData } from './core/seiDecoder';
-import { groupFilesIntoClips, scanFileSystemDirectory, FolderGroup, ClipItem } from './core/clipScanner';
+import {
+  groupFilesIntoClips,
+  scanFileSystemDirectory,
+  FolderGroup,
+  ClipItem,
+  ScannedFileItem,
+  getClipFile,
+  ensureClipFiles,
+  CAM_REGEX,
+} from './core/clipScanner';
+import { SeiWorkerResponse } from './core/seiWorker';
 import { OverlayRenderer, RenderOptions, DEFAULT_RENDER_OPTIONS, DEFAULT_TELEMETRY_ORDER, COL_WIDTH_BASE } from './core/renderer';
 import { detectDeviceCapabilities, CapabilityPolicy } from './core/capability';
 import { WebCodecsExporter, ExportClipSegment } from './core/exporter';
@@ -84,6 +94,10 @@ class CTDashcamStudioApp {
   private isSelectingClip = false;
   private parkingObserver: IntersectionObserver | null = null;
 
+  // Background SEI telemetry worker & generation token
+  private seiWorker: Worker | null = null;
+  private currentClipGeneration = 0;
+
   // Mobile portrait bottom sheet state
   private isExplorerExpanded = false;
 
@@ -101,10 +115,101 @@ class CTDashcamStudioApp {
     this.updateFpsOptions();
     this.setupShortcuts();
     this.setupCanvasInteractions();
+    this.initSeiWorker();
     this.startRenderLoop();
 
     (window as any).app = this;
     console.log('[App] CT Dashcam Studio Web initialized');
+  }
+
+  private initSeiWorker() {
+    try {
+      if (typeof Worker !== 'undefined') {
+        this.seiWorker = new Worker(new URL('./core/seiWorker.ts', import.meta.url), { type: 'module' });
+        this.seiWorker.onmessage = (e: MessageEvent<SeiWorkerResponse>) => {
+          this.handleSeiWorkerMessage(e.data);
+        };
+        this.seiWorker.onerror = (err) => {
+          console.warn('[App] seiWorker error, falling back to main-thread async decoder:', err);
+          this.seiWorker = null;
+        };
+      }
+    } catch (e) {
+      console.warn('[App] Could not initialize seiWorker, using main-thread fallback:', e);
+      this.seiWorker = null;
+    }
+  }
+
+  private handleSeiWorkerMessage(msg: SeiWorkerResponse) {
+    if (msg.generation !== this.currentClipGeneration) return;
+
+    if (msg.type === 'progress') {
+      this.showSeiProgress(msg.pct, msg.parsedFrames, msg.totalFrames);
+    } else if (msg.type === 'complete') {
+      const decoder = new RealTeslaSEIDecoder();
+      decoder.telemetryCache = new Map(msg.entries);
+      decoder.sortedKeys = Array.from(decoder.telemetryCache.keys()).sort((a, b) => a - b);
+      decoder.maxSpeedKmh = msg.maxSpeedKmh;
+      decoder.hasSeiData = msg.hasSeiData;
+
+      this.clipDecoders.set(msg.clipId, decoder);
+      this.hideSeiProgress();
+
+      // Trigger redraw of telemetry overlays if paused
+      if (!this.isPlaying) {
+        this.renderFrame();
+      }
+    } else if (msg.type === 'error') {
+      console.warn('[App] seiWorker error for clip', msg.clipId, msg.error);
+      this.hideSeiProgress();
+    }
+  }
+
+  showLoadProgress(title: string, countText: string, pct: number, indeterminate = false) {
+    const banner = document.getElementById('load-progress-banner');
+    const titleEl = document.getElementById('load-progress-title');
+    const countEl = document.getElementById('load-progress-count');
+    const fillEl = document.getElementById('load-progress-fill');
+    if (!banner || !titleEl || !countEl || !fillEl) return;
+
+    banner.style.display = 'flex';
+    titleEl.textContent = title;
+    countEl.textContent = countText;
+
+    if (indeterminate) {
+      fillEl.classList.add('indeterminate');
+      fillEl.style.width = '35%';
+    } else {
+      fillEl.classList.remove('indeterminate');
+      fillEl.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+    }
+  }
+
+  hideLoadProgress() {
+    const banner = document.getElementById('load-progress-banner');
+    if (banner) {
+      banner.style.display = 'none';
+    }
+  }
+
+  showSeiProgress(pct: number, parsedFrames?: number, totalFrames?: number) {
+    const badge = document.getElementById('sei-progress-badge');
+    const textEl = document.getElementById('sei-progress-text');
+    if (!badge || !textEl) return;
+
+    badge.style.display = 'flex';
+    if (parsedFrames !== undefined && totalFrames !== undefined) {
+      textEl.textContent = `주행 데이터 분석 중... ${pct}% (${parsedFrames}/${totalFrames}f)`;
+    } else {
+      textEl.textContent = `주행 데이터 분석 중... ${pct}%`;
+    }
+  }
+
+  hideSeiProgress() {
+    const badge = document.getElementById('sei-progress-badge');
+    if (badge) {
+      badge.style.display = 'none';
+    }
   }
 
   private loadSavedSettings() {
@@ -451,16 +556,22 @@ class CTDashcamStudioApp {
       if ('showDirectoryPicker' in window && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
         try {
           const dirHandle = await (window as any).showDirectoryPicker();
-          const files = await scanFileSystemDirectory(dirHandle);
-          if (files && files.length > 0) {
-            this.loadFiles(files);
+          this.showLoadProgress('📂 폴더 탐색 중...', '영상 탐색 중...', 0, true);
+          const items = await scanFileSystemDirectory(dirHandle, (filesCount, dirsCount) => {
+            this.showLoadProgress('📂 폴더 탐색 중...', `영상 ${filesCount}개 발견 (폴더 ${dirsCount}개)`, 0, true);
+          });
+          if (items && items.length > 0) {
+            await this.loadFiles(items);
             return;
           }
         } catch (e: any) {
           if (e.name === 'AbortError') {
+            this.hideLoadProgress();
             return; // 사용자가 취소함
           }
           console.warn('showDirectoryPicker failed, falling back to folder input:', e);
+        } finally {
+          this.hideLoadProgress();
         }
       }
 
@@ -471,16 +582,16 @@ class CTDashcamStudioApp {
       }
     });
 
-    fallbackFolderInput?.addEventListener('change', () => {
+    fallbackFolderInput?.addEventListener('change', async () => {
       if (fallbackFolderInput.files && fallbackFolderInput.files.length > 0) {
-        this.loadFiles(Array.from(fallbackFolderInput.files));
+        await this.loadFiles(Array.from(fallbackFolderInput.files));
       }
     });
 
     const fallbackFileInput = document.getElementById('fallback-file-input') as HTMLInputElement;
-    fallbackFileInput?.addEventListener('change', () => {
+    fallbackFileInput?.addEventListener('change', async () => {
       if (fallbackFileInput.files && fallbackFileInput.files.length > 0) {
-        this.loadFiles(Array.from(fallbackFileInput.files));
+        await this.loadFiles(Array.from(fallbackFileInput.files));
       }
     });
 
@@ -517,7 +628,7 @@ class CTDashcamStudioApp {
         }
 
         if (files.length > 0) {
-          this.loadFiles(files);
+          await this.loadFiles(files);
         }
       }
     });
@@ -1100,8 +1211,9 @@ class CTDashcamStudioApp {
     });
   }
 
-  loadFiles(files: File[]) {
+  async loadFiles(files: (File | ScannedFileItem)[]) {
     console.log('[App] loadFiles called with', files.length, 'files');
+    if (!files || files.length === 0) return;
 
     // 1. Invalidate previous parking detection generation & queue
     this.loadGeneration++;
@@ -1112,11 +1224,28 @@ class CTDashcamStudioApp {
 
     // 2. Pre-filter candidate files with regex
     const validFiles = files.filter((f) => {
-      const relPath = (f as any).webkitRelativePath || (f as any)._relativePath || f.name;
-      return /(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})-(front|back|left_repeater|right_repeater|left_pillar|right_pillar)(?: \(\d+\))?\.mp4$/i.test(relPath);
+      const relPath =
+        (f as any).webkitRelativePath ||
+        (f as any)._relativePath ||
+        (f as any).relativePath ||
+        f.name;
+      return CAM_REGEX.test(relPath);
     });
 
-    this.folderGroups = groupFilesIntoClips(validFiles.length > 0 ? validFiles : files);
+    const candidateList = validFiles.length > 0 ? validFiles : files;
+    const totalCount = candidateList.length;
+
+    this.showLoadProgress('🎬 클립 분류 중...', `0 / ${totalCount}개 파일 (0%)`, 0, false);
+
+    this.folderGroups = groupFilesIntoClips(candidateList, (done, total, clipCount) => {
+      const pct = Math.round((done / total) * 100);
+      this.showLoadProgress(
+        '🎬 클립 분류 중...',
+        `${done} / ${total}개 파일 (${pct}%) · ${clipCount}개 클립`,
+        pct,
+        false
+      );
+    });
     console.log('[App] Parsed folderGroups count:', this.folderGroups.length);
 
     // 3. Populate clipMap
@@ -1129,15 +1258,19 @@ class CTDashcamStudioApp {
 
     // 4. Render tree with collapsible folders
     this.renderClipsTree();
+    this.hideLoadProgress();
 
-    // 5. Select first clip if available
-    if (this.folderGroups.length > 0 && this.folderGroups[0].clips.length > 0) {
-      this.selectClip(this.folderGroups[0].clips[0]);
-    }
-
-    // 6. On mobile portrait, expand bottom sheet so user sees clips
+    // 5. On mobile portrait, expand bottom sheet so user sees clips
     if (this.isMobilePortrait()) {
       this.toggleExplorerSheet(true);
+    }
+
+    // 6. Select first clip if available on next animation frame
+    if (this.folderGroups.length > 0 && this.folderGroups[0].clips.length > 0) {
+      const firstClip = this.folderGroups[0].clips[0];
+      requestAnimationFrame(() => {
+        this.selectClip(firstClip);
+      });
     }
   }
 
@@ -1204,7 +1337,7 @@ class CTDashcamStudioApp {
     for (const clip of group.clips) {
       const isActive = this.activeClip?.id === clip.id;
       const inRange = this.isClipInRange(clip);
-      const camCount = Object.keys(clip.cams).length;
+      const camCount = Math.max(Object.keys(clip.cams).length, clip.camHandles ? Object.keys(clip.camHandles).length : 0);
       const isParking = clip.isParking ?? (clip.folder.includes('Sentry') || clip.folder.includes('Parking'));
       const tagClass = isParking ? 'parking' : 'driving';
       const tagText = `[${isParking ? '주차' : '주행'}] ${camCount}채널`;
@@ -1275,14 +1408,21 @@ class CTDashcamStudioApp {
     }
 
     const clip = this.clipMap.get(clipId);
-    if (!clip || clip.isParking !== undefined || !clip.cams.front) {
+    if (!clip || clip.isParking !== undefined) {
+      this.isProcessingParking = false;
+      this.scheduleNextParkingCheck();
+      return;
+    }
+
+    const frontFile = await getClipFile(clip, 'front');
+    if (!frontFile) {
       this.isProcessingParking = false;
       this.scheduleNextParkingCheck();
       return;
     }
 
     try {
-      const handle = new BlobFileHandle(clip.cams.front);
+      const handle = new BlobFileHandle(frontFile);
       const isParking = await RealTeslaSEIDecoder.quickCheckIsParking(handle);
       if (currentGen !== this.loadGeneration) {
         this.isProcessingParking = false;
@@ -1293,8 +1433,9 @@ class CTDashcamStudioApp {
       // Update badge in DOM if visible
       const tagEl = document.getElementById(`tag-${clip.safeId}`);
       if (tagEl) {
+        const camCount = Math.max(Object.keys(clip.cams).length, clip.camHandles ? Object.keys(clip.camHandles).length : 0);
         tagEl.className = `clip-type-tag ${isParking ? 'parking' : 'driving'}`;
-        tagEl.textContent = `[${isParking ? '주차' : '주행'}] ${Object.keys(clip.cams).length}채널`;
+        tagEl.textContent = `[${isParking ? '주차' : '주행'}] ${camCount}채널`;
       }
     } catch (e) {
       console.warn('[App] quickCheckIsParking error:', e);
@@ -1359,9 +1500,18 @@ class CTDashcamStudioApp {
 
   async selectClip(clip: ClipItem) {
     this.isSelectingClip = true;
+    const clipGen = ++this.currentClipGeneration;
     try {
       this.activeClip = clip;
-      const hasPillars = Boolean(clip.cams.left_pillar || clip.cams.right_pillar);
+      // Resolve files for this clip lazily
+      await ensureClipFiles(clip);
+
+      const hasPillars = Boolean(
+        clip.cams.left_pillar ||
+        clip.cams.right_pillar ||
+        clip.camHandles?.left_pillar ||
+        clip.camHandles?.right_pillar
+      );
       this.fps = hasPillars ? 24.0 : 36.0;
       this.isPlaying = false;
       this.currentTimeSec = 0;
@@ -1451,23 +1601,62 @@ class CTDashcamStudioApp {
           : 60.0;
       }
 
-      // Parse SEI data from front camera
-      if (clip.cams.front && !this.clipDecoders.has(clip.id)) {
-        try {
-          const decoder = new RealTeslaSEIDecoder();
-          const handle = new BlobFileHandle(clip.cams.front);
-          await decoder.parseMp4Sei(handle);
-          this.clipDecoders.set(clip.id, decoder);
-        } catch (err) {
-          console.warn('[App] Failed to parse SEI metadata for clip', clip.id, err);
-        }
-      }
-
       this.seekTo(0);
       this.updatePlayButton();
+
+      // Start non-blocking background telemetry extraction
+      this.startBackgroundTelemetry(clip, clipGen);
     } finally {
       this.isSelectingClip = false;
       this.scheduleNextParkingCheck();
+    }
+  }
+
+  private startBackgroundTelemetry(clip: ClipItem, clipGen: number) {
+    if (this.clipDecoders.has(clip.id)) {
+      this.hideSeiProgress();
+      return;
+    }
+
+    const frontFile = clip.cams.front;
+    if (!frontFile) {
+      this.hideSeiProgress();
+      return;
+    }
+
+    this.showSeiProgress(0);
+
+    if (this.seiWorker) {
+      this.seiWorker.postMessage({
+        type: 'parse',
+        clipId: clip.id,
+        generation: clipGen,
+        file: frontFile,
+      });
+    } else {
+      (async () => {
+        try {
+          const decoder = new RealTeslaSEIDecoder();
+          const handle = new BlobFileHandle(frontFile);
+          await decoder.parseMp4Sei(handle, (pct, parsedFrames, totalFrames) => {
+            if (this.currentClipGeneration === clipGen) {
+              this.showSeiProgress(pct, parsedFrames, totalFrames);
+            }
+          });
+          if (this.currentClipGeneration === clipGen) {
+            this.clipDecoders.set(clip.id, decoder);
+            this.hideSeiProgress();
+            if (!this.isPlaying) {
+              this.renderFrame();
+            }
+          }
+        } catch (err) {
+          console.warn('[App] Failed to parse SEI metadata for clip', clip.id, err);
+          if (this.currentClipGeneration === clipGen) {
+            this.hideSeiProgress();
+          }
+        }
+      })();
     }
   }
 
@@ -1997,9 +2186,10 @@ class CTDashcamStudioApp {
         segments,
         getClipDecoder: async (clip: ClipItem) => {
           if (!this.clipDecoders.has(clip.id)) {
-            if (clip.cams.front) {
+            const frontFile = await getClipFile(clip, 'front');
+            if (frontFile) {
               const decoder = new RealTeslaSEIDecoder();
-              const handle = new BlobFileHandle(clip.cams.front);
+              const handle = new BlobFileHandle(frontFile);
               await decoder.parseMp4Sei(handle);
               this.clipDecoders.set(clip.id, decoder);
             }

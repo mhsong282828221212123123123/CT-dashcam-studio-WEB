@@ -8,6 +8,7 @@ export interface ClipItem {
   timestampStr: string; // "2026-08-17 12:37:37"
   timestampRaw: string; // "2026-08-17_12-37-37"
   cams: Partial<Record<CameraKey, File>>;
+  camHandles?: Partial<Record<CameraKey, FileSystemFileHandle>>;
   durationSec: number;
   totalFrames: number;
   isParking?: boolean;
@@ -18,42 +19,123 @@ export interface FolderGroup {
   clips: ClipItem[];
 }
 
+export interface ScannedFileItem {
+  name: string;
+  relativePath: string;
+  file?: File;
+  handle?: FileSystemFileHandle;
+}
+
 export const CAM_REGEX = /(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})-(front|back|left_repeater|right_repeater|left_pillar|right_pillar)(?: \(\d+\))?\.mp4$/i;
 
 export function isTeslaCamVideo(filename: string): boolean {
   return CAM_REGEX.test(filename);
 }
 
-export function groupFilesIntoClips(files: File[]): FolderGroup[] {
-  const mapByFolderAndTimestamp = new Map<string, { folder: string; timestampRaw: string; cams: Partial<Record<CameraKey, File>> }>();
+export async function getClipFile(clip: ClipItem, camKey: CameraKey): Promise<File | null> {
+  if (clip.cams[camKey]) {
+    return clip.cams[camKey]!;
+  }
+  if (clip.camHandles && clip.camHandles[camKey]) {
+    try {
+      const file = await clip.camHandles[camKey]!.getFile();
+      const entryPath = `${clip.folder}/${file.name}`;
+      try {
+        Object.defineProperty(file, 'webkitRelativePath', {
+          value: entryPath,
+          writable: false,
+          configurable: true,
+        });
+      } catch {
+        (file as any)._relativePath = entryPath;
+      }
+      clip.cams[camKey] = file;
+      return file;
+    } catch (err) {
+      console.warn(`[Scanner] Failed to resolve File handle for ${clip.id} ${camKey}:`, err);
+      return null;
+    }
+  }
+  return null;
+}
 
-  for (const file of files) {
-    const relPath = (file as any)._relativePath || file.webkitRelativePath || file.name;
+export async function ensureClipFiles(clip: ClipItem): Promise<Partial<Record<CameraKey, File>>> {
+  const keys: CameraKey[] = ['front', 'back', 'left_repeater', 'right_repeater', 'left_pillar', 'right_pillar'];
+  await Promise.all(
+    keys.map(async (k) => {
+      if (!clip.cams[k] && clip.camHandles?.[k]) {
+        await getClipFile(clip, k);
+      }
+    })
+  );
+  return clip.cams;
+}
+
+export function groupFilesIntoClips(
+  files: (File | ScannedFileItem)[],
+  onProgress?: (processed: number, total: number, clipCount: number) => void
+): FolderGroup[] {
+  const mapByFolderAndTimestamp = new Map<
+    string,
+    {
+      folder: string;
+      timestampRaw: string;
+      cams: Partial<Record<CameraKey, File>>;
+      camHandles?: Partial<Record<CameraKey, FileSystemFileHandle>>;
+    }
+  >();
+
+  const total = files.length;
+  const CHUNK_SIZE = 150;
+
+  for (let i = 0; i < total; i++) {
+    const item = files[i];
+    const isRealFile = item instanceof File || ('size' in item && typeof (item as any).slice === 'function');
+    const fileObj = isRealFile ? (item as File) : (item as ScannedFileItem).file;
+    const handleObj = !isRealFile ? (item as ScannedFileItem).handle : undefined;
+    const relPath =
+      (fileObj as any)?._relativePath ||
+      fileObj?.webkitRelativePath ||
+      (item as ScannedFileItem).relativePath ||
+      item.name;
+
     const match = relPath.match(CAM_REGEX);
-    if (!match) continue;
+    if (match) {
+      const timestampRaw = match[1];
+      const camKey = match[2].toLowerCase() as CameraKey;
 
-    const timestampRaw = match[1];
-    const camKey = match[2].toLowerCase() as CameraKey;
+      // Determine folder from relative path
+      const pathParts = relPath.split(/[\/\\]/);
+      let folder = "TeslaCam";
+      if (pathParts.length >= 3) {
+        folder = pathParts.slice(0, -1).join("/");
+      } else if (pathParts.length === 2) {
+        folder = pathParts[0];
+      }
 
-    // Determine folder from relative path
-    const pathParts = relPath.split(/[\/\\]/);
-    let folder = "TeslaCam";
-    if (pathParts.length >= 3) {
-      folder = pathParts.slice(0, -1).join("/");
-    } else if (pathParts.length === 2) {
-      folder = pathParts[0];
+      const groupKey = `${folder}/${timestampRaw}`;
+      if (!mapByFolderAndTimestamp.has(groupKey)) {
+        mapByFolderAndTimestamp.set(groupKey, {
+          folder,
+          timestampRaw,
+          cams: {},
+          camHandles: {},
+        });
+      }
+
+      const groupEntry = mapByFolderAndTimestamp.get(groupKey)!;
+      if (fileObj) {
+        groupEntry.cams[camKey] = fileObj;
+      }
+      if (handleObj) {
+        if (!groupEntry.camHandles) groupEntry.camHandles = {};
+        groupEntry.camHandles[camKey] = handleObj;
+      }
     }
 
-    const groupKey = `${folder}/${timestampRaw}`;
-    if (!mapByFolderAndTimestamp.has(groupKey)) {
-      mapByFolderAndTimestamp.set(groupKey, {
-        folder,
-        timestampRaw,
-        cams: {},
-      });
+    if (onProgress && (i % CHUNK_SIZE === 0 || i === total - 1)) {
+      onProgress(i + 1, total, mapByFolderAndTimestamp.size);
     }
-
-    mapByFolderAndTimestamp.get(groupKey)!.cams[camKey] = file;
   }
 
   // Group into FolderGroups
@@ -70,6 +152,7 @@ export function groupFilesIntoClips(files: File[]): FolderGroup[] {
       timestampStr: formattedTime,
       timestampRaw: info.timestampRaw,
       cams: info.cams,
+      camHandles: info.camHandles,
       durationSec: 60.0, // default 1 min
       totalFrames: 2160, // default 36fps * 60s
     };
@@ -93,43 +176,35 @@ export function groupFilesIntoClips(files: File[]): FolderGroup[] {
   return result;
 }
 
-export async function scanFileSystemDirectory(dirHandle: FileSystemDirectoryHandle): Promise<File[]> {
-  const files: File[] = [];
+export async function scanFileSystemDirectory(
+  dirHandle: FileSystemDirectoryHandle,
+  onProgress?: (scannedFiles: number, scannedDirs: number) => void
+): Promise<ScannedFileItem[]> {
+  const items: ScannedFileItem[] = [];
+  let scannedDirs = 0;
 
   async function traverse(handle: FileSystemDirectoryHandle, currentPath: string) {
+    scannedDirs++;
     const entries: any[] = [];
     for await (const entry of (handle as any).values()) {
       entries.push(entry);
     }
 
-    // Filter candidate video files before getFile() to avoid loading thumb.png, event.json, etc.
+    // Filter candidate video files without calling getFile()!
     const fileEntries = entries.filter((e) => e.kind === 'file' && isTeslaCamVideo(e.name));
     const dirEntries = entries.filter((e) => e.kind === 'directory');
 
-    // Concurrency pool (max 6) to keep memory usage low on mobile
-    const CONCURRENCY = 6;
-    for (let i = 0; i < fileEntries.length; i += CONCURRENCY) {
-      const batch = fileEntries.slice(i, i + CONCURRENCY);
-      await Promise.all(
-        batch.map(async (entry) => {
-          try {
-            const file = await (entry as FileSystemFileHandle).getFile();
-            const entryPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
-            try {
-              Object.defineProperty(file, 'webkitRelativePath', {
-                value: entryPath,
-                writable: false,
-                configurable: true,
-              });
-            } catch {
-              (file as any)._relativePath = entryPath;
-            }
-            files.push(file);
-          } catch (err) {
-            console.warn('[Scanner] Failed to read file handle:', entry.name, err);
-          }
-        })
-      );
+    for (const entry of fileEntries) {
+      const entryPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+      items.push({
+        name: entry.name,
+        relativePath: entryPath,
+        handle: entry as FileSystemFileHandle,
+      });
+    }
+
+    if (onProgress) {
+      onProgress(items.length, scannedDirs);
     }
 
     for (const dirEntry of dirEntries) {
@@ -139,5 +214,5 @@ export async function scanFileSystemDirectory(dirHandle: FileSystemDirectoryHand
   }
 
   await traverse(dirHandle, dirHandle.name);
-  return files;
+  return items;
 }
