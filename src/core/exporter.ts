@@ -200,6 +200,11 @@ export class WebCodecsExporter {
         let currentSourceSec = segment.startSec;
         const videoKeys = Object.keys(segVideos) as CameraKey[];
 
+        // Track frame mediaTime and snapshots to prevent backward temporal jitter (1-3-2-4-6-5) on mobile
+        const lastMediaTimes: Partial<Record<CameraKey, number>> = {};
+        const lastValidSnapshots: Partial<Record<CameraKey, HTMLCanvasElement>> = {};
+        const isBackwardsFlags: Partial<Record<CameraKey, boolean>> = {};
+
         while (currentSourceSec <= segment.endSec && !this.isCancelled) {
           // Sync all camera videos to currentSourceSec
           await Promise.all(
@@ -207,45 +212,91 @@ export class WebCodecsExporter {
               const v = segVideos[k];
               if (!v) return Promise.resolve();
               return new Promise<void>((resolve) => {
-                if (Math.abs(v.currentTime - currentSourceSec) < 0.0001) {
+                // Add 0.001s (1ms) epsilon on mobile to avoid floating point boundary rounding down to previous frame
+                const targetSeekTime = isMobile
+                  ? Math.min(v.duration && v.duration > 0 ? v.duration - 0.0005 : currentSourceSec + 0.001, currentSourceSec + 0.001)
+                  : currentSourceSec;
+
+                if (Math.abs(v.currentTime - targetSeekTime) < 0.0001) {
                   resolve();
                   return;
                 }
+
                 let settled = false;
                 let timeoutId: any = null;
+                let rvfcId: number | null = null;
+                let isBackwards = false;
+
+                const prevMediaTime = lastMediaTimes[k] ?? -1;
+                const startTime = Date.now();
 
                 const finish = () => {
                   if (settled) return;
                   settled = true;
                   if (timeoutId) clearTimeout(timeoutId);
+                  if (rvfcId !== null && typeof (v as any).cancelVideoFrameCallback === 'function') {
+                    (v as any).cancelVideoFrameCallback(rvfcId);
+                  }
                   v.removeEventListener('seeked', onSeeked);
+                  isBackwardsFlags[k] = isBackwards;
                   resolve();
                 };
 
+                // 150ms timeout fallback on mobile (prevents hangs if seek/rVFC is dropped), 400ms on PC
+                timeoutId = setTimeout(() => {
+                  finish();
+                }, isMobile ? 150 : 400);
+
+                if (!isMobile) {
+                  // On PC: resolve immediately upon seeked to maximize decoding throughput!
+                  const onSeeked = () => finish();
+                  v.addEventListener('seeked', onSeeked, { once: true });
+                  v.currentTime = targetSeekTime;
+                  return;
+                }
+
+                // Mobile path: requestVideoFrameCallback + backward frame guard
+                const checkFrame = (_now: number, metadata: any) => {
+                  if (settled) return;
+                  const mediaTime = metadata?.mediaTime;
+                  if (typeof mediaTime === 'number') {
+                    // Check if this frame is equal to or older than the previous frame (backward temporal jitter)
+                    if (prevMediaTime >= 0 && mediaTime <= prevMediaTime + 0.0005) {
+                      isBackwards = true;
+                      const elapsed = Date.now() - startTime;
+                      // If within 150ms window, re-request rVFC to wait for the forward frame
+                      if (elapsed < 130 && typeof (v as any).requestVideoFrameCallback === 'function') {
+                        rvfcId = (v as any).requestVideoFrameCallback(checkFrame);
+                        return;
+                      }
+                      // Window expired, retain backward flag to use previous valid frame snapshot
+                      finish();
+                      return;
+                    }
+                    // Valid forward frame confirmed!
+                    isBackwards = false;
+                    lastMediaTimes[k] = mediaTime;
+                  }
+                  finish();
+                };
+
                 const onSeeked = () => {
-                  if (!isMobile) {
-                    // On PC: resolve immediately to maximize decoding throughput!
-                    finish();
+                  if (settled) return;
+                  if (typeof (v as any).requestVideoFrameCallback === 'function' && !document.hidden) {
+                    rvfcId = (v as any).requestVideoFrameCallback(checkFrame);
                   } else if (document.hidden) {
                     // On mobile background tab: resolve via microtask
                     queueMicrotask(finish);
                   } else {
-                    // On mobile foreground: wait for compositor frame commit with double rAF.
-                    // Double requestAnimationFrame ensures Android SurfaceTexture / GPU rasterization
-                    // has completely committed the newly decoded frame to texture before drawing to canvas,
-                    // preventing race conditions where previous/next frames are accidentally captured.
+                    // Fallback if rVFC is not available
                     requestAnimationFrame(() => {
-                      requestAnimationFrame(() => {
-                        finish();
-                      });
+                      requestAnimationFrame(finish);
                     });
                   }
                 };
 
-                // Safety timeout: 400ms on PC (original fast recovery), 800ms on mobile
-                timeoutId = setTimeout(finish, isMobile ? 800 : 400);
                 v.addEventListener('seeked', onSeeked, { once: true });
-                v.currentTime = currentSourceSec;
+                v.currentTime = targetSeekTime;
               });
             })
           );
@@ -269,10 +320,35 @@ export class WebCodecsExporter {
 
           const timestampText = `${segment.baseTimeStr} (+${currentSourceSec.toFixed(1)}s)`;
 
+          // Prepare render frames: if a backward frame was detected, hold the previous valid frame snapshot
+          const renderFrames: Partial<Record<CameraKey, CanvasImageSource | null>> = {};
+          for (const k of videoKeys) {
+            const v = segVideos[k];
+            if (!v) continue;
+            if (isMobile && isBackwardsFlags[k] && lastValidSnapshots[k]) {
+              renderFrames[k] = lastValidSnapshots[k]!;
+            } else {
+              renderFrames[k] = v;
+              if (isMobile && v.videoWidth > 0 && v.videoHeight > 0) {
+                let snap = lastValidSnapshots[k];
+                if (!snap || snap.width !== v.videoWidth || snap.height !== v.videoHeight) {
+                  snap = document.createElement('canvas');
+                  snap.width = v.videoWidth;
+                  snap.height = v.videoHeight;
+                  lastValidSnapshots[k] = snap;
+                }
+                const sCtx = snap.getContext('2d');
+                if (sCtx) {
+                  sCtx.drawImage(v, 0, 0);
+                }
+              }
+            }
+          }
+
           // Render overlay onto offscreen export canvas
           OverlayRenderer.render(
             exportCanvas,
-            segVideos,
+            renderFrames,
             telemetry,
             timestampText,
             currentSourceSec,
@@ -314,6 +390,9 @@ export class WebCodecsExporter {
             segVideos[k]!.remove();
             delete segVideos[k];
           }
+          delete lastValidSnapshots[k];
+          delete lastMediaTimes[k];
+          delete isBackwardsFlags[k];
         }
       }
 
