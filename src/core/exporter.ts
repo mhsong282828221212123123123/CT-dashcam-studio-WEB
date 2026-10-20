@@ -174,7 +174,7 @@ export class WebCodecsExporter {
       if (masterVideo.ended && mediaTime <= lastCapturedMediaTime) {
         break;
       }
-      if (mediaTime >= segment.endSec) {
+      if (mediaTime >= segment.endSec + 0.1) {
         break;
       }
 
@@ -269,7 +269,7 @@ export class WebCodecsExporter {
         setLastOutputTimestampMicros(timestampMicros);
 
         const durationMicros = Math.round(1_000_000 / config.targetFps);
-        const isKeyFrame = count % Math.round(config.targetFps * 2) === 0;
+        const isKeyFrame = count === 0 || count % Math.round(config.targetFps * 2) === 0;
 
         const frame = new VideoFrame(exportCanvas, {
           timestamp: timestampMicros,
@@ -358,18 +358,11 @@ export class WebCodecsExporter {
     });
 
     let videoEncoder: VideoEncoder | null = null;
+    let receivedChunkCount = 0;
+    let encoderError: any = null;
+    let hasDecoderConfig = false;
 
     try {
-      videoEncoder = new VideoEncoder({
-        output: (chunk, meta) => {
-          // Pass chunk intact with its original PTS timestamp.
-          muxer.addVideoChunk(chunk, meta);
-        },
-        error: (e) => {
-          console.error("VideoEncoder error:", e);
-        },
-      });
-
       // Codec profile & level:
       // - PC & iOS: standard High Profile avc1.640028 (Level 4.0) or avc1.640032 (Level 5.0 for QHD).
       //   Apple VideoToolbox on iOS handles High Profile natively with zero frame swap jitter and maximum hardware speed.
@@ -390,7 +383,42 @@ export class WebCodecsExporter {
         height: targetH,
         bitrate: bitrateBps,
         framerate: config.targetFps,
+        avc: { format: 'avc' },
       };
+
+      videoEncoder = new VideoEncoder({
+        output: (chunk, meta) => {
+          receivedChunkCount++;
+
+          let chunkMeta = meta;
+          if (chunkMeta?.decoderConfig) {
+            hasDecoderConfig = true;
+            if (!chunkMeta.decoderConfig.colorSpace) {
+              chunkMeta.decoderConfig.colorSpace = {};
+            }
+          } else if (!hasDecoderConfig) {
+            // 안드로이드 하드웨어 인코더가 Annex-B 기본값 등으로 인해 decoderConfig를 누락할 경우
+            // mp4-muxer가 null.colorSpace 참조 에러로 크래시하지 않도록 안전한 fallback 메타데이터 주입
+            chunkMeta = {
+              ...chunkMeta,
+              decoderConfig: {
+                codec: encoderConfig.codec,
+                codedWidth: targetW,
+                codedHeight: targetH,
+                colorSpace: {},
+                description: new Uint8Array(),
+              },
+            };
+            hasDecoderConfig = true;
+          }
+
+          muxer.addVideoChunk(chunk, chunkMeta);
+        },
+        error: (e) => {
+          console.error("VideoEncoder error:", e);
+          encoderError = e;
+        },
+      });
 
       if (isAndroid) {
         // Enforce realtime latencyMode on Android to prevent B-frame temporal reordering jitter in Samsung Gallery
@@ -411,6 +439,10 @@ export class WebCodecsExporter {
           }
           if (!check.supported) {
             encoderConfig.codec = 'avc1.42001f';
+            check = await VideoEncoder.isConfigSupported(encoderConfig);
+          }
+          if (!check.supported && encoderConfig.avc) {
+            delete encoderConfig.avc;
           }
         } catch (err) {
           console.warn('[Exporter] VideoEncoder.isConfigSupported check fallback:', err);
@@ -569,7 +601,7 @@ export class WebCodecsExporter {
               duration: Math.round(1_000_000 / config.targetFps),
             });
 
-            const keyFrame = outputFrameCount % Math.round(config.targetFps * 2) === 0;
+            const keyFrame = outputFrameCount === 0 || outputFrameCount % Math.round(config.targetFps * 2) === 0;
             videoEncoder.encode(videoFrame, { keyFrame });
             videoFrame.close();
 
@@ -612,6 +644,15 @@ export class WebCodecsExporter {
       config.onProgress(100, config.segments.length, config.segments.length);
 
       await videoEncoder.flush();
+
+      if (encoderError) {
+        throw new Error(`VideoEncoder 오류: ${encoderError.message || encoderError}`);
+      }
+
+      if (receivedChunkCount === 0) {
+        throw new Error("인코딩된 비디오 청크가 없습니다. (0 video chunks received)");
+      }
+
       muxer.finalize();
 
       const { buffer } = muxer.target;
