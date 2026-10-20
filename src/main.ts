@@ -2357,8 +2357,11 @@ class CTDashcamStudioApp {
       if (exportModalFpsInfo) exportModalFpsInfo.textContent = i18n.t('export_success_save_desc');
       if (statusLabel) statusLabel.textContent = i18n.t('status_success');
 
-      // 갤럭시는 백그라운드 다운로드 후 알림이 없으므로 명시적인 완료 알림 팝업 제공
-      alert(i18n.t('export_success_alert'));
+      // 갤럭시는 브라우저 다운로드 완료 알림이 없으므로 안드로이드 환경에서만 안내 팝업 노출
+      const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+      if (isAndroid) {
+        alert(i18n.t('export_success_alert'));
+      }
     } catch (e: any) {
       if (statusLabel) statusLabel.textContent = `${i18n.t('status_error')}${e.message}`;
     } finally {
