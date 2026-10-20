@@ -58,7 +58,15 @@ export class WebCodecsExporter {
 
   async exportMultiClip(config: MultiClipExportConfig): Promise<Blob> {
     this.isCancelled = false;
-    const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 850px), (pointer: coarse)').matches;
+
+    // Platform detection: Android (needs Samsung MediaCodec B-frame & buffer workarounds) vs iOS (native VideoToolbox)
+    const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+    const isIOS = typeof navigator !== 'undefined' && (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    );
+    const isMobile = isAndroid || isIOS || (typeof window !== 'undefined' && window.matchMedia('(max-width: 850px), (pointer: coarse)').matches);
+
     const resConfig = RESOLUTIONS[config.resolutionName] || RESOLUTIONS["FHD (1920x1080) - 권장 표준"];
     const [targetW, targetH] = resConfig.size;
 
@@ -91,7 +99,6 @@ export class WebCodecsExporter {
       videoEncoder = new VideoEncoder({
         output: (chunk, meta) => {
           // Pass chunk intact with its original PTS timestamp.
-          // Constrained Baseline Profile strictly prohibits B-frames, ensuring 1:1 input/output order and DTS = PTS.
           muxer.addVideoChunk(chunk, meta);
         },
         error: (e) => {
@@ -100,11 +107,12 @@ export class WebCodecsExporter {
       });
 
       // Codec profile & level:
-      // - PC: standard avc1.640028 (High Profile Level 4.0) or avc1.640032 (High Profile Level 5.0 for QHD)
-      // - Mobile: Constrained Baseline Profile (avc1.42E0xx) to strictly prevent Samsung Exynos/Snapdragon
+      // - PC & iOS: standard High Profile avc1.640028 (Level 4.0) or avc1.640032 (Level 5.0 for QHD).
+      //   Apple VideoToolbox on iOS handles High Profile natively with zero frame swap jitter and maximum hardware speed.
+      // - Android (Galaxy): Constrained Baseline Profile (avc1.42E0xx) to strictly prevent Samsung Exynos/Snapdragon
       //   MediaCodec from generating B-frames which cause 1-3-2-4-6-5 PTS/DTS temporal jitter in Samsung Gallery.
       let avcLevel = 'avc1.640028';
-      if (isMobile) {
+      if (isAndroid) {
         avcLevel = targetW >= 2560 ? 'avc1.42E032'
           : targetW >= 1920 ? 'avc1.42E029'
           : 'avc1.42E01f';
@@ -120,15 +128,15 @@ export class WebCodecsExporter {
         framerate: config.targetFps,
       };
 
-      if (isMobile) {
-        // Enforce realtime latencyMode on mobile to prevent B-frame temporal reordering jitter in Samsung Gallery
+      if (isAndroid) {
+        // Enforce realtime latencyMode on Android to prevent B-frame temporal reordering jitter in Samsung Gallery
         encoderConfig.latencyMode = 'realtime';
       }
 
       if (typeof VideoEncoder.isConfigSupported === 'function') {
         try {
           const check = await VideoEncoder.isConfigSupported(encoderConfig);
-          const defaultFallback = isMobile ? 'avc1.420028' : 'avc1.640028';
+          const defaultFallback = isAndroid ? 'avc1.420028' : 'avc1.640028';
           if (!check.supported && avcLevel !== defaultFallback) {
             console.warn(`[Exporter] ${avcLevel} not supported, falling back to ${defaultFallback}`);
             encoderConfig.codec = defaultFallback;
@@ -200,7 +208,7 @@ export class WebCodecsExporter {
         let currentSourceSec = segment.startSec;
         const videoKeys = Object.keys(segVideos) as CameraKey[];
 
-        // Track frame mediaTime and snapshots to prevent backward temporal jitter (1-3-2-4-6-5) on mobile
+        // Android-specific: Track frame mediaTime and snapshots to prevent backward temporal jitter (1-3-2-4-6-5) in Samsung Gallery
         const lastMediaTimes: Partial<Record<CameraKey, number>> = {};
         const lastValidSnapshots: Partial<Record<CameraKey, HTMLCanvasElement>> = {};
         const isBackwardsFlags: Partial<Record<CameraKey, boolean>> = {};
@@ -212,8 +220,8 @@ export class WebCodecsExporter {
               const v = segVideos[k];
               if (!v) return Promise.resolve();
               return new Promise<void>((resolve) => {
-                // Add 0.001s (1ms) epsilon on mobile to avoid floating point boundary rounding down to previous frame
-                const targetSeekTime = isMobile
+                // Add 0.001s (1ms) epsilon on Android to avoid floating point boundary rounding down to previous frame
+                const targetSeekTime = isAndroid
                   ? Math.min(v.duration && v.duration > 0 ? v.duration - 0.0005 : currentSourceSec + 0.001, currentSourceSec + 0.001)
                   : currentSourceSec;
 
@@ -238,24 +246,27 @@ export class WebCodecsExporter {
                     (v as any).cancelVideoFrameCallback(rvfcId);
                   }
                   v.removeEventListener('seeked', onSeeked);
-                  isBackwardsFlags[k] = isBackwards;
+                  if (isAndroid) {
+                    isBackwardsFlags[k] = isBackwards;
+                  }
                   resolve();
                 };
 
-                // 150ms timeout fallback on mobile (prevents hangs if seek/rVFC is dropped), 400ms on PC
-                timeoutId = setTimeout(() => {
-                  finish();
-                }, isMobile ? 150 : 400);
-
-                if (!isMobile) {
-                  // On PC: resolve immediately upon seeked to maximize decoding throughput!
+                // Fast path for PC & iOS: resolve immediately upon seeked to maximize decoding throughput!
+                // (iOS Apple VideoToolbox never suffers from the Samsung MediaCodec out-of-order buffer bug)
+                if (!isAndroid) {
                   const onSeeked = () => finish();
+                  timeoutId = setTimeout(finish, isMobile ? 800 : 400);
                   v.addEventListener('seeked', onSeeked, { once: true });
                   v.currentTime = targetSeekTime;
                   return;
                 }
 
-                // Mobile path: requestVideoFrameCallback + backward frame guard
+                // Android path: requestVideoFrameCallback + backward frame guard (for Samsung Gallery 1-3-2-4 fix)
+                timeoutId = setTimeout(() => {
+                  finish();
+                }, 150);
+
                 const checkFrame = (_now: number, metadata: any) => {
                   if (settled) return;
                   const mediaTime = metadata?.mediaTime;
@@ -285,10 +296,8 @@ export class WebCodecsExporter {
                   if (typeof (v as any).requestVideoFrameCallback === 'function' && !document.hidden) {
                     rvfcId = (v as any).requestVideoFrameCallback(checkFrame);
                   } else if (document.hidden) {
-                    // On mobile background tab: resolve via microtask
                     queueMicrotask(finish);
                   } else {
-                    // Fallback if rVFC is not available
                     requestAnimationFrame(() => {
                       requestAnimationFrame(finish);
                     });
@@ -320,29 +329,35 @@ export class WebCodecsExporter {
 
           const timestampText = `${segment.baseTimeStr} (+${currentSourceSec.toFixed(1)}s)`;
 
-          // Prepare render frames: if a backward frame was detected, hold the previous valid frame snapshot
-          const renderFrames: Partial<Record<CameraKey, CanvasImageSource | null>> = {};
-          for (const k of videoKeys) {
-            const v = segVideos[k];
-            if (!v) continue;
-            if (isMobile && isBackwardsFlags[k] && lastValidSnapshots[k]) {
-              renderFrames[k] = lastValidSnapshots[k]!;
-            } else {
-              renderFrames[k] = v;
-              if (isMobile && v.videoWidth > 0 && v.videoHeight > 0) {
-                let snap = lastValidSnapshots[k];
-                if (!snap || snap.width !== v.videoWidth || snap.height !== v.videoHeight) {
-                  snap = document.createElement('canvas');
-                  snap.width = v.videoWidth;
-                  snap.height = v.videoHeight;
-                  lastValidSnapshots[k] = snap;
-                }
-                const sCtx = snap.getContext('2d');
-                if (sCtx) {
-                  sCtx.drawImage(v, 0, 0);
+          // Prepare render frames:
+          // - PC & iOS: Pass segVideos directly for zero-copy maximum hardware performance
+          // - Android: If a backward frame was detected, substitute the previous valid frame snapshot
+          let renderFrames: Partial<Record<CameraKey, CanvasImageSource | null>> = segVideos;
+          if (isAndroid) {
+            const androidFrames: Partial<Record<CameraKey, CanvasImageSource | null>> = {};
+            for (const k of videoKeys) {
+              const v = segVideos[k];
+              if (!v) continue;
+              if (isBackwardsFlags[k] && lastValidSnapshots[k]) {
+                androidFrames[k] = lastValidSnapshots[k]!;
+              } else {
+                androidFrames[k] = v;
+                if (v.videoWidth > 0 && v.videoHeight > 0) {
+                  let snap = lastValidSnapshots[k];
+                  if (!snap || snap.width !== v.videoWidth || snap.height !== v.videoHeight) {
+                    snap = document.createElement('canvas');
+                    snap.width = v.videoWidth;
+                    snap.height = v.videoHeight;
+                    lastValidSnapshots[k] = snap;
+                  }
+                  const sCtx = snap.getContext('2d');
+                  if (sCtx) {
+                    sCtx.drawImage(v, 0, 0);
+                  }
                 }
               }
             }
+            renderFrames = androidFrames;
           }
 
           // Render overlay onto offscreen export canvas
