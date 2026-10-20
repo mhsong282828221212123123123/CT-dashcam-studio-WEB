@@ -455,47 +455,15 @@ export class RealTeslaSEIDecoder {
       const BATCH_SIZE = 64;
       let lastValid: TelemetryData | null = null;
 
-      for (let i = 0; i < sampleCount; i += BATCH_SIZE) {
-        const endIdx = Math.min(i + BATCH_SIZE, sampleCount);
-        const reads: Promise<Uint8Array>[] = [];
-        for (let j = i; j < endIdx; j++) {
-          const readLen = Math.min(sampleSizes[j], 384);
-          reads.push(file.read(sampleOffsets[j], readLen));
-        }
-        const chunks = await Promise.all(reads);
+      const parseSampleBuf = (frameIdx: number, buf: Uint8Array) => {
+        let p = 0;
+        const bView = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
 
-        for (let k = 0; k < chunks.length; k++) {
-          const frameIdx = i + k;
-          const buf = chunks[k];
-          let p = 0;
-          const bView = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
-
-          while (p < buf.length - 4) {
-            const nalLen = bView.getUint32(p, false);
-            p += 4;
-            if (nalLen < 2 || p + nalLen > buf.length) {
-              if ((buf[p] & 0x1f) === 6) {
-                const peek = buf.subarray(p, p + Math.min(nalLen, 256));
-                const payload = RealTeslaSEIDecoder.extractProtoPayload(peek);
-                if (payload) {
-                  const parsed = RealTeslaSEIDecoder.parseProtobufWire(payload);
-                  if (parsed) {
-                    lastValid = parsed;
-                    this.telemetryCache.set(frameIdx, parsed);
-                    this.hasSeiData = true;
-                    if (parsed.speed_kmh > this.maxSpeedKmh) {
-                      this.maxSpeedKmh = parsed.speed_kmh;
-                    }
-                  } else if (lastValid) {
-                    this.telemetryCache.set(frameIdx, { ...lastValid });
-                  }
-                }
-              }
-              break;
-            }
-
-            const nalType = buf[p] & 0x1f;
-            if (nalType === 6) {
+        while (p < buf.length - 4) {
+          const nalLen = bView.getUint32(p, false);
+          p += 4;
+          if (nalLen < 2 || p + nalLen > buf.length) {
+            if ((buf[p] & 0x1f) === 6) {
               const peek = buf.subarray(p, p + Math.min(nalLen, 256));
               const payload = RealTeslaSEIDecoder.extractProtoPayload(peek);
               if (payload) {
@@ -511,10 +479,75 @@ export class RealTeslaSEIDecoder {
                   this.telemetryCache.set(frameIdx, { ...lastValid });
                 }
               }
-              break;
             }
-            p += nalLen;
+            break;
           }
+
+          const nalType = buf[p] & 0x1f;
+          if (nalType === 6) {
+            const peek = buf.subarray(p, p + Math.min(nalLen, 256));
+            const payload = RealTeslaSEIDecoder.extractProtoPayload(peek);
+            if (payload) {
+              const parsed = RealTeslaSEIDecoder.parseProtobufWire(payload);
+              if (parsed) {
+                lastValid = parsed;
+                this.telemetryCache.set(frameIdx, parsed);
+                this.hasSeiData = true;
+                if (parsed.speed_kmh > this.maxSpeedKmh) {
+                  this.maxSpeedKmh = parsed.speed_kmh;
+                }
+              } else if (lastValid) {
+                this.telemetryCache.set(frameIdx, { ...lastValid });
+              }
+            }
+            break;
+          }
+          p += nalLen;
+        }
+      };
+
+      for (let i = 0; i < sampleCount; i += BATCH_SIZE) {
+        const endIdx = Math.min(i + BATCH_SIZE, sampleCount);
+
+        let cur = i;
+        while (cur < endIdx) {
+          let runEnd = cur + 1;
+          while (
+            runEnd < endIdx &&
+            sampleOffsets[runEnd] === sampleOffsets[runEnd - 1] + sampleSizes[runEnd - 1]
+          ) {
+            runEnd++;
+          }
+
+          const runStartOffset = sampleOffsets[cur];
+          const lastSampleIdx = runEnd - 1;
+          const runTotalLen = (sampleOffsets[lastSampleIdx] + sampleSizes[lastSampleIdx]) - runStartOffset;
+
+          // If contiguous run is within reasonable block size (<= 16MB), read the run in a single I/O
+          if (runEnd > cur + 1 && runTotalLen <= 16 * 1024 * 1024) {
+            const blockBuf = await file.read(runStartOffset, runTotalLen);
+            for (let j = cur; j < runEnd; j++) {
+              const relOffset = sampleOffsets[j] - runStartOffset;
+              const sampleLen = Math.min(sampleSizes[j], 384);
+              if (relOffset < blockBuf.length) {
+                const sampleBuf = blockBuf.subarray(relOffset, Math.min(blockBuf.length, relOffset + sampleLen));
+                parseSampleBuf(j, sampleBuf);
+              }
+            }
+          } else {
+            // Fallback for non-contiguous samples or single sample
+            const reads: Promise<Uint8Array>[] = [];
+            for (let j = cur; j < runEnd; j++) {
+              const readLen = Math.min(sampleSizes[j], 384);
+              reads.push(file.read(sampleOffsets[j], readLen));
+            }
+            const chunks = await Promise.all(reads);
+            for (let j = 0; j < chunks.length; j++) {
+              parseSampleBuf(cur + j, chunks[j]);
+            }
+          }
+
+          cur = runEnd;
         }
 
         if (onProgress && (i % 64 === 0 || endIdx === sampleCount)) {
@@ -524,7 +557,7 @@ export class RealTeslaSEIDecoder {
       }
 
       this.sortedKeys = Array.from(this.telemetryCache.keys()).sort((a, b) => a - b);
-      return this.hasSeiData;
+      return true;
     } catch (e) {
       console.warn('[SEIDecoder] Sample table indexing failed, falling back to sequential scan:', e);
       return false;

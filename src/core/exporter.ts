@@ -26,6 +26,17 @@ export interface MultiClipExportConfig {
 export class WebCodecsExporter {
   private isCancelled = false;
 
+  private getActiveCamKeys(options: RenderOptions): CameraKey[] {
+    if (options.layout === '단일 카메라') {
+      return [options.single_cam || 'front'];
+    }
+    const keys: CameraKey[] = ['front', 'back', 'left_repeater', 'right_repeater'];
+    if (options.pillar_pip) {
+      keys.push('left_pillar', 'right_pillar');
+    }
+    return keys;
+  }
+
   cancel(): void {
     this.isCancelled = true;
   }
@@ -90,7 +101,10 @@ export class WebCodecsExporter {
         await ensureClipFiles(segment.clip);
         const segVideos: Partial<Record<CameraKey, HTMLVideoElement>> = {};
         const objectUrls: string[] = [];
-        const camKeys = Object.keys(segment.clip.cams) as CameraKey[];
+        const activeCamKeys = this.getActiveCamKeys(config.options);
+        const camKeys = (Object.keys(segment.clip.cams) as CameraKey[]).filter((k) =>
+          activeCamKeys.includes(k)
+        );
 
         for (const k of camKeys) {
           const file = segment.clip.cams[k];

@@ -1483,6 +1483,172 @@ kbd {
 }
 
 /* =========================================================================
+   비디오 내보내기 전용 전체화면 모달 (#export-progress-modal)
+   ========================================================================= */
+.export-progress-card {
+  max-width: 440px;
+  width: calc(100vw - 32px);
+  background: #0d111a;
+  border: 1px solid #233047;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+}
+
+.export-modal-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid #1f2736;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.export-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.export-spinner-icon {
+  font-size: 16px;
+  animation: pulse-glow 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+.export-modal-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f0f6fc;
+}
+
+.export-seg-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: #1f293d;
+  color: #58a6ff;
+  border: 1px solid rgba(56, 139, 253, 0.35);
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.export-modal-body {
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.export-large-pct-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.export-large-pct {
+  font-size: 42px;
+  font-weight: 800;
+  color: #58a6ff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.export-sub-info {
+  font-size: 12px;
+  color: #8b949e;
+}
+
+.export-gauge-track {
+  width: 100%;
+  height: 12px;
+  background: #161b26;
+  border: 1px solid #283347;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.export-gauge-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1f6feb 0%, #58a6ff 100%);
+  border-radius: 5px;
+  transition: width 0.15s ease-out;
+}
+
+.export-warning-callout {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(210, 153, 34, 0.12);
+  border: 1px solid rgba(210, 153, 34, 0.35);
+  border-radius: 8px;
+  color: #f0f6fc;
+}
+
+.warning-callout-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
+.warning-callout-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.warning-callout-content strong {
+  color: #e3b341;
+  font-size: 12px;
+}
+
+.warning-callout-content p {
+  margin: 0;
+  color: #c9d1d9;
+}
+
+.export-modal-footer {
+  padding: 12px 18px;
+  background: #090d14;
+  border-top: 1px solid #1f2736;
+  display: flex;
+  justify-content: stretch;
+}
+
+.btn-export-cancel {
+  width: 100%;
+  background: #da3633;
+  color: #ffffff;
+  border: 1px solid #f85149;
+  font-weight: 700;
+  padding: 11px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13.5px;
+  transition: background 0.15s ease;
+}
+
+.btn-export-cancel:hover {
+  background: #b62324;
+}
+
+.btn-export-cancel:active {
+  background: #8e1a1b;
+}
+
+.btn-export-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =========================================================================
    모바일 전용 반응형 및 뷰 모드 (Portrait / Landscape / PC버전 보기)
    ========================================================================= */
 

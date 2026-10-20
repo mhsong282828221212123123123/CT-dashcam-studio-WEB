@@ -483,6 +483,47 @@
         </div>
       </div>
 
+      <!-- 비디오 내보내기 전용 전체화면 모달 (백그라운드 터치 차단 및 화면 꺼짐 주의) -->
+      <div id="export-progress-modal" class="modal-backdrop" style="display: none;">
+        <div class="modal-card export-progress-card">
+          <div class="export-modal-header">
+            <div class="export-modal-title-group">
+              <span class="export-spinner-icon">⚡</span>
+              <h3 class="export-modal-title">비디오 내보내기 진행 중</h3>
+            </div>
+            <span id="export-modal-file-seg" class="export-seg-badge">파일 1/1</span>
+          </div>
+
+          <div class="export-modal-body">
+            <!-- 대형 퍼센트 진행률 -->
+            <div class="export-large-pct-wrapper">
+              <span id="export-modal-pct" class="export-large-pct">0%</span>
+              <span id="export-modal-fps-info" class="export-sub-info">인코딩 준비 중...</span>
+            </div>
+
+            <!-- 대형 게이지 트랙 & 바 -->
+            <div class="export-gauge-track">
+              <div id="export-modal-gauge-fill" class="export-gauge-fill" style="width: 0%;"></div>
+            </div>
+
+            <!-- 모바일/백그라운드 경고 배너 -->
+            <div class="export-warning-callout">
+              <div class="warning-callout-icon">⚠️</div>
+              <div class="warning-callout-content">
+                <strong>화면을 켠 채로 유지해 주세요!</strong>
+                <p>화면을 끄거나 다른 앱으로 전환하면 브라우저 정책으로 인해 영상 인코딩이 일시 중지되거나 취소될 수 있습니다.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="export-modal-footer">
+            <button id="btn-cancel-export-modal" class="btn btn-export-cancel">
+              ⏹ 내보내기 취소
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- 동기 재생용 숨김 비디오 풀 -->
       <div id="hidden-video-container" class="hidden-video-pool"></div>
     </div>

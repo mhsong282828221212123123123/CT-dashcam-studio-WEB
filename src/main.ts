@@ -2082,16 +2082,24 @@ class CTDashcamStudioApp {
     const exportSpeed = parseFloat(speedSelect?.value || '1.0');
     const maxFps = Math.min(120, Math.round(baseFps * exportSpeed));
 
-    const currentVal = parseInt(fpsSelect.value) || maxFps;
+    const currentVal = parseInt(fpsSelect.value) || 0;
+
+    // Standard output FPS candidates.
+    // In video export, playback framerate must remain at standard rates (30, 36, 60)
+    // to prevent iOS Photos / Safari from treating 120 FPS as Slo-Mo (which slows down middle section to 1/4x).
+    const defaultFps = (exportSpeed === 1.0 && Math.round(baseFps) <= 36) ? Math.round(baseFps) : 30;
 
     const candidates: Array<{ label: string; val: number }> = [
-      { label: `${maxFps} FPS (원본 최적)`, val: maxFps },
-      { label: '60 FPS', val: 60 },
-      { label: '36 FPS', val: 36 },
-      { label: '30 FPS (표준)', val: 30 },
+      { label: '30 FPS (표준 권장)', val: 30 },
+      { label: `${Math.round(baseFps)} FPS (원본 기본)`, val: Math.round(baseFps) },
+      { label: '60 FPS (고부드러움)', val: 60 },
       { label: '24 FPS (시네마)', val: 24 },
-      { label: '15 FPS (절감)', val: 15 },
+      { label: '15 FPS (용량 절감)', val: 15 },
     ];
+
+    if (exportSpeed > 1.0 && maxFps >= 120) {
+      candidates.push({ label: '120 FPS (초고프레임 - iOS 슬로우모션 주의)', val: 120 });
+    }
 
     fpsSelect.innerHTML = '';
     const added = new Set<number>();
@@ -2108,14 +2116,16 @@ class CTDashcamStudioApp {
 
     if (added.size === 0) {
       const opt = document.createElement('option');
-      opt.value = String(maxFps);
-      opt.textContent = `${maxFps} FPS`;
+      opt.value = String(defaultFps);
+      opt.textContent = `${defaultFps} FPS`;
       fpsSelect.appendChild(opt);
-      added.add(maxFps);
+      added.add(defaultFps);
     }
 
-    if (added.has(currentVal)) {
+    if (currentVal > 0 && added.has(currentVal)) {
       fpsSelect.value = String(currentVal);
+    } else if (added.has(defaultFps)) {
+      fpsSelect.value = String(defaultFps);
     } else {
       fpsSelect.selectedIndex = 0;
     }
@@ -2162,7 +2172,16 @@ class CTDashcamStudioApp {
     const pbarFill = document.getElementById('export-pbar-fill');
     const statusLabel = document.getElementById('export-status-label');
 
-    const targetFps = fpsSelect ? parseInt(fpsSelect.value) || 36 : 36;
+    // Export progress modal elements
+    const exportModal = document.getElementById('export-progress-modal');
+    const exportModalPct = document.getElementById('export-modal-pct');
+    const exportModalFpsInfo = document.getElementById('export-modal-fps-info');
+    const exportModalGaugeFill = document.getElementById('export-modal-gauge-fill');
+    const exportModalFileSeg = document.getElementById('export-modal-file-seg');
+    const btnCancelExportModal = document.getElementById('btn-cancel-export-modal') as HTMLButtonElement | null;
+
+    const targetFps = fpsSelect ? parseInt(fpsSelect.value) || 30 : 30;
+    const exportSpeed = parseFloat(speedSelect?.value || '1.0');
     const segments = this.buildTargetClipChain();
     if (segments.length === 0) {
       alert('내보낼 영상 구간이 없습니다.');
@@ -2181,6 +2200,49 @@ class CTDashcamStudioApp {
     }
     if (pbarFill) pbarFill.style.width = '0%';
 
+    // Open fullscreen modal to protect against background touches & app sleep
+    if (exportModal) exportModal.style.display = 'flex';
+    if (exportModalPct) exportModalPct.textContent = '0%';
+    if (exportModalGaugeFill) exportModalGaugeFill.style.width = '0%';
+    if (exportModalFileSeg) exportModalFileSeg.textContent = `파일 1/${segments.length}`;
+    if (exportModalFpsInfo) exportModalFpsInfo.textContent = `인코딩 준비 중... (${targetFps} FPS, ${exportSpeed}x)`;
+    if (btnCancelExportModal) {
+      btnCancelExportModal.disabled = false;
+      btnCancelExportModal.textContent = '⏹ 내보내기 취소';
+    }
+
+    // Modal cancel button click handler
+    const onModalCancel = () => {
+      if (this.isExporting) {
+        this.exporter.cancel();
+        if (btnCancelExportModal) {
+          btnCancelExportModal.disabled = true;
+          btnCancelExportModal.textContent = '취소 처리 중...';
+        }
+        if (exportModalFpsInfo) {
+          exportModalFpsInfo.textContent = '인코딩을 취소하는 중입니다...';
+        }
+      }
+    };
+    btnCancelExportModal?.addEventListener('click', onModalCancel);
+
+    // Prevent accidental page unload during encoding
+    const preventUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', preventUnload);
+
+    // Screen Wake Lock to prevent mobile display sleep
+    let wakeLockSentinel: any = null;
+    if ('wakeLock' in navigator && (navigator as any).wakeLock) {
+      try {
+        wakeLockSentinel = await (navigator as any).wakeLock.request('screen');
+      } catch (e) {
+        console.warn('[Export] Screen wake lock not granted:', e);
+      }
+    }
+
     try {
       const blob = await this.exporter.exportMultiClip({
         segments,
@@ -2198,7 +2260,7 @@ class CTDashcamStudioApp {
         },
         sourceFps: this.fps,
         targetFps,
-        exportSpeed: parseFloat(speedSelect?.value || '1.0'),
+        exportSpeed,
         resolutionName: resSelect.value as any,
         options: this.options,
         onProgress: (pct, curSeg, totalSeg) => {
@@ -2206,6 +2268,10 @@ class CTDashcamStudioApp {
             statusLabel.textContent = `인코딩 진행 중: ${pct}% [파일 ${curSeg}/${totalSeg}]`;
           }
           if (pbarFill) pbarFill.style.width = `${pct}%`;
+          if (exportModalPct) exportModalPct.textContent = `${pct}%`;
+          if (exportModalGaugeFill) exportModalGaugeFill.style.width = `${pct}%`;
+          if (exportModalFileSeg) exportModalFileSeg.textContent = `파일 ${curSeg}/${totalSeg}`;
+          if (exportModalFpsInfo) exportModalFpsInfo.textContent = `인코딩 진행 중: ${pct}% (${targetFps} FPS, ${exportSpeed}x)`;
         },
       });
 
@@ -2224,6 +2290,17 @@ class CTDashcamStudioApp {
       if (statusLabel) statusLabel.textContent = `오류 발생: ${e.message}`;
     } finally {
       this.isExporting = false;
+      window.removeEventListener('beforeunload', preventUnload);
+      btnCancelExportModal?.removeEventListener('click', onModalCancel);
+
+      if (wakeLockSentinel) {
+        wakeLockSentinel.release().catch(() => {});
+        wakeLockSentinel = null;
+      }
+      if (exportModal) {
+        exportModal.style.display = 'none';
+      }
+
       if (btnExport) {
         btnExport.textContent = '선택 구간 내보내기 (MP4)';
         btnExport.classList.remove('cancelling');
