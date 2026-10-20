@@ -127,12 +127,14 @@ export class WebCodecsExporter {
     const stepSec = (1.0 / config.targetFps) * config.exportSpeed;
     let nextTargetSourceSec = segment.startSec;
     let lastCapturedMediaTime = -1;
-    let consecutiveStalls = 0;
+    let lastFrameWallTime = performance.now();
 
     while (!this.isCancelled) {
       // 브라우저 백그라운드 정책 등으로 일시정지되었을 경우 안전 재개 (백프레셔 상태가 아닐 때)
       if (masterVideo.paused && videoEncoder.encodeQueueSize <= 4) {
-        masterVideo.play().catch(() => {});
+        for (const v of activeVideos) {
+          if (v.paused) v.play().catch(() => {});
+        }
       }
 
       // requestVideoFrameCallback을 통해 GPU 하드웨어 디코더가 새 프레임을 렌더할 때까지 대기
@@ -151,7 +153,7 @@ export class WebCodecsExporter {
           if (settled) return;
           settled = true;
           resolve({ mediaTime: masterVideo.currentTime });
-        }, 150);
+        }, 400);
 
         if (typeof (masterVideo as any).requestVideoFrameCallback === 'function') {
           (masterVideo as any).requestVideoFrameCallback(onFrame);
@@ -168,15 +170,23 @@ export class WebCodecsExporter {
 
       const mediaTime = frameMeta.mediaTime;
 
-      // 영상 끝 도달 또는 정체 감지
+      // 영상 종료 조건 확인: 비디오가 끝났고 더 이상 새 프레임이 없으면 종료
+      if (masterVideo.ended && mediaTime <= lastCapturedMediaTime) {
+        break;
+      }
+      if (mediaTime >= segment.endSec) {
+        break;
+      }
+
+      // 직전 캡처 시간과 동일하면 새 비디오 프레임이 디코딩될 때까지 대기
       if (mediaTime <= lastCapturedMediaTime) {
-        consecutiveStalls++;
-        if (consecutiveStalls >= 5 || masterVideo.ended || mediaTime >= segment.endSec - 0.05) {
+        if (performance.now() - lastFrameWallTime > 5000) {
+          console.warn('[Android Exporter] Video stalled for > 5s, ending segment');
           break;
         }
         continue;
       }
-      consecutiveStalls = 0;
+      lastFrameWallTime = performance.now();
 
       // 세그먼트 시작점 이전 프레임 무시
       if (mediaTime < segment.startSec - 0.03) {
@@ -389,14 +399,22 @@ export class WebCodecsExporter {
 
       if (typeof VideoEncoder.isConfigSupported === 'function') {
         try {
-          const check = await VideoEncoder.isConfigSupported(encoderConfig);
-          const defaultFallback = isAndroid ? 'avc1.420028' : 'avc1.640028';
-          if (!check.supported && avcLevel !== defaultFallback) {
-            console.warn(`[Exporter] ${avcLevel} not supported, falling back to ${defaultFallback}`);
-            encoderConfig.codec = defaultFallback;
+          let check = await VideoEncoder.isConfigSupported(encoderConfig);
+          if (!check.supported && encoderConfig.latencyMode) {
+            delete encoderConfig.latencyMode;
+            check = await VideoEncoder.isConfigSupported(encoderConfig);
           }
-        } catch {
-          // Keep chosen level if check throws
+          if (!check.supported) {
+            encoderConfig.codec = targetW >= 2560 ? 'avc1.640032' : targetW >= 1920 ? 'avc1.640029' : 'avc1.640028';
+            delete encoderConfig.latencyMode;
+            check = await VideoEncoder.isConfigSupported(encoderConfig);
+          }
+          if (!check.supported) {
+            encoderConfig.codec = 'avc1.42001f';
+          }
+        } catch (err) {
+          console.warn('[Exporter] VideoEncoder.isConfigSupported check fallback:', err);
+          delete encoderConfig.latencyMode;
         }
       }
 
@@ -587,12 +605,19 @@ export class WebCodecsExporter {
         throw new Error("비디오 내보내기가 취소되었습니다.");
       }
 
+      if (outputFrameCount === 0) {
+        throw new Error("인코딩된 비디오 프레임이 없습니다. (0 frames captured)");
+      }
+
       config.onProgress(100, config.segments.length, config.segments.length);
 
       await videoEncoder.flush();
       muxer.finalize();
 
       const { buffer } = muxer.target;
+      if (!buffer || buffer.byteLength === 0) {
+        throw new Error("생성된 비디오 파일 데이터가 비어 있습니다. (0 byte output)");
+      }
       return new Blob([buffer], { type: 'video/mp4' });
     } finally {
       if (videoEncoder && videoEncoder.state !== 'closed') {

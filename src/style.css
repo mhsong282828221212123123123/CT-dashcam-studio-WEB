@@ -95,11 +95,11 @@ body {
 /* 동기 재생용 숨김 비디오 풀: display: none 사용 금지 (iOS/Android 미디어 엔진 중단 방지) */
 .hidden-video-pool {
   position: fixed;
-  top: -9999px;
-  left: -9999px;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
+  top: 0;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  opacity: 0.01;
   pointer-events: none;
   overflow: hidden;
   z-index: -9999;

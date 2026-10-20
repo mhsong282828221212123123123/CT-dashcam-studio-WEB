@@ -2344,13 +2344,20 @@ class CTDashcamStudioApp {
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
+      a.style.display = 'none';
       a.href = url;
       const fileName = segments.length > 1
         ? `TeslaCam_${segments[0].clip.timestampRaw}_to_${segments[segments.length - 1].clip.timestampRaw}_export.mp4`
         : `TeslaCam_${segments[0].clip.timestampRaw}_export.mp4`;
       a.download = fileName;
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        try {
+          a.remove();
+          URL.revokeObjectURL(url);
+        } catch {}
+      }, 60000);
 
       if (exportModalPct) exportModalPct.textContent = '100%';
       if (exportModalGaugeFill) exportModalGaugeFill.style.width = '100%';
@@ -2360,10 +2367,15 @@ class CTDashcamStudioApp {
       // 갤럭시는 브라우저 다운로드 완료 알림이 없으므로 안드로이드 환경에서만 안내 팝업 노출
       const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
       if (isAndroid) {
-        alert(i18n.t('export_success_alert'));
+        setTimeout(() => {
+          alert(i18n.t('export_success_alert'));
+        }, 300);
       }
     } catch (e: any) {
-      if (statusLabel) statusLabel.textContent = `${i18n.t('status_error')}${e.message}`;
+      console.error('[Export Error]', e);
+      const errorMsg = e?.message || String(e);
+      if (statusLabel) statusLabel.textContent = `${i18n.t('status_error')}${errorMsg}`;
+      alert(`${i18n.t('status_error')}${errorMsg}`);
     } finally {
       this.isExporting = false;
       window.removeEventListener('beforeunload', preventUnload);
