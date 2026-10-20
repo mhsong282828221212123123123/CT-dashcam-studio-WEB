@@ -3,8 +3,9 @@ import basicSsl from '@vitejs/plugin-basic-ssl';
 
 export default defineConfig(({ mode }) => {
   const isHttps = process.env.HTTPS === 'true' || mode === 'https';
+  const basePath = process.env.VITE_BASE_PATH || '/CT-dashcam-studio-WEB/';
   return {
-    base: '/CT-dashcam-studio-WEB/',
+    base: basePath,
     plugins: isHttps ? [basicSsl()] : [],
     server: {
       host: '0.0.0.0',

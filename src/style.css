@@ -1214,6 +1214,21 @@ body {
   font-size: 10px;
 }
 
+/* 개발 버전 (/dev/) 배포 표시용 배지 */
+.badge-dev-pill {
+  font-size: 9px;
+  font-weight: 800;
+  color: #ff9900;
+  background: rgba(255, 153, 0, 0.18);
+  border: 1px solid rgba(255, 153, 0, 0.45);
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+
 .tier-pill:hover {
   filter: brightness(1.2);
   box-shadow: 0 0 6px rgba(57, 255, 20, 0.3);

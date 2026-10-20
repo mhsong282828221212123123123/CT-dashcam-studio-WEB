@@ -127,9 +127,27 @@ class CTDashcamStudioApp {
     this.setupCanvasInteractions();
     this.initSeiWorker();
     this.startRenderLoop();
+    this.initDevBadge();
 
     (window as any).app = this;
     console.log('[App] CT Dashcam Studio Web initialized');
+  }
+
+  private initDevBadge() {
+    const isDevDeployment = typeof window !== 'undefined' && (
+      window.location.pathname.includes('/dev/') ||
+      (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL?.includes('/dev/'))
+    );
+    if (isDevDeployment) {
+      document.querySelectorAll('.footer-brand, .brand-title').forEach((el) => {
+        if (!el.querySelector('.badge-dev-pill')) {
+          const badge = document.createElement('span');
+          badge.className = 'badge-dev-pill';
+          badge.textContent = 'DEV';
+          el.appendChild(badge);
+        }
+      });
+    }
   }
 
   private initSeiWorker() {
