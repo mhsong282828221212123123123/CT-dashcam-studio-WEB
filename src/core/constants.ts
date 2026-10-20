@@ -9,10 +9,10 @@ export interface ResolutionConfig {
 }
 
 export const RESOLUTIONS: Record<string, ResolutionConfig> = {
-  "QHD (2560x1440) - 최고화질": { size: [2560, 1440], bitrate_mbps: 50.0 },
-  "FHD (1920x1080) - 권장 표준": { size: [1920, 1080], bitrate_mbps: 35.0 },
-  "HD (1280x720) - 용량 절감": { size: [1280, 720], bitrate_mbps: 18.0 },
-  "Compact (960x540) - 모바일용": { size: [960, 540], bitrate_mbps: 9.0 },
+  "QHD (2560x1440) - 최고화질": { size: [2560, 1440], bitrate_mbps: 28.0 },
+  "FHD (1920x1080) - 권장 표준": { size: [1920, 1080], bitrate_mbps: 16.0 },
+  "HD (1280x720) - 용량 절감": { size: [1280, 720], bitrate_mbps: 8.0 },
+  "Compact (960x540) - 모바일용": { size: [960, 540], bitrate_mbps: 4.0 },
 };
 
 export interface SensitivityPreset {

@@ -75,13 +75,41 @@ export class WebCodecsExporter {
         },
       });
 
-      // H.264 High Profile configuration
+      // Dynamic H.264 profile & level selection based on resolution:
+      // - Level 5.0 (avc1.640032) for QHD (2560x1440)
+      // - Level 4.1 (avc1.640029) for FHD (1920x1080)
+      // - Level 3.1 (avc1.64001f) for HD / Compact (1280x720 / 960x540)
+      let avcLevel = targetW >= 2560 ? 'avc1.640032'
+        : targetW >= 1920 ? 'avc1.640029'
+        : 'avc1.64001f';
+
+      if (typeof VideoEncoder.isConfigSupported === 'function') {
+        try {
+          const check = await VideoEncoder.isConfigSupported({
+            codec: avcLevel,
+            width: targetW,
+            height: targetH,
+            bitrate: bitrateBps,
+            framerate: config.targetFps,
+            latencyMode: 'quality',
+          });
+          if (!check.supported) {
+            console.warn(`[Exporter] ${avcLevel} not supported, falling back to avc1.640028`);
+            avcLevel = 'avc1.640028';
+          }
+        } catch {
+          // Keep chosen level if check throws
+        }
+      }
+
+      // H.264 configuration with quality latencyMode to prevent mobile frame dropping
       videoEncoder.configure({
-        codec: 'avc1.640028', // H.264 High profile Level 4.0
+        codec: avcLevel,
         width: targetW,
         height: targetH,
         bitrate: bitrateBps,
         framerate: config.targetFps,
+        latencyMode: 'quality',
       });
 
       const frameStepSec = (1.0 / config.targetFps) * config.exportSpeed;
@@ -148,17 +176,31 @@ export class WebCodecsExporter {
                   resolve();
                   return;
                 }
+                let settled = false;
                 let timeoutId: any = null;
-                const onSeeked = () => {
-                  v.removeEventListener('seeked', onSeeked);
+
+                const finish = () => {
+                  if (settled) return;
+                  settled = true;
                   if (timeoutId) clearTimeout(timeoutId);
+                  v.removeEventListener('seeked', onSeeked);
                   resolve();
                 };
-                timeoutId = setTimeout(() => {
-                  v.removeEventListener('seeked', onSeeked);
-                  resolve();
-                }, 400);
-                v.addEventListener('seeked', onSeeked);
+
+                const onSeeked = () => {
+                  // Ensure browser rendering cycle commits the decoded texture to GPU buffer before drawing
+                  if (document.hidden) {
+                    setTimeout(finish, 16);
+                  } else {
+                    requestAnimationFrame(() => {
+                      finish();
+                    });
+                  }
+                };
+
+                // Safety timeout: 800ms gives mobile decoders adequate time under heavy multi-camera workload
+                timeoutId = setTimeout(finish, 800);
+                v.addEventListener('seeked', onSeeked, { once: true });
                 v.currentTime = currentSourceSec;
               });
             })
