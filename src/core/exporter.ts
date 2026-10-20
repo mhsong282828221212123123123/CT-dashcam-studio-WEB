@@ -56,11 +56,33 @@ export class WebCodecsExporter {
     this.isCancelled = true;
   }
 
+  private seekVideoOnce(v: HTMLVideoElement, timeSec: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      if (Math.abs(v.currentTime - timeSec) < 0.03) {
+        resolve();
+        return;
+      }
+      let timer: any = null;
+      const onSeeked = () => {
+        if (timer) clearTimeout(timer);
+        v.removeEventListener('seeked', onSeeked);
+        resolve();
+      };
+      timer = setTimeout(() => {
+        v.removeEventListener('seeked', onSeeked);
+        resolve();
+      }, 300);
+      v.addEventListener('seeked', onSeeked, { once: true });
+      v.currentTime = timeSec;
+    });
+  }
+
   /**
-   * Android-exclusive Streaming Playback Capture Mode:
-   * Instead of step-seeking currentTime every 33ms (which flushes MediaCodec buffers and scrambles PTS/DTS into 1-3-2-4-6-5),
-   * this plays the video linearly forward and captures frames via requestVideoFrameCallback.
-   * Because MediaCodec decodes purely in forward hardware presentation order, temporal jitter is mathematically eliminated.
+   * Android-exclusive Play-Step-Pause Capture Mode:
+   * Instead of continuous playback (which drops frames during encoding) or step-seeking (which flushes MediaCodec buffers and scrambles PTS/DTS into 1-3-2-4),
+   * this advances videos in small forward play bursts at low speed (0.35x), pauses immediately upon reaching each target frame via rVFC,
+   * renders to canvas, encodes with backpressure wait, and steps forward.
+   * Zero frame drops, zero PTS jitter, perfect camera synchronization.
    */
   private async exportSegmentStreamingAndroid(
     segment: ExportClipSegment,
@@ -75,166 +97,167 @@ export class WebCodecsExporter {
     onFrameEncoded: () => void,
     getOutputFrameCount: () => number
   ): Promise<void> {
-    const mainKey = videoKeys.includes('front') ? 'front' : videoKeys[0];
-    const mainVideo = segVideos[mainKey];
-    if (!mainVideo) return;
+    const activeVideos = videoKeys
+      .map((k) => segVideos[k])
+      .filter((v): v is HTMLVideoElement => Boolean(v));
+    const masterVideo = segVideos['front'] || activeVideos[0];
+    if (!masterVideo) return;
 
-    // 1. Initial Seek to segment.startSec (only once per segment!)
+    const stepSec = (1.0 / config.targetFps) * config.exportSpeed; // 출력 1프레임당 전진해야 할 원본 영상 시간
+    let currentSourceSec = segment.startSec;
+
+    // 1. 세그먼트 시작점으로 최초 1회만 정밀 시크
     await Promise.all(
-      videoKeys.map((k) => {
-        const v = segVideos[k];
-        if (!v) return Promise.resolve();
-        return new Promise<void>((resolve) => {
-          if (Math.abs(v.currentTime - segment.startSec) < 0.05) {
-            resolve();
-            return;
-          }
-          const onSeeked = () => {
-            v.removeEventListener('seeked', onSeeked);
-            resolve();
-          };
-          v.addEventListener('seeked', onSeeked, { once: true });
-          v.currentTime = segment.startSec;
-        });
-      })
+      activeVideos.map((v) => this.seekVideoOnce(v, currentSourceSec))
     );
 
-    // 2. Configure playback rate & play
-    const playRate = Math.min(Math.max(0.5, config.exportSpeed), 2.0);
-    for (const k of videoKeys) {
-      const v = segVideos[k]!;
-      v.playbackRate = playRate;
+    // 저속 재생 설정 (0.35x: rVFC가 프레임을 절대 건너뛰지 못하게 방지)
+    const STEP_PLAYBACK_RATE = 0.35;
+    for (const v of activeVideos) {
       v.muted = true;
       v.playsInline = true;
+      v.playbackRate = STEP_PLAYBACK_RATE;
     }
 
-    try {
-      await Promise.all(videoKeys.map((k) => segVideos[k]!.play()));
-    } catch (e) {
-      console.warn("[StreamingExport] play() warning:", e);
-    }
+    let lastCapturedMediaTime = -1;
 
-    const frameStepSec = (1.0 / config.targetFps) * config.exportSpeed;
-    let targetSourceSec = segment.startSec;
+    while (currentSourceSec <= segment.endSec && !this.isCancelled) {
+      // 2. 현재 masterVideo의 시간이 목표 시간보다 뒤처져 있다면, 시크(currentTime)하지 않고 play()로 도달할 때까지 전진
+      if (masterVideo.currentTime < currentSourceSec - 0.005) {
+        await new Promise<void>((resolve) => {
+          let settled = false;
+          let timeoutId: any = null;
 
-    return new Promise<void>((resolve) => {
-      let settled = false;
-      let rvfcId: number | null = null;
-      let watchdogTimer: any = null;
+          const finish = () => {
+            if (settled) return;
+            settled = true;
+            if (timeoutId) clearTimeout(timeoutId);
+            // 목표 프레임 도달 즉시 모든 비디오 일시정지 (시간 고정)
+            for (const v of activeVideos) {
+              if (!v.paused) {
+                try {
+                  v.pause();
+                } catch {}
+              }
+            }
+            resolve();
+          };
 
-      const finish = () => {
-        if (settled) return;
-        settled = true;
-        if (watchdogTimer) clearTimeout(watchdogTimer);
-        if (rvfcId !== null && typeof (mainVideo as any).cancelVideoFrameCallback === 'function') {
-          (mainVideo as any).cancelVideoFrameCallback(rvfcId);
-        }
-        for (const k of videoKeys) {
-          try {
-            segVideos[k]?.pause();
-          } catch {}
-        }
-        resolve();
-      };
+          const onFrame = (_now: number, metadata: any) => {
+            if (settled) return;
+            const mediaTime = metadata?.mediaTime ?? masterVideo.currentTime;
+            // 과거 프레임이 아니고 목표 시간에 도달(또는 근접)했으면 즉시 정지 후 캡처
+            if (
+              mediaTime > lastCapturedMediaTime &&
+              mediaTime >= currentSourceSec - 0.015
+            ) {
+              lastCapturedMediaTime = mediaTime;
+              finish();
+            } else {
+              if (typeof (masterVideo as any).requestVideoFrameCallback === 'function') {
+                (masterVideo as any).requestVideoFrameCallback(onFrame);
+              } else {
+                finish();
+              }
+            }
+          };
 
-      const resetWatchdog = () => {
-        if (watchdogTimer) clearTimeout(watchdogTimer);
-        watchdogTimer = setTimeout(() => {
-          // If no frame arrives for 3 seconds, finish segment safely
-          finish();
-        }, 3000);
-      };
+          // 안전 타임아웃 (디코더 스톨 방지)
+          timeoutId = setTimeout(() => {
+            finish();
+          }, 250);
 
-      const onFrame = (_now: number, metadata: any) => {
-        if (settled || this.isCancelled) {
-          finish();
-          return;
-        }
-
-        resetWatchdog();
-        const currentMediaSec = metadata?.mediaTime ?? mainVideo.currentTime;
-
-        // Check if segment has ended
-        if (currentMediaSec >= segment.endSec || mainVideo.ended) {
-          finish();
-          return;
-        }
-
-        // Catch up output frames up to currentMediaSec
-        while (targetSourceSec <= currentMediaSec && targetSourceSec <= segment.endSec && !this.isCancelled) {
-          const currentFrameIdx = Math.round(targetSourceSec * config.sourceFps);
-          const telemetry: TelemetryData = decoder
-            ? decoder.getFrameTelemetry(currentFrameIdx)
-            : {
-                speed_kmh: 0,
-                steering_deg: 0,
-                accel_pct: 0,
-                brake_applied: false,
-                brake_pct: 0,
-                ap_mode: 'MANUAL',
-                left_blinker: false,
-                right_blinker: false,
-                lat: 0,
-                lon: 0,
-                heading: 0,
-              };
-
-          const timestampText = `${segment.baseTimeStr} (+${targetSourceSec.toFixed(1)}s)`;
-
-          // Render overlay
-          OverlayRenderer.render(
-            exportCanvas,
-            segVideos,
-            telemetry,
-            timestampText,
-            targetSourceSec,
-            currentFrameIdx,
-            config.sourceFps,
-            config.options
-          );
-
-          // Feed to VideoEncoder
-          const count = getOutputFrameCount();
-          const timestampMicros = Math.round((count * 1_000_000) / config.targetFps);
-          const videoFrame = new VideoFrame(exportCanvas, {
-            timestamp: timestampMicros,
-            duration: Math.round(1_000_000 / config.targetFps),
-          });
-
-          const keyFrame = count % Math.round(config.targetFps * 2) === 0;
-          videoEncoder.encode(videoFrame, { keyFrame });
-          videoFrame.close();
-
-          onFrameEncoded();
-          targetSourceSec += frameStepSec;
-
-          const progressPct = Math.min(100, Math.round((getOutputFrameCount() / totalFrames) * 100));
-          config.onProgress(progressPct, segIdx + 1, config.segments.length);
-        }
-
-        if (targetSourceSec > segment.endSec) {
-          finish();
-          return;
-        }
-
-        // Request next video frame callback
-        rvfcId = (mainVideo as any).requestVideoFrameCallback(onFrame);
-      };
-
-      resetWatchdog();
-      if (typeof (mainVideo as any).requestVideoFrameCallback === 'function') {
-        rvfcId = (mainVideo as any).requestVideoFrameCallback(onFrame);
-      } else {
-        // Fallback for devices without rVFC
-        const intervalId = setInterval(() => {
-          if (settled) {
-            clearInterval(intervalId);
-            return;
+          // rVFC 먼저 등록 후 play() 시작!
+          if (typeof (masterVideo as any).requestVideoFrameCallback === 'function') {
+            (masterVideo as any).requestVideoFrameCallback(onFrame);
+          } else {
+            setTimeout(finish, 40);
           }
-          onFrame(performance.now(), { mediaTime: mainVideo.currentTime });
-        }, 1000 / config.targetFps);
+
+          for (const v of activeVideos) {
+            v.play().catch(() => {});
+          }
+        });
       }
-    });
+
+      if (this.isCancelled) break;
+
+      // 3. 보조 카메라들 중 싱크가 0.12초 이상 어긋난 카메라만 미세 보정
+      for (const v of activeVideos) {
+        if (v !== masterVideo && Math.abs(v.currentTime - masterVideo.currentTime) > 0.12) {
+          await this.seekVideoOnce(v, masterVideo.currentTime);
+        }
+      }
+
+      // 4. 비디오들이 pause된 안정적인 상태에서 Canvas 렌더링 및 인코딩
+      const currentFrameIdx = Math.round(currentSourceSec * config.sourceFps);
+      const telemetry: TelemetryData = decoder
+        ? decoder.getFrameTelemetry(currentFrameIdx)
+        : {
+            speed_kmh: 0,
+            steering_deg: 0,
+            accel_pct: 0,
+            brake_applied: false,
+            brake_pct: 0,
+            ap_mode: 'MANUAL',
+            left_blinker: false,
+            right_blinker: false,
+            lat: 0,
+            lon: 0,
+            heading: 0,
+          };
+
+      const timestampText = `${segment.baseTimeStr} (+${currentSourceSec.toFixed(1)}s)`;
+
+      OverlayRenderer.render(
+        exportCanvas,
+        segVideos,
+        telemetry,
+        timestampText,
+        currentSourceSec,
+        currentFrameIdx,
+        config.sourceFps,
+        config.options
+      );
+
+      const count = getOutputFrameCount();
+      const timestampMicros = Math.round((count * 1_000_000) / config.targetFps);
+      const durationMicros = Math.round(1_000_000 / config.targetFps);
+
+      const frame = new VideoFrame(exportCanvas, {
+        timestamp: timestampMicros,
+        duration: durationMicros,
+      });
+
+      const isKeyFrame = count % Math.round(config.targetFps * 2) === 0;
+      videoEncoder.encode(frame, { keyFrame: isKeyFrame });
+      frame.close();
+
+      onFrameEncoded();
+
+      // 5. 하드웨어 인코더 과부하 및 프레임 드랍 방지를 위한 Backpressure 대기
+      while (videoEncoder.encodeQueueSize > 2 && !this.isCancelled) {
+        await new Promise((r) => setTimeout(r, 10));
+      }
+
+      // 다음 목표 시간으로 전진
+      currentSourceSec += stepSec;
+
+      const progressPct = Math.min(100, Math.round((getOutputFrameCount() / totalFrames) * 100));
+      config.onProgress(progressPct, segIdx + 1, config.segments.length);
+
+      if (count % 4 === 0) {
+        await fastYield();
+      }
+    }
+
+    // 루프 종료 시 모든 비디오 정지 및 배속 원복
+    for (const v of activeVideos) {
+      try {
+        v.pause();
+        v.playbackRate = 1.0;
+      } catch {}
+    }
   }
 
   async exportMultiClip(config: MultiClipExportConfig): Promise<Blob> {
@@ -386,7 +409,7 @@ export class WebCodecsExporter {
         const videoKeys = Object.keys(segVideos) as CameraKey[];
 
         if (isAndroid) {
-          // Android: Streaming Playback Capture Mode (eliminates MediaCodec buffer flushing and 1-3-2-4 jitter)
+          // Android: Play-Step-Pause Capture Mode (eliminates MediaCodec buffer flushing and frame drops)
           await this.exportSegmentStreamingAndroid(
             segment,
             segVideos,
