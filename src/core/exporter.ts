@@ -364,7 +364,8 @@ export class WebCodecsExporter {
     let videoEncoder: VideoEncoder | null = null;
     let receivedChunkCount = 0;
     let encoderError: any = null;
-    let hasDecoderConfig = false;
+    let decoderConfigSent = false;
+    let safeDecoderConfigRef: any = null;
 
     try {
       // Codec profile & level:
@@ -394,32 +395,13 @@ export class WebCodecsExporter {
         output: (chunk, meta) => {
           receivedChunkCount++;
 
-          if (meta && meta.decoderConfig) {
-            hasDecoderConfig = true;
-            // WebCodecs의 Native 객체는 읽기 전용(getter)일 수 있으므로 반드시 일반 객체로 깊은 복사하여 재구성
-            const rawConfig = meta.decoderConfig;
-            const cleanDecoderConfig: VideoDecoderConfig = {
-              codec: rawConfig.codec || encoderConfig.codec,
-              codedWidth: rawConfig.codedWidth || targetW,
-              codedHeight: rawConfig.codedHeight || targetH,
-              ...(rawConfig.description ? { description: rawConfig.description } : {}),
-              // colorSpace가 null이거나 내부 필드가 비정상일 때 mp4-muxer가 죽지 않도록 유효한 값으로 강제 세팅
-              colorSpace: {
-                primaries: rawConfig.colorSpace?.primaries || 'bt709',
-                transfer: rawConfig.colorSpace?.transfer || 'bt709',
-                matrix: rawConfig.colorSpace?.matrix || 'bt709',
-                fullRange: rawConfig.colorSpace?.fullRange ?? false,
-              },
-            };
-            muxer.addVideoChunk(chunk, { ...meta, decoderConfig: cleanDecoderConfig });
-          } else if (!hasDecoderConfig) {
-            // 안드로이드 하드웨어 인코더가 첫 프레임에서도 decoderConfig를 생략했을 경우
-            // 최초 1회만 안전하게 cleanDecoderConfig를 주입하여 mp4-muxer 초기화 보장
-            hasDecoderConfig = true;
-            const cleanDecoderConfig: VideoDecoderConfig = {
-              codec: encoderConfig.codec,
-              codedWidth: targetW,
-              codedHeight: targetH,
+          if (!decoderConfigSent) {
+            const raw = meta?.decoderConfig;
+            const safeDecoderConfig = {
+              codec: raw?.codec || encoderConfig.codec,
+              codedWidth: raw?.codedWidth || targetW,
+              codedHeight: raw?.codedHeight || targetH,
+              ...(raw?.description ? { description: raw.description } : {}),
               colorSpace: {
                 primaries: 'bt709',
                 transfer: 'bt709',
@@ -427,9 +409,12 @@ export class WebCodecsExporter {
                 fullRange: false,
               },
             };
-            muxer.addVideoChunk(chunk, { decoderConfig: cleanDecoderConfig });
+            safeDecoderConfigRef = safeDecoderConfig;
+            muxer.addVideoChunk(chunk, { decoderConfig: safeDecoderConfig as any });
+            if (raw?.description || receivedChunkCount >= 3) {
+              decoderConfigSent = true;
+            }
           } else {
-            // decoderConfig가 없는 일반 청크는 meta를 아예 넘기지 않아야 기존 decoderConfig가 null로 덮어씌워지지 않음!
             muxer.addVideoChunk(chunk);
           }
         },
@@ -670,6 +655,68 @@ export class WebCodecsExporter {
 
       if (receivedChunkCount === 0) {
         throw new Error("인코딩된 비디오 청크가 없습니다. (0 video chunks received)");
+      }
+
+      // 2. muxer.finalize() 직전 내부 트랙 강제 패치 (최후의 안전장치)
+      const defaultSafeConfig = {
+        codec: encoderConfig.codec,
+        codedWidth: targetW,
+        codedHeight: targetH,
+        description: new Uint8Array(),
+        colorSpace: {
+          primaries: 'bt709',
+          transfer: 'bt709',
+          matrix: 'bt709',
+          fullRange: false,
+        },
+      };
+
+      if (safeDecoderConfigRef) {
+        if (!safeDecoderConfigRef.colorSpace) {
+          safeDecoderConfigRef.colorSpace = {
+            primaries: 'bt709',
+            transfer: 'bt709',
+            matrix: 'bt709',
+            fullRange: false,
+          };
+        }
+      }
+
+      try {
+        const mAny = muxer as any;
+        const candidates = [
+          mAny._videoTrack,
+          mAny.videoTrack,
+          mAny.track,
+          mAny._track,
+          mAny.tracks,
+          mAny._tracks,
+        ];
+        for (const sym of Object.getOwnPropertySymbols(mAny)) {
+          candidates.push(mAny[sym]);
+        }
+        for (const key of Object.getOwnPropertyNames(mAny)) {
+          candidates.push(mAny[key]);
+        }
+        for (const item of candidates) {
+          if (item && typeof item === 'object') {
+            const track = item.info ? item : item.videoTrack || item._videoTrack;
+            if (track && track.info) {
+              if (!track.info.decoderConfig) {
+                track.info.decoderConfig = safeDecoderConfigRef || defaultSafeConfig;
+              } else if (!track.info.decoderConfig.colorSpace) {
+                track.info.decoderConfig.colorSpace = {
+                  primaries: 'bt709',
+                  transfer: 'bt709',
+                  matrix: 'bt709',
+                  fullRange: false,
+                };
+              }
+            }
+          }
+        }
+      } catch (patchErr) {
+        console.warn('[Exporter] Muxer internal track patch check:', patchErr);
       }
 
       muxer.finalize();

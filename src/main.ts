@@ -2374,8 +2374,9 @@ class CTDashcamStudioApp {
     } catch (e: any) {
       console.error('[Export Error]', e);
       const errorMsg = e?.message || String(e);
+      const stackSnippet = e?.stack ? `\n\n[Stack]\n${String(e.stack).slice(0, 300)}` : '';
       if (statusLabel) statusLabel.textContent = `${i18n.t('status_error')}${errorMsg}`;
-      alert(`${i18n.t('status_error')}${errorMsg}`);
+      alert(`${i18n.t('status_error')}${errorMsg}${stackSnippet}`);
     } finally {
       this.isExporting = false;
       window.removeEventListener('beforeunload', preventUnload);
