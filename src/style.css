@@ -1143,6 +1143,13 @@ body {
   position: relative;
 }
 
+/* PC 최하단 푸터 티어 및 앱 설치 버튼 그룹 */
+.tier-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* 티어 정보 및 툴팁 팝오버 */
 .tier-container {
   position: relative;
@@ -1160,6 +1167,51 @@ body {
   border-radius: 3px;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+
+/* PC 버전 전용 '앱 설치' 버튼 (티어 배지 옆 작은 크기) */
+.btn-pc-install {
+  font-size: 10px;
+  font-weight: 600;
+  color: #58a6ff;
+  background: rgba(56, 139, 253, 0.1);
+  border: 1px solid rgba(56, 139, 253, 0.35);
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+  user-select: none;
+}
+
+.btn-pc-install:hover {
+  background: rgba(56, 139, 253, 0.22);
+  border-color: #58a6ff;
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(88, 166, 255, 0.35);
+}
+
+.btn-pc-install:active {
+  transform: translateY(1px);
+}
+
+/* 앱이 설치되었거나 독립 앱(PWA Standalone) 모드로 실행 중일 때, 또는 모바일 환경에서는 버튼 비노출 */
+.btn-pc-install.installed,
+.btn-pc-install[style*="display: none"] {
+  display: none !important;
+}
+
+@media all and (display-mode: standalone), (max-width: 850px) {
+  .btn-pc-install {
+    display: none !important;
+  }
+}
+
+.btn-pc-install-icon {
+  font-size: 10px;
 }
 
 .tier-pill:hover {

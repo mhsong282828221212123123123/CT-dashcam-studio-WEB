@@ -37,6 +37,15 @@ export function parseClipTimeMs(timestampRaw: string): number {
   return 0;
 }
 
+// Early capture of PWA beforeinstallprompt event for Desktop & Mobile
+let globalDeferredPrompt: any = null;
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    globalDeferredPrompt = e;
+  });
+}
+
 class CTDashcamStudioApp {
   private policy: CapabilityPolicy | null = null;
   private folderGroups: FolderGroup[] = [];
@@ -2340,10 +2349,11 @@ class CTDashcamStudioApp {
     }
   }
 
-  // PWA / Add to Home Screen handler for Android & iOS
+  // PWA / Add to Home Screen & Desktop Shortcut handler
   private initPWAInstall() {
     let deferredPrompt: any = null;
     const btnAddToHome = document.getElementById('btn-add-to-home');
+    const btnPcInstall = document.getElementById('btn-pc-install');
     const modalInstallGuide = document.getElementById('modal-install-guide');
     const btnCloseInstallModal = document.getElementById('btn-close-install-modal');
     const btnConfirmInstall = document.getElementById('btn-confirm-install');
@@ -2358,13 +2368,42 @@ class CTDashcamStudioApp {
       });
     }
 
+    // Helper to completely hide the PC install button once the app is installed
+    const hidePcInstallBtn = () => {
+      if (btnPcInstall) {
+        btnPcInstall.style.display = 'none';
+        btnPcInstall.classList.add('installed');
+      }
+      try {
+        localStorage.setItem('pwa_installed', 'true');
+      } catch {}
+    };
+
+    // If already installed or running as standalone web app, permanently hide the button
+    const isAlreadyInstalled =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as any).standalone === true ||
+      localStorage.getItem('pwa_installed') === 'true';
+
+    if (isAlreadyInstalled) {
+      hidePcInstallBtn();
+    }
+
     // Capture beforeinstallprompt for Android / Chrome / Edge / Samsung Internet
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
+      globalDeferredPrompt = e;
       if (btnTriggerPwaInstall) {
         btnTriggerPwaInstall.style.display = 'block';
       }
+    });
+
+    // When the app is successfully installed, hide the PC install button immediately
+    window.addEventListener('appinstalled', () => {
+      deferredPrompt = null;
+      globalDeferredPrompt = null;
+      hidePcInstallBtn();
     });
 
     const openInstallModal = () => {
@@ -2375,20 +2414,27 @@ class CTDashcamStudioApp {
       const isAndroid = /android/.test(ua);
       const guideAndroid = document.getElementById('guide-android');
       const guideIOS = document.getElementById('guide-ios');
+      const guideDesktop = document.getElementById('guide-desktop');
 
       if (isIOS) {
         if (guideIOS) guideIOS.style.display = 'block';
         if (guideAndroid) guideAndroid.style.display = 'none';
+        if (guideDesktop) guideDesktop.style.display = 'none';
       } else if (isAndroid) {
         if (guideAndroid) guideAndroid.style.display = 'block';
         if (guideIOS) guideIOS.style.display = 'none';
-        if (deferredPrompt && btnTriggerPwaInstall) {
+        if (guideDesktop) guideDesktop.style.display = 'none';
+        if ((deferredPrompt || globalDeferredPrompt) && btnTriggerPwaInstall) {
           btnTriggerPwaInstall.style.display = 'block';
         }
       } else {
-        // Desktop / Other: show both
-        if (guideAndroid) guideAndroid.style.display = 'block';
-        if (guideIOS) guideIOS.style.display = 'block';
+        // Desktop PC (Windows / Edge / Chrome)
+        if (guideDesktop) guideDesktop.style.display = 'block';
+        if (guideAndroid) guideAndroid.style.display = 'none';
+        if (guideIOS) guideIOS.style.display = 'none';
+        if ((deferredPrompt || globalDeferredPrompt) && btnTriggerPwaInstall) {
+          btnTriggerPwaInstall.style.display = 'block';
+        }
       }
     };
 
@@ -2398,17 +2444,47 @@ class CTDashcamStudioApp {
       });
     }
 
-    if (btnTriggerPwaInstall) {
-      btnTriggerPwaInstall.addEventListener('click', async () => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          const choiceResult = await deferredPrompt.userChoice;
-          if (choiceResult && choiceResult.outcome === 'accepted') {
-            if (modalInstallGuide) modalInstallGuide.style.display = 'none';
+    // PC Desktop "앱 설치" button click handler
+    if (btnPcInstall) {
+      btnPcInstall.addEventListener('click', async () => {
+        const promptToUse = deferredPrompt || globalDeferredPrompt;
+        if (promptToUse) {
+          try {
+            await promptToUse.prompt();
+            const choiceResult = await promptToUse.userChoice;
+            if (choiceResult && choiceResult.outcome === 'accepted') {
+              hidePcInstallBtn();
+            }
+          } catch (err) {
+            console.warn('[PWA] Prompt error:', err);
+            openInstallModal();
           }
           deferredPrompt = null;
+          globalDeferredPrompt = null;
         } else {
-          alert('브라우저 메뉴(⋮ 또는 ≡)에서 "홈 화면에 추가" 또는 "현재 페이지 추가"를 선택하세요.');
+          openInstallModal();
+        }
+      });
+    }
+
+    if (btnTriggerPwaInstall) {
+      btnTriggerPwaInstall.addEventListener('click', async () => {
+        const promptToUse = deferredPrompt || globalDeferredPrompt;
+        if (promptToUse) {
+          try {
+            await promptToUse.prompt();
+            const choiceResult = await promptToUse.userChoice;
+            if (choiceResult && choiceResult.outcome === 'accepted') {
+              if (modalInstallGuide) modalInstallGuide.style.display = 'none';
+              hidePcInstallBtn();
+            }
+          } catch (err) {
+            console.warn('[PWA] Prompt error:', err);
+          }
+          deferredPrompt = null;
+          globalDeferredPrompt = null;
+        } else {
+          alert('브라우저 주소창 우측(⊕) 또는 메뉴(⋯) > 앱 > "CT Dashcam Studio 설치"를 선택하세요.');
         }
       });
     }

@@ -321,26 +321,31 @@
 
           <!-- 3. 최하단 푸터 바 -->
           <footer class="app-footer">
-            <div class="tier-container">
-              <div id="tier-badge" class="tier-pill">측정 중...</div>
-              <div id="tier-tooltip" class="tier-tooltip-card">
-                <div class="tooltip-header">
-                  <span class="tooltip-title">기기 성능 등급 (Device Tier)</span>
-                  <span id="tooltip-current-tier" class="tooltip-badge">High Tier</span>
-                </div>
-                <div class="tooltip-section">
-                  <div class="section-title">📊 현재 기기 측정 및 산정 사유</div>
-                  <div id="tooltip-reason" class="tooltip-reason-text">하드웨어 성능을 측정 중입니다...</div>
-                </div>
-                <div class="tooltip-section">
-                  <div class="section-title">🏷️ 티어 종류 및 사양 기준</div>
-                  <ul class="tier-types-list">
-                    <li><span class="tier-dot high"></span><div><strong>High Tier:</strong> 8코어+ / RAM 6GB+ / WebGPU 가속 ➔ 4채널 동시 고화질 동기 재생 및 초고속 내보내기</div></li>
-                    <li><span class="tier-dot mid"></span><div><strong>Medium Tier:</strong> 4~6코어 / RAM 4GB+ ➔ 1:3 분할 재생 및 HD 비디오 내보내기 표준 지원</div></li>
-                    <li><span class="tier-dot low"></span><div><strong>Low Tier:</strong> 2코어 이하 / RAM 2GB 이하 ➔ 단일 카메라 모드 중심 경량 재생 최적화</div></li>
-                  </ul>
+            <div class="tier-group">
+              <div class="tier-container">
+                <div id="tier-badge" class="tier-pill">측정 중...</div>
+                <div id="tier-tooltip" class="tier-tooltip-card">
+                  <div class="tooltip-header">
+                    <span class="tooltip-title">기기 성능 등급 (Device Tier)</span>
+                    <span id="tooltip-current-tier" class="tooltip-badge">High Tier</span>
+                  </div>
+                  <div class="tooltip-section">
+                    <div class="section-title">📊 현재 기기 측정 및 산정 사유</div>
+                    <div id="tooltip-reason" class="tooltip-reason-text">하드웨어 성능을 측정 중입니다...</div>
+                  </div>
+                  <div class="tooltip-section">
+                    <div class="section-title">🏷️ 티어 종류 및 사양 기준</div>
+                    <ul class="tier-types-list">
+                      <li><span class="tier-dot high"></span><div><strong>High Tier:</strong> 8코어+ / RAM 6GB+ / WebGPU 가속 ➔ 4채널 동시 고화질 동기 재생 및 초고속 내보내기</div></li>
+                      <li><span class="tier-dot mid"></span><div><strong>Medium Tier:</strong> 4~6코어 / RAM 4GB+ ➔ 1:3 분할 재생 및 HD 비디오 내보내기 표준 지원</div></li>
+                      <li><span class="tier-dot low"></span><div><strong>Low Tier:</strong> 2코어 이하 / RAM 2GB 이하 ➔ 단일 카메라 모드 중심 경량 재생 최적화</div></li>
+                    </ul>
+                  </div>
                 </div>
               </div>
+              <button id="btn-pc-install" class="btn-pc-install" title="바탕화면에 웹앱 설치 (아이콘 생성)">
+                <span class="btn-pc-install-icon">📥</span> 앱 설치
+              </button>
             </div>
             <div class="footer-brand">CT Dash Studio WEB</div>
           </footer>
@@ -448,6 +453,16 @@
                 <div class="install-app-name">CT Dashcam Studio</div>
                 <div class="install-app-sub">앱처럼 전체화면으로 즉시 실행</div>
               </div>
+            </div>
+
+            <!-- PC 데스크톱 전용 가이드 (Edge / Chrome / Windows) -->
+            <div id="guide-desktop" class="platform-guide" style="display: none;">
+              <div class="platform-title">🖥️ PC 데스크톱 (Windows / Edge / Chrome)</div>
+              <ol class="guide-steps">
+                <li>브라우저 상단 주소창 우측 끝의 <strong>앱 설치( ⊕ 또는 💻 )</strong> 아이콘을 클릭하거나,</li>
+                <li>브라우저 메뉴(<strong>⋯</strong> 또는 <strong>⋮</strong>) ➔ <strong>'앱'</strong> ➔ <strong>'CT Dashcam Studio 설치'</strong>를 선택하세요.</li>
+                <li>설치 팝업에서 <strong>'바탕 화면 바로 가기 만들기'</strong>를 체크하면 바탕화면에 앱 아이콘이 바로 생성됩니다!</li>
+              </ol>
             </div>
 
             <!-- 안드로이드 전용 가이드 (Chrome / Samsung Internet) -->
