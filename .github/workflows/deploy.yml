@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - dev
   workflow_dispatch:
 
 permissions:
@@ -20,45 +19,28 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Create combined deployment directory
-        run: mkdir -p site_out
+      - name: Install dependencies
+        run: npm ci
 
-      # 1. Checkout and Build 'main' branch (Production -> /)
-      - name: Checkout main branch
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          path: repo_main
-
-      - name: Build main branch
+      - name: Build Production site (Root /)
         run: |
-          cd repo_main
-          npm ci
+          mkdir -p site_out
           VITE_BASE_PATH='/CT-dashcam-studio-WEB/' npm run build
-          cp -r dist/* ../site_out/
+          cp -r dist/* site_out/
 
-      # 2. Checkout and Build 'dev' branch (Development -> /dev/)
-      - name: Checkout dev branch
-        uses: actions/checkout@v4
-        with:
-          ref: dev
-          path: repo_dev
-        continue-on-error: true
-
-      - name: Build dev branch if present
+      - name: Build Test/Dev site (Subpath /dev/)
         run: |
-          if [ -d "repo_dev" ]; then
-            cd repo_dev
-            npm ci
-            VITE_BASE_PATH='/CT-dashcam-studio-WEB/dev/' npm run build
-            mkdir -p ../site_out/dev
-            cp -r dist/* ../site_out/dev/
-          fi
+          mkdir -p site_out/dev
+          VITE_BASE_PATH='/CT-dashcam-studio-WEB/dev/' npm run build
+          cp -r dist/* site_out/dev/
 
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
