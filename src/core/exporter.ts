@@ -261,6 +261,9 @@ export class WebCodecsExporter {
         } else {
           timestampMicros = Math.round((count * 1_000_000) / config.targetFps);
         }
+        if (count === 0 && cumulativeCompletedSec === 0) {
+          timestampMicros = 0;
+        }
 
         const prevTimestamp = getLastOutputTimestampMicros();
         if (timestampMicros <= prevTimestamp) {
@@ -355,6 +358,7 @@ export class WebCodecsExporter {
         height: targetH,
       },
       fastStart: 'in-memory',
+      firstTimestampBehavior: 'offset',
     });
 
     let videoEncoder: VideoEncoder | null = null;
@@ -390,29 +394,44 @@ export class WebCodecsExporter {
         output: (chunk, meta) => {
           receivedChunkCount++;
 
-          let chunkMeta = meta;
-          if (chunkMeta?.decoderConfig) {
+          if (meta && meta.decoderConfig) {
             hasDecoderConfig = true;
-            if (!chunkMeta.decoderConfig.colorSpace) {
-              chunkMeta.decoderConfig.colorSpace = {};
-            }
-          } else if (!hasDecoderConfig) {
-            // 안드로이드 하드웨어 인코더가 Annex-B 기본값 등으로 인해 decoderConfig를 누락할 경우
-            // mp4-muxer가 null.colorSpace 참조 에러로 크래시하지 않도록 안전한 fallback 메타데이터 주입
-            chunkMeta = {
-              ...chunkMeta,
-              decoderConfig: {
-                codec: encoderConfig.codec,
-                codedWidth: targetW,
-                codedHeight: targetH,
-                colorSpace: {},
-                description: new Uint8Array(),
+            // WebCodecs의 Native 객체는 읽기 전용(getter)일 수 있으므로 반드시 일반 객체로 깊은 복사하여 재구성
+            const rawConfig = meta.decoderConfig;
+            const cleanDecoderConfig: VideoDecoderConfig = {
+              codec: rawConfig.codec || encoderConfig.codec,
+              codedWidth: rawConfig.codedWidth || targetW,
+              codedHeight: rawConfig.codedHeight || targetH,
+              ...(rawConfig.description ? { description: rawConfig.description } : {}),
+              // colorSpace가 null이거나 내부 필드가 비정상일 때 mp4-muxer가 죽지 않도록 유효한 값으로 강제 세팅
+              colorSpace: {
+                primaries: rawConfig.colorSpace?.primaries || 'bt709',
+                transfer: rawConfig.colorSpace?.transfer || 'bt709',
+                matrix: rawConfig.colorSpace?.matrix || 'bt709',
+                fullRange: rawConfig.colorSpace?.fullRange ?? false,
               },
             };
+            muxer.addVideoChunk(chunk, { ...meta, decoderConfig: cleanDecoderConfig });
+          } else if (!hasDecoderConfig) {
+            // 안드로이드 하드웨어 인코더가 첫 프레임에서도 decoderConfig를 생략했을 경우
+            // 최초 1회만 안전하게 cleanDecoderConfig를 주입하여 mp4-muxer 초기화 보장
             hasDecoderConfig = true;
+            const cleanDecoderConfig: VideoDecoderConfig = {
+              codec: encoderConfig.codec,
+              codedWidth: targetW,
+              codedHeight: targetH,
+              colorSpace: {
+                primaries: 'bt709',
+                transfer: 'bt709',
+                matrix: 'bt709',
+                fullRange: false,
+              },
+            };
+            muxer.addVideoChunk(chunk, { decoderConfig: cleanDecoderConfig });
+          } else {
+            // decoderConfig가 없는 일반 청크는 meta를 아예 넘기지 않아야 기존 decoderConfig가 null로 덮어씌워지지 않음!
+            muxer.addVideoChunk(chunk);
           }
-
-          muxer.addVideoChunk(chunk, chunkMeta);
         },
         error: (e) => {
           console.error("VideoEncoder error:", e);
