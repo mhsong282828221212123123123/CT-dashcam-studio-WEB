@@ -1582,8 +1582,9 @@ kbd {
   transition: width 0.15s ease-out;
 }
 
+/* PC 버전 기본: 모바일용 화면 켜짐 유지 경고 배너 숨김 */
 .export-warning-callout {
-  display: flex;
+  display: none;
   gap: 12px;
   padding: 12px 14px;
   background: rgba(210, 153, 34, 0.12);
@@ -1701,6 +1702,12 @@ kbd {
   body:not(.view-desktop) .mobile-adjust-box,
   body.view-mobile:not(.view-desktop) .mobile-adjust-box {
     display: flex !important;
+  }
+
+  /* 모바일에서만 내보내기 화면 유지 경고 배너 표시 */
+  body:not(.view-desktop) .export-warning-callout,
+  body.view-mobile .export-warning-callout {
+    display: flex;
   }
 
   .mobile-brand {

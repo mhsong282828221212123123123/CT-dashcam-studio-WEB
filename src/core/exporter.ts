@@ -5,6 +5,21 @@ import { RealTeslaSEIDecoder, TelemetryData } from './seiDecoder';
 import { RESOLUTIONS, CameraKey } from './constants';
 import { ClipItem, ensureClipFiles } from './clipScanner';
 
+// Background-safe event loop yield helper that prevents Chromium 1000ms timer throttling in hidden tabs
+function fastYield(): Promise<void> {
+  if (typeof (globalThis as any).scheduler?.yield === 'function') {
+    return (globalThis as any).scheduler.yield();
+  }
+  return new Promise((resolve) => {
+    const ch = new MessageChannel();
+    ch.port1.onmessage = () => {
+      ch.port1.close();
+      resolve();
+    };
+    ch.port2.postMessage(null);
+  });
+}
+
 export interface ExportClipSegment {
   clip: ClipItem;
   startSec: number;
@@ -91,7 +106,7 @@ export class WebCodecsExporter {
             height: targetH,
             bitrate: bitrateBps,
             framerate: config.targetFps,
-            latencyMode: 'quality',
+            latencyMode: 'realtime',
           });
           if (!check.supported) {
             console.warn(`[Exporter] ${avcLevel} not supported, falling back to avc1.640028`);
@@ -102,14 +117,15 @@ export class WebCodecsExporter {
         }
       }
 
-      // H.264 configuration with quality latencyMode to prevent mobile frame dropping
+      // H.264 configuration with 'realtime' latencyMode to prevent B-frame temporal reordering
+      // and ensure DTS = PTS strictly for universal playback without ctts jitter in Samsung Gallery
       videoEncoder.configure({
         codec: avcLevel,
         width: targetW,
         height: targetH,
         bitrate: bitrateBps,
         framerate: config.targetFps,
-        latencyMode: 'quality',
+        latencyMode: 'realtime',
       });
 
       const frameStepSec = (1.0 / config.targetFps) * config.exportSpeed;
@@ -134,6 +150,8 @@ export class WebCodecsExporter {
           activeCamKeys.includes(k)
         );
 
+        const hiddenContainer = document.getElementById('hidden-video-container');
+
         for (const k of camKeys) {
           const file = segment.clip.cams[k];
           if (!file) continue;
@@ -145,6 +163,9 @@ export class WebCodecsExporter {
           v.muted = true;
           v.playsInline = true;
           v.preload = 'auto';
+          if (hiddenContainer) {
+            hiddenContainer.appendChild(v);
+          }
           segVideos[k] = v;
         }
 
@@ -188,10 +209,12 @@ export class WebCodecsExporter {
                 };
 
                 const onSeeked = () => {
-                  // Ensure browser rendering cycle commits the decoded texture to GPU buffer before drawing
-                  if (document.hidden) {
-                    setTimeout(finish, 16);
+                  const isMobile = window.matchMedia('(max-width: 850px), (pointer: coarse)').matches;
+                  if (document.hidden || !isMobile) {
+                    // On PC (or any hidden tab), resolve immediately via microtask to keep background encoding running at full speed
+                    queueMicrotask(finish);
                   } else {
+                    // On mobile foreground, wait for compositor frame commit
                     requestAnimationFrame(() => {
                       finish();
                     });
@@ -254,19 +277,20 @@ export class WebCodecsExporter {
           const progressPct = Math.min(100, Math.round((outputFrameCount / totalFrames) * 100));
           config.onProgress(progressPct, segIdx + 1, config.segments.length);
 
-          // Yield event loop
+          // Yield event loop without triggering background timer throttling in hidden tabs
           if (outputFrameCount % 4 === 0) {
-            await new Promise((r) => setTimeout(r, 0));
+            await fastYield();
           }
         }
 
-        // Cleanup this segment's video URLs
+        // Cleanup this segment's video URLs and remove elements from hidden container
         for (const url of objectUrls) {
           URL.revokeObjectURL(url);
         }
         for (const k of videoKeys) {
           if (segVideos[k]) {
             segVideos[k]!.src = '';
+            segVideos[k]!.remove();
             delete segVideos[k];
           }
         }

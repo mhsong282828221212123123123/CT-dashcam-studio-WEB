@@ -160,33 +160,63 @@ async function runExportModalAndFpsTest() {
       const cancelBtn = document.getElementById('btn-cancel-export-modal');
 
       const style = modal ? window.getComputedStyle(modal) : null;
+      const warningStyle = warning ? window.getComputedStyle(warning) : null;
       return {
         display: style?.display,
         zIndex: style?.zIndex,
         pctText: pct?.textContent,
         gaugeWidth: gauge?.style.width,
-        hasWarning: Boolean(warning && warning.textContent.includes('화면을 켠 채로 유지')),
+        warningDisplay: warningStyle?.display,
+        hasWarningText: Boolean(warning && warning.textContent.includes('화면을 켠 채로 유지')),
         cancelBtnVisible: Boolean(cancelBtn && cancelBtn.textContent.includes('내보내기 취소')),
       };
     });
-    console.log('Active modal state:', modalActive);
+    console.log('Active modal state (PC):', modalActive);
     if (modalActive.display !== 'flex' || modalActive.zIndex !== '9999') {
       throw new Error(`Modal not properly displayed or z-index not 9999: ${JSON.stringify(modalActive)}`);
     }
-    if (!modalActive.hasWarning) {
-      throw new Error('Screen wake/sleep warning text missing in modal!');
+    // On PC, warning banner must be hidden (display: 'none') as requested
+    if (modalActive.warningDisplay !== 'none') {
+      throw new Error(`Warning banner must be hidden on PC, but got display: ${modalActive.warningDisplay}`);
     }
     if (!modalActive.cancelBtnVisible) {
       throw new Error('Cancel button missing in modal!');
     }
-    console.log('✓ Export modal successfully covering screen with warning and cancel button!');
+    console.log('✓ PC Export modal successfully covering screen without warning callout!');
 
-    // Capture screenshot of the active export modal
-    const modalShotPath = path.join(__dirname, '../docs/mobile_export_progress_modal.png');
-    await page.screenshot({ path: modalShotPath });
+    // Capture screenshot of PC export modal
+    const pcModalShotPath = path.join(__dirname, '../docs/pc_export_progress_modal.png');
+    await page.screenshot({ path: pcModalShotPath });
     const artifactDir = 'C:\\Users\\ddno2\\.gemini\\antigravity\\brain\\1296f195-8d13-4c1e-ae90-bae2100cf725';
-    fs.copyFileSync(modalShotPath, path.join(artifactDir, 'mobile_export_progress_modal.png'));
-    console.log('✓ Saved export modal screenshot to docs and artifact directory');
+    fs.copyFileSync(pcModalShotPath, path.join(artifactDir, 'pc_export_progress_modal.png'));
+    console.log('✓ Saved PC export modal screenshot');
+
+    // Switch to mobile viewport (width <= 850px) to verify warning callout is shown on mobile
+    await page.setViewport({ width: 390, height: 844 });
+    await new Promise(r => setTimeout(r, 200));
+
+    const mobileModalActive = await page.evaluate(() => {
+      const warning = document.querySelector('.export-warning-callout');
+      const warningStyle = warning ? window.getComputedStyle(warning) : null;
+      return {
+        warningDisplay: warningStyle?.display,
+        hasWarningText: Boolean(warning && warning.textContent.includes('화면을 켠 채로 유지')),
+      };
+    });
+    console.log('Active modal state (Mobile):', mobileModalActive);
+    if (mobileModalActive.warningDisplay !== 'flex' || !mobileModalActive.hasWarningText) {
+      throw new Error(`Warning banner must be shown on mobile: ${JSON.stringify(mobileModalActive)}`);
+    }
+    console.log('✓ Mobile Export modal successfully shows warning callout!');
+
+    // Capture screenshot of mobile export modal
+    const mobileModalShotPath = path.join(__dirname, '../docs/mobile_export_progress_modal.png');
+    await page.screenshot({ path: mobileModalShotPath });
+    fs.copyFileSync(mobileModalShotPath, path.join(artifactDir, 'mobile_export_progress_modal.png'));
+    console.log('✓ Saved mobile export modal screenshot');
+
+    // Restore desktop viewport
+    await page.setViewport({ width: 1280, height: 800 });
 
     // Test cancellation via modal cancel button
     console.log('Clicking modal cancel button (#btn-cancel-export-modal)...');
