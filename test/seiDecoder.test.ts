@@ -70,10 +70,6 @@ print(json.dumps(results))
       expect(Math.abs(tsFrame.lon - pyFrame.lon)).toBeLessThan(1e-4);
       expect(Math.abs(tsFrame.heading - pyFrame.heading)).toBeLessThan(1e-4);
     }
-
-    // 3. Test quickCheckIsParking
-    const isParking = await RealTeslaSEIDecoder.quickCheckIsParking(handle);
-    expect(isParking).toBe(false); // Since max speed is > 0
   });
 
   it('sample table indexing matches sequential scan exactly and reports progress', async () => {

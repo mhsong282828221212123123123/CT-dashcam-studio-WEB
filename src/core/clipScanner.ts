@@ -12,7 +12,6 @@ export interface ClipItem {
   camHandles?: Partial<Record<CameraKey, FileSystemFileHandle>>;
   durationSec: number;
   totalFrames: number;
-  isParking?: boolean;
 }
 
 export interface FolderGroup {
@@ -137,10 +136,10 @@ export async function ensureClipFiles(clip: ClipItem): Promise<Partial<Record<Ca
   return clip.cams;
 }
 
-export function groupFilesIntoClips(
-  files: (File | ScannedFileItem)[],
+export async function groupFilesIntoClips(
+  files: (File | ScannedFileItem)[] | FileList | ArrayLike<any>,
   onProgress?: (processed: number, total: number, clipCount: number) => void
-): FolderGroup[] {
+): Promise<FolderGroup[]> {
   const mapByFolderAndTimestamp = new Map<
     string,
     {
@@ -199,8 +198,14 @@ export function groupFilesIntoClips(
       }
     }
 
-    if (onProgress && (i % CHUNK_SIZE === 0 || i === total - 1)) {
-      onProgress(i + 1, total, mapByFolderAndTimestamp.size);
+    if (i % CHUNK_SIZE === 0 || i === total - 1) {
+      if (onProgress) {
+        onProgress(i + 1, total, mapByFolderAndTimestamp.size);
+      }
+      // 모바일 기기 메모리/CPU 과열 및 메인 스레드 응답없음 방지를 위한 주기적 비동기 양보
+      if (i > 0 && i % 300 === 0) {
+        await new Promise((r) => setTimeout(r, 0));
+      }
     }
   }
 
@@ -271,6 +276,10 @@ export async function scanFileSystemDirectory(
 
     if (onProgress) {
       onProgress(items.length, scannedDirs);
+    }
+
+    if (scannedDirs % 25 === 0) {
+      await new Promise((r) => setTimeout(r, 0));
     }
 
     for (const dirEntry of dirEntries) {

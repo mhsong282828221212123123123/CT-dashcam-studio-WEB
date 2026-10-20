@@ -97,12 +97,8 @@ class CTDashcamStudioApp {
   // Clip Map for O(1) lookup
   private clipMap: Map<string, ClipItem> = new Map();
 
-  // Parking detection worker state
   private loadGeneration = 0;
-  private parkingQueue: string[] = [];
-  private isProcessingParking = false;
   private isSelectingClip = false;
-  private parkingObserver: IntersectionObserver | null = null;
 
   // Background SEI telemetry worker & generation token
   private seiWorker: Worker | null = null;
@@ -1266,33 +1262,16 @@ class CTDashcamStudioApp {
     });
   }
 
-  async loadFiles(files: (File | ScannedFileItem)[]) {
+  async loadFiles(files: (File | ScannedFileItem)[] | FileList | ArrayLike<any>) {
     console.log('[App] loadFiles called with', files.length, 'files');
     if (!files || files.length === 0) return;
 
-    // 1. Invalidate previous parking detection generation & queue
     this.loadGeneration++;
-    this.parkingQueue = [];
-    if (this.parkingObserver) {
-      this.parkingObserver.disconnect();
-    }
 
-    // 2. Pre-filter candidate files with regex
-    const validFiles = files.filter((f) => {
-      const relPath =
-        (f as any).webkitRelativePath ||
-        (f as any)._relativePath ||
-        (f as any).relativePath ||
-        f.name;
-      return CAM_REGEX.test(relPath);
-    });
-
-    const candidateList = validFiles.length > 0 ? validFiles : files;
-    const totalCount = candidateList.length;
-
+    const totalCount = files.length;
     this.showLoadProgress(i18n.t('progress_grouping_clips'), i18n.t('progress_grouping_status', [0, totalCount, 0, 0]), 0, false);
 
-    this.folderGroups = groupFilesIntoClips(candidateList, (done, total, clipCount) => {
+    this.folderGroups = await groupFilesIntoClips(files, (done, total, clipCount) => {
       const pct = Math.round((done / total) * 100);
       this.showLoadProgress(
         i18n.t('progress_grouping_clips'),
@@ -1322,10 +1301,17 @@ class CTDashcamStudioApp {
 
     // 6. Select first clip if available on next animation frame
     if (this.folderGroups.length > 0 && this.folderGroups[0].clips.length > 0) {
-      const firstClip = this.folderGroups[0].clips[0];
-      requestAnimationFrame(() => {
-        this.selectClip(firstClip);
-      });
+      const firstGroup = this.folderGroups[0];
+      const folderInfo = formatFolderGroup(firstGroup.folderName, firstGroup.clips);
+      // 모바일(안드로이드/iOS)에서는 첫 폴더가 최근클립(recent)일 때만 자동 선택하고,
+      // 접힌 상태로 시작하는 저장/센트리 클립은 메모리 절약을 위해 자동 선택/로드를 하지 않음
+      const shouldAutoSelect = !this.isMobileDevice() || folderInfo.type === 'recent';
+      if (shouldAutoSelect) {
+        const firstClip = firstGroup.clips[0];
+        requestAnimationFrame(() => {
+          this.selectClip(firstClip);
+        });
+      }
     }
   }
 
@@ -1356,6 +1342,8 @@ class CTDashcamStudioApp {
         const folderNode = folderHeader.closest('.folder-node') as HTMLElement | null;
         if (!folderNode) return;
         const isCollapsed = folderNode.classList.toggle('collapsed');
+        const arrow = folderNode.querySelector('.folder-arrow');
+        if (arrow) arrow.textContent = isCollapsed ? '▶' : '▼';
         const clipsContainer = folderNode.querySelector('.folder-clips') as HTMLElement | null;
         if (clipsContainer && !isCollapsed) {
           const isRendered = clipsContainer.getAttribute('data-rendered') === 'true';
@@ -1393,9 +1381,7 @@ class CTDashcamStudioApp {
       const isActive = this.activeClip?.id === clip.id;
       const inRange = this.isClipInRange(clip);
       const camCount = Math.max(Object.keys(clip.cams).length, clip.camHandles ? Object.keys(clip.camHandles).length : 0);
-      const isParking = clip.isParking ?? (clip.folder.includes('Sentry') || clip.folder.includes('Parking'));
-      const tagClass = isParking ? 'parking' : 'driving';
-      const tagText = `[${isParking ? i18n.t('tag_parking') : i18n.t('tag_driving')}] ${camCount}${i18n.t('tag_channels')}`;
+      const tagText = `[${camCount}${i18n.t('tag_channels')}]`;
 
       let classes = 'clip-node';
       if (isActive) classes += ' active';
@@ -1404,111 +1390,13 @@ class CTDashcamStudioApp {
       htmlParts.push(
         `<div class="${classes}" id="clip-item-${clip.safeId}" data-clip-id="${clip.id}">` +
           `<span>🎬 ${clip.timestampStr}</span>` +
-          `<span id="tag-${clip.safeId}" class="clip-type-tag ${tagClass}">${tagText}</span>` +
+          `<span class="clip-type-tag">${tagText}</span>` +
         `</div>`
       );
     }
 
     container.innerHTML = htmlParts.join('');
     container.setAttribute('data-rendered', 'true');
-    this.observeClipNodes(container);
-  }
-
-  private observeClipNodes(container: HTMLElement) {
-    if (!this.parkingObserver) {
-      const rootEl = document.getElementById('clips-tree');
-      this.parkingObserver = new IntersectionObserver((entries) => {
-        for (const entry of entries) {
-          const target = entry.target as HTMLElement;
-          const clipId = target.getAttribute('data-clip-id');
-          if (!clipId) continue;
-          const clip = this.clipMap.get(clipId);
-          if (!clip || clip.isParking !== undefined) continue;
-
-          if (entry.isIntersecting) {
-            if (!this.parkingQueue.includes(clipId)) {
-              this.parkingQueue.push(clipId);
-              this.processNextParkingCheck();
-            }
-          } else {
-            const qIdx = this.parkingQueue.indexOf(clipId);
-            if (qIdx !== -1) {
-              this.parkingQueue.splice(qIdx, 1);
-            }
-          }
-        }
-      }, {
-        root: rootEl,
-        rootMargin: '100px',
-        threshold: 0,
-      });
-    }
-
-    const rows = container.querySelectorAll('.clip-node');
-    rows.forEach((r) => this.parkingObserver?.observe(r));
-  }
-
-  private async processNextParkingCheck() {
-    if (this.isProcessingParking) return;
-    if (this.isSelectingClip && this.isMobileDevice()) return;
-    if (this.parkingQueue.length === 0) return;
-
-    this.isProcessingParking = true;
-    const currentGen = this.loadGeneration;
-
-    const clipId = this.parkingQueue.shift();
-    if (!clipId) {
-      this.isProcessingParking = false;
-      return;
-    }
-
-    const clip = this.clipMap.get(clipId);
-    if (!clip || clip.isParking !== undefined) {
-      this.isProcessingParking = false;
-      this.scheduleNextParkingCheck();
-      return;
-    }
-
-    const frontFile = await getClipFile(clip, 'front');
-    if (!frontFile) {
-      this.isProcessingParking = false;
-      this.scheduleNextParkingCheck();
-      return;
-    }
-
-    try {
-      const handle = new BlobFileHandle(frontFile);
-      const isParking = await RealTeslaSEIDecoder.quickCheckIsParking(handle);
-      if (currentGen !== this.loadGeneration) {
-        this.isProcessingParking = false;
-        return;
-      }
-      clip.isParking = isParking;
-
-      // Update badge in DOM if visible
-      const tagEl = document.getElementById(`tag-${clip.safeId}`);
-      if (tagEl) {
-        const camCount = Math.max(Object.keys(clip.cams).length, clip.camHandles ? Object.keys(clip.camHandles).length : 0);
-        tagEl.className = `clip-type-tag ${isParking ? 'parking' : 'driving'}`;
-        tagEl.textContent = `[${isParking ? i18n.t('tag_parking') : i18n.t('tag_driving')}] ${camCount}${i18n.t('tag_channels')}`;
-      }
-    } catch (e) {
-      console.warn('[App] quickCheckIsParking error:', e);
-    } finally {
-      this.isProcessingParking = false;
-      if (currentGen === this.loadGeneration) {
-        this.scheduleNextParkingCheck();
-      }
-    }
-  }
-
-  private scheduleNextParkingCheck() {
-    if (this.parkingQueue.length === 0) return;
-    if (typeof (window as any).requestIdleCallback === 'function') {
-      (window as any).requestIdleCallback(() => this.processNextParkingCheck(), { timeout: 200 });
-    } else {
-      setTimeout(() => this.processNextParkingCheck(), 50);
-    }
   }
 
   private renderClipsTree() {
@@ -1521,23 +1409,37 @@ class CTDashcamStudioApp {
       return;
     }
 
+    const isMobile = this.isMobileDevice();
     const activeFolder = this.activeClip?.folder;
     const isSingleFolder = this.folderGroups.length === 1;
     const docFrag = document.createDocumentFragment();
 
     this.folderGroups.forEach((group, idx) => {
       const folderDiv = document.createElement('div');
-      const isFolderOpen = isSingleFolder || (activeFolder ? group.folderName === activeFolder || group.clips.some((c) => c.folder === activeFolder) : idx === 0);
+      const folderInfo = formatFolderGroup(group.folderName, group.clips);
+
+      // 모바일(안드로이드/iOS)에서는 SavedClips, SentryClips는 반드시 접힌 상태(collapsed)로 시작.
+      // RecentClips만 최초 열림(isFolderOpen)을 허용하며 최소 정보만 나열.
+      // 데스크톱(PC)에서는 첫 폴더 또는 활성 폴더 기본 열림.
+      let isFolderOpen = false;
+      if (isMobile) {
+        if (folderInfo.type === 'recent') {
+          isFolderOpen = activeFolder ? group.folderName === activeFolder : idx === 0;
+        } else {
+          // 저장된 클립과 센트리 클립은 모바일에서 무조건 접힌 상태로 시작 (눌러서 열 때만 정보 로드)
+          isFolderOpen = false;
+        }
+      } else {
+        isFolderOpen = isSingleFolder || (activeFolder ? group.folderName === activeFolder || group.clips.some((c) => c.folder === activeFolder) : idx === 0);
+      }
 
       folderDiv.className = `folder-node ${isFolderOpen ? '' : 'collapsed'}`;
       folderDiv.setAttribute('data-group-idx', String(idx));
 
-      const folderInfo = formatFolderGroup(group.folderName, group.clips);
-
       const folderHeader = document.createElement('div');
       folderHeader.className = `folder-header folder-type-${folderInfo.type}`;
       folderHeader.setAttribute('data-group-idx', String(idx));
-      folderHeader.innerHTML = `<span class="folder-arrow">▼</span> <span class="folder-icon">📁</span> <span class="folder-name">${folderInfo.displayTitle} (${group.clips.length})</span>`;
+      folderHeader.innerHTML = `<span class="folder-arrow">${isFolderOpen ? '▼' : '▶'}</span> <span class="folder-icon">📁</span> <span class="folder-name">${folderInfo.displayTitle} (${group.clips.length})</span>`;
 
       const clipsContainer = document.createElement('div');
       clipsContainer.className = 'folder-clips';
@@ -1665,7 +1567,6 @@ class CTDashcamStudioApp {
       this.startBackgroundTelemetry(clip, clipGen);
     } finally {
       this.isSelectingClip = false;
-      this.scheduleNextParkingCheck();
     }
   }
 
