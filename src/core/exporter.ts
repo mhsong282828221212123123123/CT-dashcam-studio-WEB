@@ -90,6 +90,8 @@ export class WebCodecsExporter {
     try {
       videoEncoder = new VideoEncoder({
         output: (chunk, meta) => {
+          // Pass chunk intact with its original PTS timestamp.
+          // Constrained Baseline Profile strictly prohibits B-frames, ensuring 1:1 input/output order and DTS = PTS.
           muxer.addVideoChunk(chunk, meta);
         },
         error: (e) => {
@@ -97,14 +99,15 @@ export class WebCodecsExporter {
         },
       });
 
-      // Codec level:
-      // - PC: standard avc1.640028 (Level 4.0) or avc1.640032 (Level 5.0 for QHD) without realtime latency mode
-      // - Mobile: dynamic level with realtime latency mode to guarantee DTS = PTS for Samsung Gallery
+      // Codec profile & level:
+      // - PC: standard avc1.640028 (High Profile Level 4.0) or avc1.640032 (High Profile Level 5.0 for QHD)
+      // - Mobile: Constrained Baseline Profile (avc1.42E0xx) to strictly prevent Samsung Exynos/Snapdragon
+      //   MediaCodec from generating B-frames which cause 1-3-2-4-6-5 PTS/DTS temporal jitter in Samsung Gallery.
       let avcLevel = 'avc1.640028';
       if (isMobile) {
-        avcLevel = targetW >= 2560 ? 'avc1.640032'
-          : targetW >= 1920 ? 'avc1.640029'
-          : 'avc1.64001f';
+        avcLevel = targetW >= 2560 ? 'avc1.42E032'
+          : targetW >= 1920 ? 'avc1.42E029'
+          : 'avc1.42E01f';
       } else if (targetW >= 2560) {
         avcLevel = 'avc1.640032';
       }
@@ -125,9 +128,10 @@ export class WebCodecsExporter {
       if (typeof VideoEncoder.isConfigSupported === 'function') {
         try {
           const check = await VideoEncoder.isConfigSupported(encoderConfig);
-          if (!check.supported && avcLevel !== 'avc1.640028') {
-            console.warn(`[Exporter] ${avcLevel} not supported, falling back to avc1.640028`);
-            encoderConfig.codec = 'avc1.640028';
+          const defaultFallback = isMobile ? 'avc1.420028' : 'avc1.640028';
+          if (!check.supported && avcLevel !== defaultFallback) {
+            console.warn(`[Exporter] ${avcLevel} not supported, falling back to ${defaultFallback}`);
+            encoderConfig.codec = defaultFallback;
           }
         } catch {
           // Keep chosen level if check throws
@@ -226,9 +230,14 @@ export class WebCodecsExporter {
                     // On mobile background tab: resolve via microtask
                     queueMicrotask(finish);
                   } else {
-                    // On mobile foreground: wait for compositor frame commit
+                    // On mobile foreground: wait for compositor frame commit with double rAF.
+                    // Double requestAnimationFrame ensures Android SurfaceTexture / GPU rasterization
+                    // has completely committed the newly decoded frame to texture before drawing to canvas,
+                    // preventing race conditions where previous/next frames are accidentally captured.
                     requestAnimationFrame(() => {
-                      finish();
+                      requestAnimationFrame(() => {
+                        finish();
+                      });
                     });
                   }
                 };
