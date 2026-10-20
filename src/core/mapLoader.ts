@@ -1,4 +1,5 @@
 // Ported from core/map_loader.py (OpenStreetMapTileLoader)
+import { i18n } from './i18n';
 
 export class OpenStreetMapTileLoader {
   private static tileCache: Map<string, HTMLImageElement> = new Map();
@@ -68,7 +69,7 @@ export class OpenStreetMapTileLoader {
       ctx.fillStyle = "#6e7681";
       ctx.font = "12px sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("GPS 신호 없음", dx + dw / 2, dy + dh / 2);
+      ctx.fillText(i18n.t('map_no_gps'), dx + dw / 2, dy + dh / 2);
       ctx.restore();
       return;
     }

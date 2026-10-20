@@ -1,5 +1,6 @@
 // Ported & adapted from ui/main_window.py (scan_and_populate_tree)
 import { CameraKey } from './constants';
+import { i18n } from './i18n';
 
 export interface ClipItem {
   id: string; // e.g. "SavedClips/2026-08-17_12-48-22/2026-08-17_12-37-37"
@@ -41,14 +42,14 @@ export function formatFolderGroup(folderName: string, clips?: ClipItem[]): Folde
   if (/RecentClips|Recent/i.test(normalized)) {
     return {
       type: 'recent',
-      displayTitle: '최근클립',
+      displayTitle: i18n.t('folder_recent'),
       color: '#3fb950',
     };
   }
 
   // 2. SentryClips -> 센트리 클립 - 날짜시간 (빨간색)
   if (/SentryClips|Sentry/i.test(normalized)) {
-    const title = dateTimeStr ? `센트리 클립 - ${dateTimeStr}` : '센트리 클립';
+    const title = dateTimeStr ? `${i18n.t('folder_sentry')} - ${dateTimeStr}` : i18n.t('folder_sentry');
     return {
       type: 'sentry',
       displayTitle: title,
@@ -58,7 +59,7 @@ export function formatFolderGroup(folderName: string, clips?: ClipItem[]): Folde
 
   // 3. SavedClips -> 저장된 클립 - 날짜시간 (흰색)
   if (/SavedClips|Saved/i.test(normalized)) {
-    const title = dateTimeStr ? `저장된 클립 - ${dateTimeStr}` : '저장된 클립';
+    const title = dateTimeStr ? `${i18n.t('folder_saved')} - ${dateTimeStr}` : i18n.t('folder_saved');
     return {
       type: 'saved',
       displayTitle: title,
@@ -70,7 +71,7 @@ export function formatFolderGroup(folderName: string, clips?: ClipItem[]): Folde
   if (dateTimeStr) {
     return {
       type: 'saved',
-      displayTitle: `저장된 클립 - ${dateTimeStr}`,
+      displayTitle: `${i18n.t('folder_saved')} - ${dateTimeStr}`,
       color: '#ffffff',
     };
   }

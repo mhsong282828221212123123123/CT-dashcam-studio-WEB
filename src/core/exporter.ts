@@ -78,11 +78,12 @@ export class WebCodecsExporter {
   }
 
   /**
-   * Android-exclusive Play-Step-Pause Capture Mode:
-   * Instead of continuous playback (which drops frames during encoding) or step-seeking (which flushes MediaCodec buffers and scrambles PTS/DTS into 1-3-2-4),
-   * this advances videos in small forward play bursts at low speed (0.35x), pauses immediately upon reaching each target frame via rVFC,
-   * renders to canvas, encodes with backpressure wait, and steps forward.
-   * Zero frame drops, zero PTS jitter, perfect camera synchronization.
+   * Android-exclusive Pause-free Continuous Streaming + Dynamic Soft-Sync Mode:
+   * 1. Continuous low-speed forward playback (baseRate = 0.5x) with zero per-frame pause, avoiding MediaCodec restart stalls.
+   * 2. Synchronous canvas rendering & encoding immediately upon frame arrival via requestVideoFrameCallback.
+   * 3. For 1x exports: captures every newly presented master frame (> lastTime + 0.01) with true real-time PTS (zero 3:2 pulldown judder).
+   * 4. For secondary cameras: zero seek calls; dynamically modulates playbackRate (P-Controller) to seamlessly lock sync.
+   * 5. Conditional backpressure only if hardware encoder queue exceeds 4.
    */
   private async exportSegmentStreamingAndroid(
     segment: ExportClipSegment,
@@ -92,10 +93,13 @@ export class WebCodecsExporter {
     exportCanvas: HTMLCanvasElement,
     videoEncoder: VideoEncoder,
     config: MultiClipExportConfig,
-    totalFrames: number,
+    totalSourceSec: number,
+    cumulativeCompletedSec: number,
     segIdx: number,
     onFrameEncoded: () => void,
-    getOutputFrameCount: () => number
+    getOutputFrameCount: () => number,
+    getLastOutputTimestampMicros: () => number,
+    setLastOutputTimestampMicros: (t: number) => void
   ): Promise<void> {
     const activeVideos = videoKeys
       .map((k) => segVideos[k])
@@ -103,155 +107,201 @@ export class WebCodecsExporter {
     const masterVideo = segVideos['front'] || activeVideos[0];
     if (!masterVideo) return;
 
-    const stepSec = (1.0 / config.targetFps) * config.exportSpeed; // 출력 1프레임당 전진해야 할 원본 영상 시간
-    let currentSourceSec = segment.startSec;
-
     // 1. 세그먼트 시작점으로 최초 1회만 정밀 시크
     await Promise.all(
-      activeVideos.map((v) => this.seekVideoOnce(v, currentSourceSec))
+      activeVideos.map((v) => this.seekVideoOnce(v, segment.startSec))
     );
 
-    // 저속 재생 설정 (0.35x: rVFC가 프레임을 절대 건너뛰지 못하게 방지)
-    const STEP_PLAYBACK_RATE = 0.35;
+    // 2. 기본 저속 배속 설정 (baseRate = 0.5: 캔버스 합성 및 인코딩이 1프레임 시간 내에 안정적으로 끝나는 속도)
+    const baseRate = 0.5;
     for (const v of activeVideos) {
       v.muted = true;
       v.playsInline = true;
-      v.playbackRate = STEP_PLAYBACK_RATE;
+      v.playbackRate = baseRate;
     }
 
+    // 3. 모든 활성 비디오 연속 재생 시작 (매 프레임 pause 절대 하지 않고 연속 스트리밍 유지)
+    await Promise.all(activeVideos.map((v) => v.play().catch(() => {})));
+
+    const isOneX = config.exportSpeed === 1.0;
+    const stepSec = (1.0 / config.targetFps) * config.exportSpeed;
+    let nextTargetSourceSec = segment.startSec;
     let lastCapturedMediaTime = -1;
+    let consecutiveStalls = 0;
 
-    while (currentSourceSec <= segment.endSec && !this.isCancelled) {
-      // 2. 현재 masterVideo의 시간이 목표 시간보다 뒤처져 있다면, 시크(currentTime)하지 않고 play()로 도달할 때까지 전진
-      if (masterVideo.currentTime < currentSourceSec - 0.005) {
-        await new Promise<void>((resolve) => {
-          let settled = false;
-          let timeoutId: any = null;
+    while (!this.isCancelled) {
+      // 브라우저 백그라운드 정책 등으로 일시정지되었을 경우 안전 재개 (백프레셔 상태가 아닐 때)
+      if (masterVideo.paused && videoEncoder.encodeQueueSize <= 4) {
+        masterVideo.play().catch(() => {});
+      }
 
-          const finish = () => {
+      // requestVideoFrameCallback을 통해 GPU 하드웨어 디코더가 새 프레임을 렌더할 때까지 대기
+      const frameMeta = await new Promise<{ mediaTime: number }>((resolve) => {
+        let settled = false;
+        let timeoutId: any = null;
+
+        const onFrame = (_now: number, metadata: any) => {
+          if (settled) return;
+          settled = true;
+          if (timeoutId) clearTimeout(timeoutId);
+          resolve({ mediaTime: metadata?.mediaTime ?? masterVideo.currentTime });
+        };
+
+        timeoutId = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          resolve({ mediaTime: masterVideo.currentTime });
+        }, 150);
+
+        if (typeof (masterVideo as any).requestVideoFrameCallback === 'function') {
+          (masterVideo as any).requestVideoFrameCallback(onFrame);
+        } else {
+          setTimeout(() => {
             if (settled) return;
             settled = true;
-            if (timeoutId) clearTimeout(timeoutId);
-            // 목표 프레임 도달 즉시 모든 비디오 일시정지 (시간 고정)
-            for (const v of activeVideos) {
-              if (!v.paused) {
-                try {
-                  v.pause();
-                } catch {}
-              }
-            }
-            resolve();
-          };
-
-          const onFrame = (_now: number, metadata: any) => {
-            if (settled) return;
-            const mediaTime = metadata?.mediaTime ?? masterVideo.currentTime;
-            // 과거 프레임이 아니고 목표 시간에 도달(또는 근접)했으면 즉시 정지 후 캡처
-            if (
-              mediaTime > lastCapturedMediaTime &&
-              mediaTime >= currentSourceSec - 0.015
-            ) {
-              lastCapturedMediaTime = mediaTime;
-              finish();
-            } else {
-              if (typeof (masterVideo as any).requestVideoFrameCallback === 'function') {
-                (masterVideo as any).requestVideoFrameCallback(onFrame);
-              } else {
-                finish();
-              }
-            }
-          };
-
-          // 안전 타임아웃 (디코더 스톨 방지)
-          timeoutId = setTimeout(() => {
-            finish();
-          }, 250);
-
-          // rVFC 먼저 등록 후 play() 시작!
-          if (typeof (masterVideo as any).requestVideoFrameCallback === 'function') {
-            (masterVideo as any).requestVideoFrameCallback(onFrame);
-          } else {
-            setTimeout(finish, 40);
-          }
-
-          for (const v of activeVideos) {
-            v.play().catch(() => {});
-          }
-        });
-      }
+            resolve({ mediaTime: masterVideo.currentTime });
+          }, 35);
+        }
+      });
 
       if (this.isCancelled) break;
 
-      // 3. 보조 카메라들 중 싱크가 0.12초 이상 어긋난 카메라만 미세 보정
-      for (const v of activeVideos) {
-        if (v !== masterVideo && Math.abs(v.currentTime - masterVideo.currentTime) > 0.12) {
-          await this.seekVideoOnce(v, masterVideo.currentTime);
+      const mediaTime = frameMeta.mediaTime;
+
+      // 영상 끝 도달 또는 정체 감지
+      if (mediaTime <= lastCapturedMediaTime) {
+        consecutiveStalls++;
+        if (consecutiveStalls >= 5 || masterVideo.ended || mediaTime >= segment.endSec - 0.05) {
+          break;
+        }
+        continue;
+      }
+      consecutiveStalls = 0;
+
+      // 세그먼트 시작점 이전 프레임 무시
+      if (mediaTime < segment.startSec - 0.03) {
+        continue;
+      }
+
+      // 4. 프레임 캡처 여부 판별:
+      // - 1배속: 마스터 비디오에서 새 프레임이 올라올 때마다(> lastCapturedMediaTime + 0.01) 모두 캡처하여 풀다운 저더 0%
+      // - 배속: nextTargetSourceSec 간격으로 건너뛰며 캡처
+      const shouldCapture = isOneX
+        ? (mediaTime > lastCapturedMediaTime + 0.01)
+        : (mediaTime >= nextTargetSourceSec - 0.005);
+
+      if (shouldCapture) {
+        lastCapturedMediaTime = mediaTime;
+        if (!isOneX) {
+          nextTargetSourceSec += stepSec;
+        }
+
+        // 5. 보조 카메라 시크 금지 -> playbackRate 비례 제어 (Soft Sync)
+        for (const v of activeVideos) {
+          if (v !== masterVideo) {
+            const diff = masterVideo.currentTime - v.currentTime;
+            if (Math.abs(diff) > 0.5) {
+              // 0.5초 이상 완전히 벌어졌을 때만 예외적으로 시크
+              v.currentTime = masterVideo.currentTime;
+            } else {
+              // diff > 0이면 보조 카메라가 느리므로 가속, diff < 0이면 감속
+              const adjustedRate = Math.max(0.2, Math.min(1.0, baseRate + diff * 1.5));
+              v.playbackRate = adjustedRate;
+            }
+          }
+        }
+
+        // 6. Canvas 렌더링
+        const currentFrameIdx = Math.round(mediaTime * config.sourceFps);
+        const telemetry: TelemetryData = decoder
+          ? decoder.getFrameTelemetry(currentFrameIdx)
+          : {
+              speed_kmh: 0,
+              steering_deg: 0,
+              accel_pct: 0,
+              brake_applied: false,
+              brake_pct: 0,
+              ap_mode: 'MANUAL',
+              left_blinker: false,
+              right_blinker: false,
+              lat: 0,
+              lon: 0,
+              heading: 0,
+            };
+
+        const timestampText = `${segment.baseTimeStr} (+${mediaTime.toFixed(1)}s)`;
+
+        OverlayRenderer.render(
+          exportCanvas,
+          segVideos,
+          telemetry,
+          timestampText,
+          mediaTime,
+          currentFrameIdx,
+          config.sourceFps,
+          config.options
+        );
+
+        // 7. 출력 타임스탬프 계산 및 VideoEncoder 인코딩
+        const count = getOutputFrameCount();
+        let timestampMicros: number;
+        if (isOneX) {
+          const relSec = Math.max(0, mediaTime - segment.startSec);
+          timestampMicros = Math.round((cumulativeCompletedSec + relSec) * 1_000_000);
+        } else {
+          timestampMicros = Math.round((count * 1_000_000) / config.targetFps);
+        }
+
+        const prevTimestamp = getLastOutputTimestampMicros();
+        if (timestampMicros <= prevTimestamp) {
+          timestampMicros = prevTimestamp + 1000;
+        }
+        setLastOutputTimestampMicros(timestampMicros);
+
+        const durationMicros = Math.round(1_000_000 / config.targetFps);
+        const isKeyFrame = count % Math.round(config.targetFps * 2) === 0;
+
+        const frame = new VideoFrame(exportCanvas, {
+          timestamp: timestampMicros,
+          duration: durationMicros,
+        });
+
+        videoEncoder.encode(frame, { keyFrame: isKeyFrame });
+        frame.close();
+
+        onFrameEncoded();
+
+        // 8. 진행도(Progress) 계산: 실제 처리된 원본 영상 시간 기반으로 부드럽게 0% ~ 99% 증가
+        const segDuration = Math.max(0.01, segment.endSec - segment.startSec);
+        const segElapsed = Math.max(0, Math.min(segDuration, mediaTime - segment.startSec));
+        const overallElapsedSec = cumulativeCompletedSec + segElapsed;
+        const progressPct = Math.min(99, Math.round((overallElapsedSec / totalSourceSec) * 100));
+        config.onProgress(progressPct, segIdx + 1, config.segments.length);
+
+        // 9. 조건부 백프레셔: 하드웨어 인코더 큐가 4 초과일 때만 일시적으로 pause 후 큐가 1 이하로 빠지면 재생 재개
+        if (videoEncoder.encodeQueueSize > 4 && !this.isCancelled) {
+          for (const v of activeVideos) {
+            if (!v.paused) {
+              try { v.pause(); } catch {}
+            }
+          }
+          while (videoEncoder.encodeQueueSize > 1 && !this.isCancelled) {
+            await new Promise((r) => setTimeout(r, 10));
+          }
+          if (!this.isCancelled) {
+            for (const v of activeVideos) {
+              v.play().catch(() => {});
+            }
+          }
         }
       }
 
-      // 4. 비디오들이 pause된 안정적인 상태에서 Canvas 렌더링 및 인코딩
-      const currentFrameIdx = Math.round(currentSourceSec * config.sourceFps);
-      const telemetry: TelemetryData = decoder
-        ? decoder.getFrameTelemetry(currentFrameIdx)
-        : {
-            speed_kmh: 0,
-            steering_deg: 0,
-            accel_pct: 0,
-            brake_applied: false,
-            brake_pct: 0,
-            ap_mode: 'MANUAL',
-            left_blinker: false,
-            right_blinker: false,
-            lat: 0,
-            lon: 0,
-            heading: 0,
-          };
-
-      const timestampText = `${segment.baseTimeStr} (+${currentSourceSec.toFixed(1)}s)`;
-
-      OverlayRenderer.render(
-        exportCanvas,
-        segVideos,
-        telemetry,
-        timestampText,
-        currentSourceSec,
-        currentFrameIdx,
-        config.sourceFps,
-        config.options
-      );
-
-      const count = getOutputFrameCount();
-      const timestampMicros = Math.round((count * 1_000_000) / config.targetFps);
-      const durationMicros = Math.round(1_000_000 / config.targetFps);
-
-      const frame = new VideoFrame(exportCanvas, {
-        timestamp: timestampMicros,
-        duration: durationMicros,
-      });
-
-      const isKeyFrame = count % Math.round(config.targetFps * 2) === 0;
-      videoEncoder.encode(frame, { keyFrame: isKeyFrame });
-      frame.close();
-
-      onFrameEncoded();
-
-      // 5. 하드웨어 인코더 과부하 및 프레임 드랍 방지를 위한 Backpressure 대기
-      while (videoEncoder.encodeQueueSize > 2 && !this.isCancelled) {
-        await new Promise((r) => setTimeout(r, 10));
-      }
-
-      // 다음 목표 시간으로 전진
-      currentSourceSec += stepSec;
-
-      const progressPct = Math.min(100, Math.round((getOutputFrameCount() / totalFrames) * 100));
-      config.onProgress(progressPct, segIdx + 1, config.segments.length);
-
-      if (count % 4 === 0) {
-        await fastYield();
+      if (mediaTime >= segment.endSec || masterVideo.ended) {
+        break;
       }
     }
 
-    // 루프 종료 시 모든 비디오 정지 및 배속 원복
+    // 세그먼트 종료 시 모든 비디오 정지 및 배속 원복
     for (const v of activeVideos) {
       try {
         v.pause();
@@ -360,6 +410,8 @@ export class WebCodecsExporter {
       const totalFrames = Math.max(1, Math.ceil(totalSourceSec / frameStepSec));
 
       let outputFrameCount = 0;
+      let cumulativeCompletedSec = 0;
+      let lastOutputTimestampMicros = -1;
 
       for (let segIdx = 0; segIdx < config.segments.length; segIdx++) {
         if (this.isCancelled) break;
@@ -409,7 +461,7 @@ export class WebCodecsExporter {
         const videoKeys = Object.keys(segVideos) as CameraKey[];
 
         if (isAndroid) {
-          // Android: Play-Step-Pause Capture Mode (eliminates MediaCodec buffer flushing and frame drops)
+          // Android: Pause 없는 연속 저속 재생 + 동적 배속 싱크 (Soft Sync)
           await this.exportSegmentStreamingAndroid(
             segment,
             segVideos,
@@ -418,10 +470,13 @@ export class WebCodecsExporter {
             exportCanvas,
             videoEncoder,
             config,
-            totalFrames,
+            totalSourceSec,
+            cumulativeCompletedSec,
             segIdx,
             () => { outputFrameCount++; },
-            () => outputFrameCount
+            () => outputFrameCount,
+            () => lastOutputTimestampMicros,
+            (t: number) => { lastOutputTimestampMicros = t; }
           );
         } else {
           // PC & iOS: Fast Step-Seek Mode (Apple VideoToolbox / NVENC at maximum hardware throughput)
@@ -513,6 +568,8 @@ export class WebCodecsExporter {
           }
         }
 
+        cumulativeCompletedSec += Math.max(0.01, segment.endSec - segment.startSec);
+
         // Cleanup this segment's video URLs and remove elements from hidden container
         for (const url of objectUrls) {
           URL.revokeObjectURL(url);
@@ -529,6 +586,8 @@ export class WebCodecsExporter {
       if (this.isCancelled) {
         throw new Error("비디오 내보내기가 취소되었습니다.");
       }
+
+      config.onProgress(100, config.segments.length, config.segments.length);
 
       await videoEncoder.flush();
       muxer.finalize();

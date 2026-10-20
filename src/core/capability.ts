@@ -1,4 +1,5 @@
 // Ported & designed for browser capability gating (High / Mid / Low)
+import { i18n } from './i18n';
 
 export type DeviceTier = 'High' | 'Mid' | 'Low';
 
@@ -51,6 +52,18 @@ export const POLICIES: Record<DeviceTier, Omit<CapabilityPolicy, 'specs'>> = {
   },
 };
 
+export function getDeviceTierReason(specs: { concurrency: number; memory: number; hasWebGPU: boolean; hasWebCodecs: boolean }): string {
+  const { concurrency, memory, hasWebGPU, hasWebCodecs } = specs;
+  if ((hasWebGPU || concurrency >= 8) && memory >= 6) {
+    const accel = hasWebGPU ? i18n.t('tier_accel_webgpu') : i18n.t('tier_accel_multithread');
+    return i18n.t('tier_reason_high', { concurrency, memory, accel });
+  } else if (concurrency <= 2 || memory <= 2 || (!hasWebCodecs && !hasWebGPU)) {
+    return i18n.t('tier_reason_low', { concurrency, memory });
+  } else {
+    return i18n.t('tier_reason_mid', { concurrency, memory });
+  }
+}
+
 export async function detectDeviceCapabilities(): Promise<CapabilityPolicy> {
   const nav = typeof navigator !== 'undefined' ? navigator : null;
   const win = typeof window !== 'undefined' ? window : null;
@@ -62,18 +75,16 @@ export async function detectDeviceCapabilities(): Promise<CapabilityPolicy> {
   const memory = (nav && (nav as any).deviceMemory) || 4; // in GB
 
   let tier: DeviceTier = 'Mid';
-  let reason = '';
 
   if ((hasWebGPU || concurrency >= 8) && memory >= 6) {
     tier = 'High';
-    reason = `CPU ${concurrency}코어, 메모리 ${memory}GB, ${hasWebGPU ? 'WebGPU 가속 지원' : '8코어 멀티스레드'}로 4채널 동시 고화질 재생 및 하드웨어 인코딩에 최적화되었습니다.`;
   } else if (concurrency <= 2 || memory <= 2 || (!hasWebCodecs && !hasWebGPU)) {
     tier = 'Low';
-    reason = `CPU ${concurrency}코어, 메모리 ${memory}GB 또는 가속 API 미지원으로 원활한 재생을 위해 단일 카메라 중심 경량 모드가 권장됩니다.`;
   } else {
     tier = 'Mid';
-    reason = `CPU ${concurrency}코어, 메모리 ${memory}GB로 표준 1:3 분할 화면 재생 및 HD 비디오 내보내기를 안정적으로 지원합니다.`;
   }
+
+  const reason = getDeviceTierReason({ concurrency, memory, hasWebGPU, hasWebCodecs });
 
   const basePolicy = POLICIES[tier];
   const policy: CapabilityPolicy = {

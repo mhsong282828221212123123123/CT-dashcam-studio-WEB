@@ -13,7 +13,7 @@ import {
 } from './core/clipScanner';
 import { SeiWorkerResponse } from './core/seiWorker';
 import { OverlayRenderer, RenderOptions, DEFAULT_RENDER_OPTIONS, DEFAULT_TELEMETRY_ORDER, COL_WIDTH_BASE } from './core/renderer';
-import { detectDeviceCapabilities, CapabilityPolicy } from './core/capability';
+import { detectDeviceCapabilities, CapabilityPolicy, getDeviceTierReason } from './core/capability';
 import { WebCodecsExporter, ExportClipSegment } from './core/exporter';
 import { RESOLUTIONS, CameraKey } from './core/constants';
 import { i18n, SupportedLang } from './core/i18n';
@@ -129,6 +129,16 @@ class CTDashcamStudioApp {
     this.startRenderLoop();
     this.initDevBadge();
 
+    i18n.onChange(() => {
+      this.updatePlayButton();
+      this.applyViewMode();
+      this.renderClipsTree();
+      this.updateRangeUI();
+      this.updateFpsOptions(false);
+      this.updateEstimatedSize();
+      this.updateTierDisplay();
+    });
+
     (window as any).app = this;
     console.log('[App] CT Dashcam Studio Web initialized');
   }
@@ -227,9 +237,9 @@ class CTDashcamStudioApp {
 
     badge.style.display = 'flex';
     if (parsedFrames !== undefined && totalFrames !== undefined) {
-      textEl.textContent = `주행 데이터 분석 중... ${pct}% (${parsedFrames}/${totalFrames}f)`;
+      textEl.textContent = i18n.t('sei_analyzing_frames', [pct, parsedFrames, totalFrames]);
     } else {
-      textEl.textContent = `주행 데이터 분석 중... ${pct}%`;
+      textEl.textContent = i18n.t('sei_analyzing', [pct]);
     }
   }
 
@@ -404,7 +414,7 @@ class CTDashcamStudioApp {
         sidebar.classList.add('landscape-drawer-open');
       }
       if (backdrop) backdrop.style.display = 'block';
-      if (btnDrawer) btnDrawer.textContent = '✕ 닫기';
+      if (btnDrawer) btnDrawer.textContent = i18n.t('btn_close');
     };
 
     const closeDrawer = () => {
@@ -414,7 +424,7 @@ class CTDashcamStudioApp {
         sidebar.classList.remove('landscape-drawer-open');
       }
       if (backdrop) backdrop.style.display = 'none';
-      if (btnDrawer) btnDrawer.textContent = '🎬 메뉴 / 클립';
+      if (btnDrawer) btnDrawer.textContent = i18n.t('btn_drawer_menu');
     };
 
     btnDrawer?.addEventListener('click', () => {
@@ -495,12 +505,12 @@ class CTDashcamStudioApp {
     if (isMobile) {
       body.classList.add('view-mobile');
       body.classList.remove('view-desktop');
-      if (btnToggle) btnToggle.textContent = '🖥️ PC버전';
+      if (btnToggle) btnToggle.textContent = i18n.t('btn_pc_mode');
       if (btnFloating) btnFloating.style.display = 'none';
     } else {
       body.classList.add('view-desktop');
       body.classList.remove('view-mobile');
-      if (btnToggle) btnToggle.textContent = '📱 모바일';
+      if (btnToggle) btnToggle.textContent = i18n.t('btn_mobile_mode');
       if (btnFloating) {
         btnFloating.style.display = this.isMobileDevice() ? 'flex' : 'none';
       }
@@ -517,6 +527,21 @@ class CTDashcamStudioApp {
 
   private async initCapabilities() {
     this.policy = await detectDeviceCapabilities();
+    this.updateTierDisplay();
+
+    // Check secure context / WebCodecs availability
+    const warningEl = document.getElementById('webcodecs-warning');
+    if (warningEl) {
+      if (typeof VideoEncoder === 'undefined' || !window.isSecureContext) {
+        warningEl.style.display = 'block';
+      } else {
+        warningEl.style.display = 'none';
+      }
+    }
+  }
+
+  private updateTierDisplay() {
+    if (!this.policy) return;
     const tierBadge = document.getElementById('tier-badge');
     const mobileTierBadge = document.getElementById('mobile-tier-badge');
     const tooltipTier = document.getElementById('tooltip-current-tier');
@@ -537,25 +562,16 @@ class CTDashcamStudioApp {
       tooltipTier.textContent = `${this.policy.tier} Tier`;
       tooltipTier.className = `tooltip-badge ${tierLower}`;
     }
+    const localizedReason = getDeviceTierReason(this.policy.specs);
     if (tooltipReason) {
-      tooltipReason.textContent = this.policy.specs.reason;
+      tooltipReason.textContent = localizedReason;
     }
     if (modalTier) {
       modalTier.textContent = `${this.policy.tier} Tier`;
       modalTier.className = `tooltip-badge ${tierLower}`;
     }
     if (modalTierReason) {
-      modalTierReason.textContent = this.policy.specs.reason;
-    }
-
-    // Check secure context / WebCodecs availability
-    const warningEl = document.getElementById('webcodecs-warning');
-    if (warningEl) {
-      if (typeof VideoEncoder === 'undefined' || !window.isSecureContext) {
-        warningEl.style.display = 'block';
-      } else {
-        warningEl.style.display = 'none';
-      }
+      modalTierReason.textContent = localizedReason;
     }
   }
 
@@ -584,9 +600,9 @@ class CTDashcamStudioApp {
       if ('showDirectoryPicker' in window && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
         try {
           const dirHandle = await (window as any).showDirectoryPicker();
-          this.showLoadProgress('📂 폴더 탐색 중...', '영상 탐색 중...', 0, true);
+          this.showLoadProgress(i18n.t('progress_searching_clips'), i18n.t('progress_searching_videos'), 0, true);
           const items = await scanFileSystemDirectory(dirHandle, (filesCount, dirsCount) => {
-            this.showLoadProgress('📂 폴더 탐색 중...', `영상 ${filesCount}개 발견 (폴더 ${dirsCount}개)`, 0, true);
+            this.showLoadProgress(i18n.t('progress_searching_clips'), i18n.t('progress_found_videos', [filesCount, dirsCount]), 0, true);
           });
           if (items && items.length > 0) {
             await this.loadFiles(items);
@@ -734,8 +750,6 @@ class CTDashcamStudioApp {
       selectLanguage.addEventListener('change', (e) => {
         const targetLang = (e.target as HTMLSelectElement).value as SupportedLang;
         i18n.setLang(targetLang);
-        this.updateEstimatedSize();
-        this.updateRangeUI();
       });
     }
 
@@ -1276,13 +1290,13 @@ class CTDashcamStudioApp {
     const candidateList = validFiles.length > 0 ? validFiles : files;
     const totalCount = candidateList.length;
 
-    this.showLoadProgress('🎬 클립 분류 중...', `0 / ${totalCount}개 파일 (0%)`, 0, false);
+    this.showLoadProgress(i18n.t('progress_grouping_clips'), i18n.t('progress_grouping_status', [0, totalCount, 0, 0]), 0, false);
 
     this.folderGroups = groupFilesIntoClips(candidateList, (done, total, clipCount) => {
       const pct = Math.round((done / total) * 100);
       this.showLoadProgress(
-        '🎬 클립 분류 중...',
-        `${done} / ${total}개 파일 (${pct}%) · ${clipCount}개 클립`,
+        i18n.t('progress_grouping_clips'),
+        i18n.t('progress_grouping_status', [done, total, pct, clipCount]),
         pct,
         false
       );
@@ -1381,7 +1395,7 @@ class CTDashcamStudioApp {
       const camCount = Math.max(Object.keys(clip.cams).length, clip.camHandles ? Object.keys(clip.camHandles).length : 0);
       const isParking = clip.isParking ?? (clip.folder.includes('Sentry') || clip.folder.includes('Parking'));
       const tagClass = isParking ? 'parking' : 'driving';
-      const tagText = `[${isParking ? '주차' : '주행'}] ${camCount}채널`;
+      const tagText = `[${isParking ? i18n.t('tag_parking') : i18n.t('tag_driving')}] ${camCount}${i18n.t('tag_channels')}`;
 
       let classes = 'clip-node';
       if (isActive) classes += ' active';
@@ -1476,7 +1490,7 @@ class CTDashcamStudioApp {
       if (tagEl) {
         const camCount = Math.max(Object.keys(clip.cams).length, clip.camHandles ? Object.keys(clip.camHandles).length : 0);
         tagEl.className = `clip-type-tag ${isParking ? 'parking' : 'driving'}`;
-        tagEl.textContent = `[${isParking ? '주차' : '주행'}] ${camCount}채널`;
+        tagEl.textContent = `[${isParking ? i18n.t('tag_parking') : i18n.t('tag_driving')}] ${camCount}${i18n.t('tag_channels')}`;
       }
     } catch (e) {
       console.warn('[App] quickCheckIsParking error:', e);
@@ -1503,7 +1517,7 @@ class CTDashcamStudioApp {
     container.innerHTML = '';
 
     if (this.folderGroups.length === 0) {
-      container.innerHTML = '<div class="empty-state">유효한 TeslaCam 클립을 찾을 수 없습니다.</div>';
+      container.innerHTML = `<div class="empty-state">${i18n.t('empty_no_clips')}</div>`;
       return;
     }
 
@@ -1835,10 +1849,10 @@ class CTDashcamStudioApp {
     if (btnPlay) {
       const isMobile = this.viewMode === 'auto' ? this.isMobileDevice() : this.viewMode === 'mobile';
       if (this.isPlaying) {
-        btnPlay.textContent = isMobile ? '⏸ 일시정지' : '⏸ 일시정지 (Space)';
+        btnPlay.textContent = isMobile ? i18n.t('btn_pause') : i18n.t('pause_with_space');
         btnPlay.classList.add('playing');
       } else {
-        btnPlay.textContent = isMobile ? '▶ 재생' : '▶ 재생 (Space)';
+        btnPlay.textContent = isMobile ? i18n.t('btn_play') : i18n.t('play_with_space');
         btnPlay.classList.remove('playing');
       }
     }
@@ -1873,12 +1887,12 @@ class CTDashcamStudioApp {
 
     if (this.endPoint) {
       if (currAbsMs >= this.endPoint.absTimeMs) {
-        alert('시작점이 끝점보다 뒤이거나 같습니다.\n시간 순서가 올바르지 않습니다.');
+        alert(i18n.t('alert_in_after_out'));
         return;
       }
       const durSec = (this.endPoint.absTimeMs - currAbsMs) / 1000.0;
       if (durSec > 1800.0) {
-        alert(`선택 구간이 ${(durSec / 60.0).toFixed(1)}분입니다.\n최대 내보내기 가능 길이는 30분(1,800초)입니다.`);
+        alert(i18n.t('alert_max_duration', [(durSec / 60.0).toFixed(1)]));
         return;
       }
     }
@@ -1903,12 +1917,12 @@ class CTDashcamStudioApp {
 
     if (this.startPoint) {
       if (currAbsMs <= this.startPoint.absTimeMs) {
-        alert('끝점이 시작점보다 앞서거나 같습니다.\n시간 순서가 올바르지 않습니다.');
+        alert(i18n.t('alert_out_before_in'));
         return;
       }
       const durSec = (currAbsMs - this.startPoint.absTimeMs) / 1000.0;
       if (durSec > 1800.0) {
-        alert(`선택 구간이 ${(durSec / 60.0).toFixed(1)}분입니다.\n최대 내보내기 가능 길이는 30분(1,800초)입니다.`);
+        alert(i18n.t('alert_max_duration', [(durSec / 60.0).toFixed(1)]));
         return;
       }
     }
@@ -2007,7 +2021,7 @@ class CTDashcamStudioApp {
 
     if (!this.activeClip) {
       if (rangeLayer) rangeLayer.style.display = 'none';
-      if (rangeText) rangeText.textContent = '선택 구간: 미지정';
+      if (rangeText) rangeText.textContent = i18n.t('range_unspecified');
       return;
     }
 
@@ -2074,19 +2088,19 @@ class CTDashcamStudioApp {
       const t1 = formatHms(new Date(this.startPoint.absTimeMs));
       const t2 = formatHms(new Date(this.endPoint.absTimeMs));
       const chain = this.buildTargetClipChain();
-      const multiInfo = chain.length > 1 ? ` (${chain.length}개 파일 연속)` : '';
+      const multiInfo = chain.length > 1 ? i18n.t('range_multi_files', [chain.length]) : '';
       if (rangeText) {
-        rangeText.textContent = `구간: ${t1} ~ ${t2} (총 ${dur}초${multiInfo})`;
+        rangeText.textContent = i18n.t('range_specified', [t1, t2, dur, multiInfo]);
       }
     } else if (this.startPoint) {
       const t1 = formatHms(new Date(this.startPoint.absTimeMs));
-      if (rangeText) rangeText.textContent = `시작점: ${t1} (끝점 선택 필요)`;
+      if (rangeText) rangeText.textContent = i18n.t('range_need_out', [t1]);
     } else if (this.endPoint) {
       const t2 = formatHms(new Date(this.endPoint.absTimeMs));
-      if (rangeText) rangeText.textContent = `끝점: ${t2} (시작점 선택 필요)`;
+      if (rangeText) rangeText.textContent = i18n.t('range_need_in', [t2]);
     } else {
       if (rangeText) {
-        rangeText.textContent = `선택 구간: 미지정 (전체 ${this.durationSec.toFixed(1)}초)`;
+        rangeText.textContent = i18n.t('range_unspecified_full', [this.durationSec.toFixed(1)]);
       }
     }
 
@@ -2137,19 +2151,19 @@ class CTDashcamStudioApp {
 
     const candidates: Array<{ label: string; val: number }> = isMobile
       ? [
-          { label: '30 FPS (표준 권장)', val: 30 },
-          { label: `${Math.round(baseFps)} FPS (원본 기본)`, val: Math.round(baseFps) },
-          { label: '60 FPS (고부드러움)', val: 60 },
-          { label: '24 FPS (시네마)', val: 24 },
-          { label: '15 FPS (용량 절감)', val: 15 },
+          { label: i18n.t('fps_30_rec'), val: 30 },
+          { label: i18n.t('fps_orig_default', [Math.round(baseFps)]), val: Math.round(baseFps) },
+          { label: i18n.t('fps_60'), val: 60 },
+          { label: i18n.t('fps_24'), val: 24 },
+          { label: i18n.t('fps_15'), val: 15 },
         ]
       : [
-          { label: `${maxFps} FPS (${exportSpeed > 1.0 ? '배속 원본 최적' : '원본 최적'})`, val: maxFps },
-          { label: '60 FPS (고부드러움)', val: 60 },
-          { label: `${Math.round(baseFps)} FPS (원본 기본)`, val: Math.round(baseFps) },
-          { label: '30 FPS (표준)', val: 30 },
-          { label: '24 FPS (시네마)', val: 24 },
-          { label: '15 FPS (절감)', val: 15 },
+          { label: exportSpeed > 1.0 ? i18n.t('fps_orig_speed', [maxFps]) : i18n.t('fps_orig_optimal', [maxFps]), val: maxFps },
+          { label: i18n.t('fps_60'), val: 60 },
+          { label: i18n.t('fps_orig_default', [Math.round(baseFps)]), val: Math.round(baseFps) },
+          { label: i18n.t('fps_30'), val: 30 },
+          { label: i18n.t('fps_24'), val: 24 },
+          { label: i18n.t('fps_saving'), val: 15 },
         ];
 
     fpsSelect.innerHTML = '';
@@ -2211,7 +2225,7 @@ class CTDashcamStudioApp {
     if (!this.activeClip) return;
 
     if (typeof VideoEncoder === 'undefined') {
-      alert('브라우저 보안 정책상 HTTP 환경(공유기 IP)에서는 WebCodecs 비디오 인코딩이 지원되지 않습니다.\nHTTPS(dev:https)로 접속하거나 데스크톱 로컬(localhost)에서 내보내기를 진행해 주세요.');
+      alert(i18n.t('alert_http_security'));
       return;
     }
 
@@ -2237,19 +2251,19 @@ class CTDashcamStudioApp {
     this.options.exportSpeed = exportSpeed;
     const segments = this.buildTargetClipChain();
     if (segments.length === 0) {
-      alert('내보낼 영상 구간이 없습니다.');
+      alert(i18n.t('alert_no_range'));
       return;
     }
 
     this.isExporting = true;
     if (btnExport) {
-      btnExport.textContent = '⏹ 내보내기 취소';
+      btnExport.textContent = i18n.t('btn_export_cancel');
       btnExport.classList.add('cancelling');
     }
     if (pbarContainer) pbarContainer.style.display = 'block';
     if (statusLabel) {
       statusLabel.style.display = 'block';
-      statusLabel.textContent = `인코딩 준비 중... (총 ${segments.length}개 파일 구간)`;
+      statusLabel.textContent = i18n.t('status_preparing', [segments.length]);
     }
     if (pbarFill) pbarFill.style.width = '0%';
 
@@ -2257,11 +2271,11 @@ class CTDashcamStudioApp {
     if (exportModal) exportModal.style.display = 'flex';
     if (exportModalPct) exportModalPct.textContent = '0%';
     if (exportModalGaugeFill) exportModalGaugeFill.style.width = '0%';
-    if (exportModalFileSeg) exportModalFileSeg.textContent = `파일 1/${segments.length}`;
-    if (exportModalFpsInfo) exportModalFpsInfo.textContent = `인코딩 준비 중... (${targetFps} FPS, ${exportSpeed}x)`;
+    if (exportModalFileSeg) exportModalFileSeg.textContent = i18n.t('export_modal_file_tag', [1, segments.length]);
+    if (exportModalFpsInfo) exportModalFpsInfo.textContent = i18n.t('export_modal_fps_prep', [targetFps, exportSpeed]);
     if (btnCancelExportModal) {
       btnCancelExportModal.disabled = false;
-      btnCancelExportModal.textContent = '⏹ 내보내기 취소';
+      btnCancelExportModal.textContent = i18n.t('btn_export_cancel');
     }
 
     // Modal cancel button click handler
@@ -2270,10 +2284,10 @@ class CTDashcamStudioApp {
         this.exporter.cancel();
         if (btnCancelExportModal) {
           btnCancelExportModal.disabled = true;
-          btnCancelExportModal.textContent = '취소 처리 중...';
+          btnCancelExportModal.textContent = i18n.t('status_cancelling');
         }
         if (exportModalFpsInfo) {
-          exportModalFpsInfo.textContent = '인코딩을 취소하는 중입니다...';
+          exportModalFpsInfo.textContent = i18n.t('export_modal_cancelling');
         }
       }
     };
@@ -2318,13 +2332,13 @@ class CTDashcamStudioApp {
         options: this.options,
         onProgress: (pct, curSeg, totalSeg) => {
           if (statusLabel) {
-            statusLabel.textContent = `인코딩 진행 중: ${pct}% [파일 ${curSeg}/${totalSeg}]`;
+            statusLabel.textContent = i18n.t('status_encoding', [pct, curSeg, totalSeg]);
           }
           if (pbarFill) pbarFill.style.width = `${pct}%`;
           if (exportModalPct) exportModalPct.textContent = `${pct}%`;
           if (exportModalGaugeFill) exportModalGaugeFill.style.width = `${pct}%`;
-          if (exportModalFileSeg) exportModalFileSeg.textContent = `파일 ${curSeg}/${totalSeg}`;
-          if (exportModalFpsInfo) exportModalFpsInfo.textContent = `인코딩 진행 중: ${pct}% (${targetFps} FPS, ${exportSpeed}x)`;
+          if (exportModalFileSeg) exportModalFileSeg.textContent = i18n.t('export_modal_file_tag', [curSeg, totalSeg]);
+          if (exportModalFpsInfo) exportModalFpsInfo.textContent = i18n.t('export_modal_fps_info', [pct, targetFps, exportSpeed]);
         },
       });
 
@@ -2338,9 +2352,15 @@ class CTDashcamStudioApp {
       a.click();
       URL.revokeObjectURL(url);
 
-      if (statusLabel) statusLabel.textContent = '비디오 렌더링이 성공적으로 완료되었습니다!';
+      if (exportModalPct) exportModalPct.textContent = '100%';
+      if (exportModalGaugeFill) exportModalGaugeFill.style.width = '100%';
+      if (exportModalFpsInfo) exportModalFpsInfo.textContent = i18n.t('export_success_save_desc');
+      if (statusLabel) statusLabel.textContent = i18n.t('status_success');
+
+      // 갤럭시는 백그라운드 다운로드 후 알림이 없으므로 명시적인 완료 알림 팝업 제공
+      alert(i18n.t('export_success_alert'));
     } catch (e: any) {
-      if (statusLabel) statusLabel.textContent = `오류 발생: ${e.message}`;
+      if (statusLabel) statusLabel.textContent = `${i18n.t('status_error')}${e.message}`;
     } finally {
       this.isExporting = false;
       window.removeEventListener('beforeunload', preventUnload);
@@ -2355,11 +2375,11 @@ class CTDashcamStudioApp {
       }
 
       if (btnExport) {
-        btnExport.textContent = '선택 구간 내보내기 (MP4)';
+        btnExport.textContent = i18n.t('btn_export');
         btnExport.classList.remove('cancelling');
       }
       setTimeout(() => {
-        if (!this.isExporting && statusLabel && statusLabel.textContent?.includes('완료')) {
+        if (!this.isExporting && statusLabel && (statusLabel.textContent === i18n.t('status_success') || statusLabel.textContent?.includes('완료') || statusLabel.textContent?.includes('success') || statusLabel.textContent?.includes('完了') || statusLabel.textContent?.includes('完成'))) {
           if (pbarContainer) pbarContainer.style.display = 'none';
           if (statusLabel) statusLabel.style.display = 'none';
         }
@@ -2502,7 +2522,7 @@ class CTDashcamStudioApp {
           deferredPrompt = null;
           globalDeferredPrompt = null;
         } else {
-          alert('브라우저 주소창 우측(⊕) 또는 메뉴(⋯) > 앱 > "CT Dashcam Studio 설치"를 선택하세요.');
+          alert(i18n.t('alert_pc_install'));
         }
       });
     }
@@ -2527,7 +2547,7 @@ class CTDashcamStudioApp {
         try {
           await navigator.clipboard.writeText(window.location.href);
           if (copyStatusMsg) {
-            copyStatusMsg.textContent = '✓ 링크 복사 완료!';
+            copyStatusMsg.textContent = i18n.t('install_copy_success');
             setTimeout(() => { if (copyStatusMsg) copyStatusMsg.textContent = ''; }, 3000);
           }
         } catch {
