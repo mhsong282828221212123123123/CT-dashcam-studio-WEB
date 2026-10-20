@@ -586,55 +586,26 @@ class CTDashcamStudioApp {
     tierModal?.addEventListener('click', (e) => {
       if (e.target === tierModal) closeTierModal();
     });
-    // 1. Open Folder Button & Fallback Inputs
+    // 1. Open Folder Button & Dynamic Re-creation for iOS/WebKit stability
     const btnOpenFolder = document.getElementById('btn-open-folder');
-    const fallbackFolderInput = document.getElementById('fallback-folder-input') as HTMLInputElement;
 
-    btnOpenFolder?.addEventListener('click', async () => {
-      // 1) 보안 컨텍스트에서 File System Access API(showDirectoryPicker) 지원 시 우선 사용
+    btnOpenFolder?.addEventListener('click', () => {
+      // 1) 보안 컨텍스트에서 File System Access API(showDirectoryPicker) 지원 시 우선 사용 (데스크톱 Chromium)
       if ('showDirectoryPicker' in window && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-        try {
-          const dirHandle = await (window as any).showDirectoryPicker();
-          this.showLoadProgress(i18n.t('progress_searching_clips'), i18n.t('progress_searching_videos'), 0, true);
-          const items = await scanFileSystemDirectory(dirHandle, (filesCount, dirsCount) => {
-            this.showLoadProgress(i18n.t('progress_searching_clips'), i18n.t('progress_found_videos', [filesCount, dirsCount]), 0, true);
-          });
-          if (items && items.length > 0) {
-            await this.loadFiles(items);
-            return;
-          }
-        } catch (e: any) {
-          if (e.name === 'AbortError') {
-            this.hideLoadProgress();
-            return; // 사용자가 취소함
-          }
-          console.warn('showDirectoryPicker failed, falling back to folder input:', e);
-        } finally {
-          this.hideLoadProgress();
-        }
+        this.openWithDirectoryPicker();
+        return;
       }
 
-      // 2) HTML5 표준 webkitdirectory 폴더 선택 창 실행
-      if (fallbackFolderInput) {
-        fallbackFolderInput.value = '';
-        fallbackFolderInput.click();
-      }
-    });
-
-    fallbackFolderInput?.addEventListener('change', async () => {
-      const fileList = fallbackFolderInput.files;
-      if (fileList && fileList.length > 0) {
-        // iOS에서 파일 선택 완료 직후 메인 스레드가 굳기 전에 로딩 배너를 화면에 즉각 렌더링
-        this.showLoadProgress(i18n.t('progress_grouping_clips'), `${fileList.length}개 파일 준비 중...`, 0, true);
-        await yieldToCompositor();
-        await this.loadFiles(fileList);
-      }
+      // 2) iOS 및 showDirectoryPicker 미지원 환경:
+      // 동기 함수 최상단에서 await 없이 즉시 새 <input>을 생성하고 click() 호출 (User Gesture Activation 유지 & iOS 고질적 재사용 먹통 버그 완벽 차단)
+      this.openFolderWithDynamicInput();
     });
 
     const fallbackFileInput = document.getElementById('fallback-file-input') as HTMLInputElement;
     fallbackFileInput?.addEventListener('change', async () => {
       const fileList = fallbackFileInput.files;
       if (fileList && fileList.length > 0) {
+        this.cleanupPreviousResources();
         this.showLoadProgress(i18n.t('progress_grouping_clips'), `${fileList.length}개 파일 준비 중...`, 0, true);
         await yieldToCompositor();
         await this.loadFiles(fileList);
@@ -1346,10 +1317,176 @@ class CTDashcamStudioApp {
     });
   }
 
+  private cleanupPreviousResources() {
+    // 1. 재생 즉시 중지 및 UI 동기화
+    this.isPlaying = false;
+    this.updatePlayButton();
+
+    // 2. 비디오 엘리먼트 완전 정지 및 하드웨어 디코더 / 파일 디스크립터 반환
+    if (this.videoPool) {
+      Object.values(this.videoPool).forEach((v) => {
+        if (v) {
+          try {
+            v.pause();
+            v.removeAttribute('src');
+            v.load(); // WebKit 내부의 미디어 디코더 인스턴스 강제 파괴
+          } catch {}
+        }
+      });
+      this.videoPool = {};
+    }
+    if (this.videoContainer) {
+      this.videoContainer.innerHTML = '';
+    }
+
+    // 3. 생성되었던 모든 blob ObjectURL 해제 (메모리 누수 원천 차단)
+    if (this.currentVideoUrls && this.currentVideoUrls.length > 0) {
+      for (const url of this.currentVideoUrls) {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {}
+      }
+      this.currentVideoUrls.length = 0;
+    }
+
+    // 4. 이전 클립의 File 참조 및 SEI 디코더 캐시 메모리 완전 해제
+    this.activeClip = null;
+    this.clipDecoders.clear();
+    this.clipMap.clear();
+
+    if (this.folderGroups && this.folderGroups.length > 0) {
+      for (const group of this.folderGroups) {
+        if (group.clips) {
+          for (const clip of group.clips) {
+            clip.cams = {};
+            clip.camHandles = {};
+          }
+          group.clips.length = 0;
+        }
+      }
+      this.folderGroups.length = 0;
+    }
+
+    // 5. 백그라운드 SEI Worker 리셋
+    if (this.seiWorker) {
+      try {
+        this.seiWorker.terminate();
+      } catch {}
+      this.initSeiWorker();
+    }
+
+    // 6. 캔버스 프레임 버퍼 지우기
+    if (this.canvas) {
+      const ctx = this.canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      }
+    }
+
+    // 7. 구간 선택 포인트 초기화
+    this.startPoint = null;
+    this.endPoint = null;
+    this.updateRangeUI();
+
+    // 8. 클립 트리 UI 초기화
+    const tree = document.getElementById('clips-tree');
+    if (tree) {
+      tree.innerHTML = `<div class="empty-state">${i18n.t('empty_no_clips')}</div>`;
+    }
+  }
+
+  private openWithDirectoryPicker() {
+    this.cleanupPreviousResources();
+    (async () => {
+      try {
+        const dirHandle = await (window as any).showDirectoryPicker();
+        this.showLoadProgress(i18n.t('progress_searching_clips'), i18n.t('progress_searching_videos'), 0, true);
+        const items = await scanFileSystemDirectory(dirHandle, (filesCount, dirsCount) => {
+          this.showLoadProgress(i18n.t('progress_searching_clips'), i18n.t('progress_found_videos', [filesCount, dirsCount]), 0, true);
+        });
+        if (items && items.length > 0) {
+          await this.loadFiles(items);
+        } else {
+          this.hideLoadProgress();
+        }
+      } catch (e: any) {
+        if (e.name === 'AbortError') {
+          this.hideLoadProgress();
+          return;
+        }
+        console.warn('showDirectoryPicker failed, falling back to dynamic input:', e);
+        this.openFolderWithDynamicInput();
+      }
+    })();
+  }
+
+  private openFolderWithDynamicInput() {
+    // 1. 이전 리소스 100% 강제 해제
+    this.cleanupPreviousResources();
+
+    // 2. 기존 동적 input이나 고정 input 완전 파괴 (iOS Safari UIDocumentPickerViewController 생명주기 버그 해결)
+    const oldDynamic = document.getElementById('dynamic-folder-input');
+    if (oldDynamic) {
+      try { oldDynamic.remove(); } catch {}
+    }
+    const oldStatic = document.getElementById('fallback-folder-input');
+    if (oldStatic) {
+      try { oldStatic.remove(); } catch {}
+    }
+
+    // 3. 완전히 새로운 <input type="file"> 생성
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.id = 'dynamic-folder-input';
+    input.setAttribute('webkitdirectory', '');
+    input.setAttribute('directory', '');
+    input.setAttribute('multiple', '');
+    input.setAttribute('accept', 'video/mp4,video/*,.mp4');
+    input.style.display = 'none';
+
+    // 4. change 이벤트 바인딩
+    input.addEventListener('change', async () => {
+      const fileList = input.files;
+      if (fileList && fileList.length > 0) {
+        this.showLoadProgress(i18n.t('progress_grouping_clips'), `${fileList.length}개 파일 준비 중...`, 0, true);
+        await yieldToCompositor();
+        await this.loadFiles(fileList);
+      } else {
+        this.hideLoadProgress();
+      }
+      // 사용 완료 후 메모리 해제 및 DOM 제거
+      try { input.remove(); } catch {}
+    });
+
+    document.body.appendChild(input);
+
+    // 5. iOS에서 파일 시스템 목록을 준비하는 동안 안내 배너 표출
+    this.showLoadProgress(
+      i18n.t('progress_searching_clips'),
+      'iOS 파일 시스템에서 폴더 목록을 불러오는 중입니다...',
+      0,
+      true
+    );
+
+    // 사용자가 취소했을 때(파일 탐색기 닫히고 포커스 복귀 시) 배너 정리
+    const onWindowFocus = () => {
+      setTimeout(() => {
+        if (!input.files || input.files.length === 0) {
+          this.hideLoadProgress();
+        }
+      }, 1500);
+    };
+    window.addEventListener('focus', onWindowFocus, { once: true });
+
+    // 6. 절대 await나 setTimeout 없이 동기적으로 즉시 click() 호출! (User Gesture Activation 100% 유지)
+    input.click();
+  }
+
   async loadFiles(files: (File | ScannedFileItem)[] | FileList | ArrayLike<any>) {
     console.log('[App] loadFiles called with', files.length, 'files');
     if (!files || files.length === 0) return;
 
+    this.cleanupPreviousResources();
     this.loadGeneration++;
 
     const totalCount = files.length;
@@ -1388,18 +1525,15 @@ class CTDashcamStudioApp {
     }
 
     // 6. Select first clip if available on next animation frame
-    if (this.folderGroups.length > 0 && this.folderGroups[0].clips.length > 0) {
+    // 모바일(안드로이드/iOS)에서는 메모리 절약과 즉각적인 반응성을 위해 
+    // 폴더 스캔 직후 비디오나 SEI 디코더를 자동 로드하지 않고, 사용자가 직접 클립을 탭할 때만 로드함
+    const shouldAutoSelect = !this.isMobileDevice();
+    if (shouldAutoSelect && this.folderGroups.length > 0 && this.folderGroups[0].clips.length > 0) {
       const firstGroup = this.folderGroups[0];
-      const folderInfo = formatFolderGroup(firstGroup.folderName, firstGroup.clips);
-      // 모바일(안드로이드/iOS)에서는 첫 폴더가 최근클립(recent)일 때만 자동 선택하고,
-      // 접힌 상태로 시작하는 저장/센트리 클립은 메모리 절약을 위해 자동 선택/로드를 하지 않음
-      const shouldAutoSelect = !this.isMobileDevice() || folderInfo.type === 'recent';
-      if (shouldAutoSelect) {
-        const firstClip = firstGroup.clips[0];
-        requestAnimationFrame(() => {
-          this.selectClip(firstClip);
-        });
-      }
+      const firstClip = firstGroup.clips[0];
+      requestAnimationFrame(() => {
+        this.selectClip(firstClip);
+      });
     }
   }
 
