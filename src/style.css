@@ -304,11 +304,52 @@ body {
   align-items: center;
   gap: 6px;
   user-select: none;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, border-left-color 0.15s ease;
+  border-left: 3px solid transparent;
 }
 
 .folder-header:hover {
   background: #181d2a;
+}
+
+/* 1-1-1. 폴더 헤더 유형별 색상 및 표시 (녹색: 최근클립, 흰색: 저장된 클립, 빨간색: 센트리 클립) */
+.folder-header.folder-type-recent {
+  color: #3fb950;
+  border-left: 3px solid #3fb950;
+  background: rgba(63, 185, 80, 0.08);
+}
+.folder-header.folder-type-recent .folder-arrow,
+.folder-header.folder-type-recent .folder-name {
+  color: #3fb950;
+}
+.folder-header.folder-type-recent:hover {
+  background: rgba(63, 185, 80, 0.16);
+}
+
+.folder-header.folder-type-saved {
+  color: #ffffff;
+  border-left: 3px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.05);
+}
+.folder-header.folder-type-saved .folder-arrow,
+.folder-header.folder-type-saved .folder-name {
+  color: #ffffff;
+}
+.folder-header.folder-type-saved:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.folder-header.folder-type-sentry {
+  color: #f85149;
+  border-left: 3px solid #f85149;
+  background: rgba(248, 81, 73, 0.08);
+}
+.folder-header.folder-type-sentry .folder-arrow,
+.folder-header.folder-type-sentry .folder-name {
+  color: #f85149;
+}
+.folder-header.folder-type-sentry:hover {
+  background: rgba(248, 81, 73, 0.16);
 }
 
 .clip-node {

@@ -3,6 +3,7 @@ import { RealTeslaSEIDecoder, BlobFileHandle, TelemetryData } from './core/seiDe
 import {
   groupFilesIntoClips,
   scanFileSystemDirectory,
+  formatFolderGroup,
   FolderGroup,
   ClipItem,
   ScannedFileItem,
@@ -696,7 +697,7 @@ class CTDashcamStudioApp {
     document.getElementById('export-speed-select')?.addEventListener('change', () => {
       const speedVal = parseFloat((document.getElementById('export-speed-select') as HTMLSelectElement).value);
       this.options.exportSpeed = speedVal;
-      this.updateFpsOptions();
+      this.updateFpsOptions(false);
       this.updateEstimatedSize();
     });
     document.getElementById('export-fps-select')?.addEventListener('change', () => this.updateEstimatedSize());
@@ -1490,10 +1491,12 @@ class CTDashcamStudioApp {
       folderDiv.className = `folder-node ${isFolderOpen ? '' : 'collapsed'}`;
       folderDiv.setAttribute('data-group-idx', String(idx));
 
+      const folderInfo = formatFolderGroup(group.folderName, group.clips);
+
       const folderHeader = document.createElement('div');
-      folderHeader.className = 'folder-header';
+      folderHeader.className = `folder-header folder-type-${folderInfo.type}`;
       folderHeader.setAttribute('data-group-idx', String(idx));
-      folderHeader.innerHTML = `<span class="folder-arrow">▼</span> <span>📁</span> <span class="folder-name">${group.folderName} (${group.clips.length})</span>`;
+      folderHeader.innerHTML = `<span class="folder-arrow">▼</span> <span class="folder-icon">📁</span> <span class="folder-name">${folderInfo.displayTitle} (${group.clips.length})</span>`;
 
       const clipsContainer = document.createElement('div');
       clipsContainer.className = 'folder-clips';
@@ -2083,7 +2086,7 @@ class CTDashcamStudioApp {
     });
   }
 
-  private updateFpsOptions() {
+  private updateFpsOptions(preserveValue: boolean = true) {
     const fpsSelect = document.getElementById('export-fps-select') as HTMLSelectElement;
     const speedSelect = document.getElementById('export-speed-select') as HTMLSelectElement;
     if (!fpsSelect) return;
@@ -2096,23 +2099,31 @@ class CTDashcamStudioApp {
     const maxFps = Math.min(120, Math.round(baseFps * exportSpeed));
 
     const currentVal = parseInt(fpsSelect.value) || 0;
+    const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 850px), (pointer: coarse)').matches;
 
-    // Standard output FPS candidates.
-    // In video export, playback framerate must remain at standard rates (30, 36, 60)
-    // to prevent iOS Photos / Safari from treating 120 FPS as Slo-Mo (which slows down middle section to 1/4x).
-    const defaultFps = (exportSpeed === 1.0 && Math.round(baseFps) <= 36) ? Math.round(baseFps) : 30;
+    // Standard output FPS candidates:
+    // - On PC: default to maxFps (e.g. 72 FPS for 2x, 120 FPS for 4x, 36 FPS for 1x) for full original smoothness!
+    // - On mobile: default to standard 30 FPS to avoid mobile decoder strain / iOS Slo-Mo
+    const defaultFps = isMobile
+      ? ((exportSpeed === 1.0 && Math.round(baseFps) <= 36) ? Math.round(baseFps) : 30)
+      : maxFps;
 
-    const candidates: Array<{ label: string; val: number }> = [
-      { label: '30 FPS (표준 권장)', val: 30 },
-      { label: `${Math.round(baseFps)} FPS (원본 기본)`, val: Math.round(baseFps) },
-      { label: '60 FPS (고부드러움)', val: 60 },
-      { label: '24 FPS (시네마)', val: 24 },
-      { label: '15 FPS (용량 절감)', val: 15 },
-    ];
-
-    if (exportSpeed > 1.0 && maxFps >= 120) {
-      candidates.push({ label: '120 FPS (초고프레임 - iOS 슬로우모션 주의)', val: 120 });
-    }
+    const candidates: Array<{ label: string; val: number }> = isMobile
+      ? [
+          { label: '30 FPS (표준 권장)', val: 30 },
+          { label: `${Math.round(baseFps)} FPS (원본 기본)`, val: Math.round(baseFps) },
+          { label: '60 FPS (고부드러움)', val: 60 },
+          { label: '24 FPS (시네마)', val: 24 },
+          { label: '15 FPS (용량 절감)', val: 15 },
+        ]
+      : [
+          { label: `${maxFps} FPS (${exportSpeed > 1.0 ? '배속 원본 최적' : '원본 최적'})`, val: maxFps },
+          { label: '60 FPS (고부드러움)', val: 60 },
+          { label: `${Math.round(baseFps)} FPS (원본 기본)`, val: Math.round(baseFps) },
+          { label: '30 FPS (표준)', val: 30 },
+          { label: '24 FPS (시네마)', val: 24 },
+          { label: '15 FPS (절감)', val: 15 },
+        ];
 
     fpsSelect.innerHTML = '';
     const added = new Set<number>();
@@ -2135,7 +2146,7 @@ class CTDashcamStudioApp {
       added.add(defaultFps);
     }
 
-    if (currentVal > 0 && added.has(currentVal)) {
+    if (preserveValue && currentVal > 0 && added.has(currentVal)) {
       fpsSelect.value = String(currentVal);
     } else if (added.has(defaultFps)) {
       fpsSelect.value = String(defaultFps);
@@ -2193,8 +2204,10 @@ class CTDashcamStudioApp {
     const exportModalFileSeg = document.getElementById('export-modal-file-seg');
     const btnCancelExportModal = document.getElementById('btn-cancel-export-modal') as HTMLButtonElement | null;
 
-    const targetFps = fpsSelect ? parseInt(fpsSelect.value) || 30 : 30;
+    const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 850px), (pointer: coarse)').matches;
     const exportSpeed = parseFloat(speedSelect?.value || '1.0');
+    const targetFps = fpsSelect ? parseInt(fpsSelect.value) || (isMobile ? 30 : Math.round(this.fps * exportSpeed)) : (isMobile ? 30 : 36);
+    this.options.exportSpeed = exportSpeed;
     const segments = this.buildTargetClipChain();
     if (segments.length === 0) {
       alert('내보낼 영상 구간이 없습니다.');
@@ -2435,5 +2448,5 @@ class CTDashcamStudioApp {
 
 // Initialize on DOM load
 window.addEventListener('DOMContentLoaded', () => {
-  new CTDashcamStudioApp();
+  (window as any).app = new CTDashcamStudioApp();
 });

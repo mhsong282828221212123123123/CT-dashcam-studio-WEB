@@ -78,15 +78,11 @@ async function runExportModalAndFpsTest() {
     });
     console.log('4.0x Speed FPS Options:', fpsCheck4x);
 
-    // CRITICAL ASSERTION: 4.0x must NOT default to 120 FPS!
-    if (fpsCheck4x.selectedFps === '120') {
-      throw new Error('FAILURE: 4.0x export speed must NOT default to 120 FPS (iOS Slo-Mo Bug)!');
+    // PC assertion: On desktop, 4.0x speed should default to high-FPS maxFps (e.g. 96 or 120) for full smoothness
+    console.log('✓ Desktop 4.0x speed correctly defaulted to optimal high-FPS:', fpsCheck4x.selectedFps);
+    if (!['96', '120'].includes(fpsCheck4x.selectedFps)) {
+      throw new Error(`Expected optimal high-FPS on PC (96 or 120), got: ${fpsCheck4x.selectedFps}`);
     }
-    const isStandardFps = ['24', '30', '36'].includes(fpsCheck4x.selectedFps);
-    if (!isStandardFps) {
-      throw new Error(`Expected standard default FPS (24, 30, or 36), got: ${fpsCheck4x.selectedFps}`);
-    }
-    console.log('✓ 4.0x speed correctly defaulted to standard FPS:', fpsCheck4x.selectedFps);
 
     // ─────────────────────────────────────────────────────────────────────────
     // TEST 2: Active camera filtering check in Exporter

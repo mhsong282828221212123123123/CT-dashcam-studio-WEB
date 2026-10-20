@@ -19,6 +19,71 @@ export interface FolderGroup {
   clips: ClipItem[];
 }
 
+export interface FolderDisplayInfo {
+  type: 'recent' | 'saved' | 'sentry' | 'default';
+  displayTitle: string;
+  color: string;
+}
+
+export function formatFolderGroup(folderName: string, clips?: ClipItem[]): FolderDisplayInfo {
+  const normalized = folderName.replace(/\\/g, '/');
+
+  // Extract date/time pattern (e.g. 2026-10-06_09-43-38 or 2026-10-06-09-43-38)
+  const dtMatch = normalized.match(/(\d{4}-\d{2}-\d{2})[_-](\d{2})[-:](\d{2})[-:](\d{2})/);
+  let dateTimeStr = '';
+  if (dtMatch) {
+    dateTimeStr = `${dtMatch[1]} ${dtMatch[2]}:${dtMatch[3]}:${dtMatch[4]}`;
+  } else if (clips && clips.length > 0 && clips[0].timestampStr) {
+    dateTimeStr = clips[0].timestampStr;
+  }
+
+  // 1. RecentClips -> 최근클립 (녹색)
+  if (/RecentClips|Recent/i.test(normalized)) {
+    return {
+      type: 'recent',
+      displayTitle: '최근클립',
+      color: '#3fb950',
+    };
+  }
+
+  // 2. SentryClips -> 센트리 클립 - 날짜시간 (빨간색)
+  if (/SentryClips|Sentry/i.test(normalized)) {
+    const title = dateTimeStr ? `센트리 클립 - ${dateTimeStr}` : '센트리 클립';
+    return {
+      type: 'sentry',
+      displayTitle: title,
+      color: '#f85149',
+    };
+  }
+
+  // 3. SavedClips -> 저장된 클립 - 날짜시간 (흰색)
+  if (/SavedClips|Saved/i.test(normalized)) {
+    const title = dateTimeStr ? `저장된 클립 - ${dateTimeStr}` : '저장된 클립';
+    return {
+      type: 'saved',
+      displayTitle: title,
+      color: '#ffffff',
+    };
+  }
+
+  // Fallback: If folder name has date/time pattern
+  if (dateTimeStr) {
+    return {
+      type: 'saved',
+      displayTitle: `저장된 클립 - ${dateTimeStr}`,
+      color: '#ffffff',
+    };
+  }
+
+  // Default fallback
+  const baseName = normalized.split('/').pop() || folderName;
+  return {
+    type: 'default',
+    displayTitle: baseName,
+    color: '#c9d1d9',
+  };
+}
+
 export interface ScannedFileItem {
   name: string;
   relativePath: string;

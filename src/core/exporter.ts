@@ -58,9 +58,16 @@ export class WebCodecsExporter {
 
   async exportMultiClip(config: MultiClipExportConfig): Promise<Blob> {
     this.isCancelled = false;
+    const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 850px), (pointer: coarse)').matches;
     const resConfig = RESOLUTIONS[config.resolutionName] || RESOLUTIONS["FHD (1920x1080) - 권장 표준"];
     const [targetW, targetH] = resConfig.size;
-    const bitrateBps = Math.round(resConfig.bitrate_mbps * 1_000_000);
+
+    // Bitrate selection: Full original high bitrates on PC (35/50 Mbps), capped on mobile to avoid decoder strain
+    const baseBitrate = resConfig.bitrate_mbps;
+    const effectiveBitrateMbps = isMobile
+      ? Math.min(baseBitrate, targetW >= 2560 ? 28.0 : targetW >= 1920 ? 16.0 : 8.0)
+      : baseBitrate;
+    const bitrateBps = Math.round(effectiveBitrateMbps * 1_000_000);
 
     // Render canvas setup
     const exportCanvas = document.createElement('canvas');
@@ -90,43 +97,44 @@ export class WebCodecsExporter {
         },
       });
 
-      // Dynamic H.264 profile & level selection based on resolution:
-      // - Level 5.0 (avc1.640032) for QHD (2560x1440)
-      // - Level 4.1 (avc1.640029) for FHD (1920x1080)
-      // - Level 3.1 (avc1.64001f) for HD / Compact (1280x720 / 960x540)
-      let avcLevel = targetW >= 2560 ? 'avc1.640032'
-        : targetW >= 1920 ? 'avc1.640029'
-        : 'avc1.64001f';
+      // Codec level:
+      // - PC: standard avc1.640028 (Level 4.0) or avc1.640032 (Level 5.0 for QHD) without realtime latency mode
+      // - Mobile: dynamic level with realtime latency mode to guarantee DTS = PTS for Samsung Gallery
+      let avcLevel = 'avc1.640028';
+      if (isMobile) {
+        avcLevel = targetW >= 2560 ? 'avc1.640032'
+          : targetW >= 1920 ? 'avc1.640029'
+          : 'avc1.64001f';
+      } else if (targetW >= 2560) {
+        avcLevel = 'avc1.640032';
+      }
+
+      const encoderConfig: VideoEncoderConfig = {
+        codec: avcLevel,
+        width: targetW,
+        height: targetH,
+        bitrate: bitrateBps,
+        framerate: config.targetFps,
+      };
+
+      if (isMobile) {
+        // Enforce realtime latencyMode on mobile to prevent B-frame temporal reordering jitter in Samsung Gallery
+        encoderConfig.latencyMode = 'realtime';
+      }
 
       if (typeof VideoEncoder.isConfigSupported === 'function') {
         try {
-          const check = await VideoEncoder.isConfigSupported({
-            codec: avcLevel,
-            width: targetW,
-            height: targetH,
-            bitrate: bitrateBps,
-            framerate: config.targetFps,
-            latencyMode: 'realtime',
-          });
-          if (!check.supported) {
+          const check = await VideoEncoder.isConfigSupported(encoderConfig);
+          if (!check.supported && avcLevel !== 'avc1.640028') {
             console.warn(`[Exporter] ${avcLevel} not supported, falling back to avc1.640028`);
-            avcLevel = 'avc1.640028';
+            encoderConfig.codec = 'avc1.640028';
           }
         } catch {
           // Keep chosen level if check throws
         }
       }
 
-      // H.264 configuration with 'realtime' latencyMode to prevent B-frame temporal reordering
-      // and ensure DTS = PTS strictly for universal playback without ctts jitter in Samsung Gallery
-      videoEncoder.configure({
-        codec: avcLevel,
-        width: targetW,
-        height: targetH,
-        bitrate: bitrateBps,
-        framerate: config.targetFps,
-        latencyMode: 'realtime',
-      });
+      videoEncoder.configure(encoderConfig);
 
       const frameStepSec = (1.0 / config.targetFps) * config.exportSpeed;
       const totalSourceSec = config.segments.reduce(
@@ -163,7 +171,9 @@ export class WebCodecsExporter {
           v.muted = true;
           v.playsInline = true;
           v.preload = 'auto';
-          if (hiddenContainer) {
+          // On mobile, DOM attachment prevents iOS/Samsung background playback freeze.
+          // On PC, in-memory decoding avoids Chromium offscreen/occlusion throttling for maximum speed.
+          if (isMobile && hiddenContainer) {
             hiddenContainer.appendChild(v);
           }
           segVideos[k] = v;
@@ -209,20 +219,22 @@ export class WebCodecsExporter {
                 };
 
                 const onSeeked = () => {
-                  const isMobile = window.matchMedia('(max-width: 850px), (pointer: coarse)').matches;
-                  if (document.hidden || !isMobile) {
-                    // On PC (or any hidden tab), resolve immediately via microtask to keep background encoding running at full speed
+                  if (!isMobile) {
+                    // On PC: resolve immediately to maximize decoding throughput!
+                    finish();
+                  } else if (document.hidden) {
+                    // On mobile background tab: resolve via microtask
                     queueMicrotask(finish);
                   } else {
-                    // On mobile foreground, wait for compositor frame commit
+                    // On mobile foreground: wait for compositor frame commit
                     requestAnimationFrame(() => {
                       finish();
                     });
                   }
                 };
 
-                // Safety timeout: 800ms gives mobile decoders adequate time under heavy multi-camera workload
-                timeoutId = setTimeout(finish, 800);
+                // Safety timeout: 400ms on PC (original fast recovery), 800ms on mobile
+                timeoutId = setTimeout(finish, isMobile ? 800 : 400);
                 v.addEventListener('seeked', onSeeked, { once: true });
                 v.currentTime = currentSourceSec;
               });
