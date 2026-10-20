@@ -1,6 +1,6 @@
 // Ported from core/constants.py
 
-export const APP_VERSION = "1.2.5";
+export const APP_VERSION = "1.2.6-dev";
 export const GITHUB_REPO = "mhsong282828221212123123123/CT-dashcam-studio";
 
 export interface ResolutionConfig {
