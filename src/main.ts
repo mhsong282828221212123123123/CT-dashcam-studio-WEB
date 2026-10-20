@@ -721,6 +721,7 @@ class CTDashcamStudioApp {
     });
 
     // 6. Timeline Scrubber Click & Drag (Pointer Events for Touch & Mouse)
+    const timelineRow = document.querySelector('.timeline-row') as HTMLElement | null;
     const track = document.getElementById('timeline-track');
     let isScrubbing = false;
 
@@ -732,17 +733,21 @@ class CTDashcamStudioApp {
       this.seekTo(posRatio * this.durationSec);
     };
 
-    track?.addEventListener('pointerdown', (e: PointerEvent) => {
+    const startScrub = (e: PointerEvent) => {
+      e.preventDefault();
       isScrubbing = true;
       try {
-        track.setPointerCapture(e.pointerId);
+        track?.setPointerCapture(e.pointerId);
       } catch {}
       handleScrub(e.clientX);
-    });
+    };
 
-    track?.addEventListener('pointermove', (e: PointerEvent) => {
-      if (isScrubbing) handleScrub(e.clientX);
-    });
+    const moveScrub = (e: PointerEvent) => {
+      if (isScrubbing) {
+        e.preventDefault();
+        handleScrub(e.clientX);
+      }
+    };
 
     const stopScrub = (e: PointerEvent) => {
       if (isScrubbing) {
@@ -753,8 +758,16 @@ class CTDashcamStudioApp {
       }
     };
 
+    track?.addEventListener('pointerdown', startScrub);
+    track?.addEventListener('pointermove', moveScrub);
     track?.addEventListener('pointerup', stopScrub);
     track?.addEventListener('pointercancel', stopScrub);
+
+    timelineRow?.addEventListener('pointerdown', (e: PointerEvent) => {
+      if (e.target !== track && !track?.contains(e.target as Node)) {
+        startScrub(e);
+      }
+    });
 
     // 7. In / Out Point Buttons
     document.getElementById('btn-set-in')?.addEventListener('click', () => {

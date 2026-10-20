@@ -770,6 +770,8 @@ body {
   display: flex;
   align-items: center;
   cursor: pointer;
+  box-sizing: border-box;
+  touch-action: none;
 }
 
 .timeline-track {
@@ -1882,6 +1884,16 @@ kbd {
       overflow-x: hidden !important;
     }
 
+    /* 모바일 타임라인 트랙 좌우 제스처 안전여백 (뒤로/앞으로 스와이프 오작동 방지) */
+    body:not(.view-desktop) .timeline-row,
+    body.view-mobile .timeline-row {
+      height: 32px;
+      padding-left: max(18px, env(safe-area-inset-left));
+      padding-right: max(18px, env(safe-area-inset-right));
+      box-sizing: border-box !important;
+      touch-action: none;
+    }
+
     body:not(.view-desktop) .timeline-track,
     body.view-mobile .timeline-track {
       height: 8px;
@@ -1889,9 +1901,9 @@ kbd {
 
     body:not(.view-desktop) .timeline-thumb,
     body.view-mobile .timeline-thumb {
-      width: 18px;
-      height: 18px;
-      top: -5px;
+      width: 20px;
+      height: 20px;
+      top: -6px;
     }
 
     body:not(.view-desktop) .control-row-info,
@@ -2450,6 +2462,12 @@ kbd {
       padding: 6px 14px 10px;
       z-index: 25;
       transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    body:not(.view-desktop) .timeline-row,
+    body.view-mobile .timeline-row {
+      padding-left: max(24px, env(safe-area-inset-left));
+      padding-right: max(24px, env(safe-area-inset-right));
     }
 
     /* 가로 모드에서 데스크톱 불필요 컨트롤 완전 제거 */
