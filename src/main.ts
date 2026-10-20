@@ -586,8 +586,9 @@ class CTDashcamStudioApp {
     tierModal?.addEventListener('click', (e) => {
       if (e.target === tierModal) closeTierModal();
     });
-    // 1. Open Folder Button & Dynamic Re-creation for iOS/WebKit stability
+    // 1. Open Folder Button & Fallback Inputs
     const btnOpenFolder = document.getElementById('btn-open-folder');
+    const fallbackFolderInput = document.getElementById('fallback-folder-input') as HTMLInputElement;
 
     btnOpenFolder?.addEventListener('click', () => {
       // 1) 보안 컨텍스트에서 File System Access API(showDirectoryPicker) 지원 시 우선 사용 (데스크톱 Chromium)
@@ -597,19 +598,39 @@ class CTDashcamStudioApp {
       }
 
       // 2) iOS 및 showDirectoryPicker 미지원 환경:
-      // 동기 함수 최상단에서 await 없이 즉시 새 <input>을 생성하고 click() 호출 (User Gesture Activation 유지 & iOS 고질적 재사용 먹통 버그 완벽 차단)
-      this.openFolderWithDynamicInput();
+      // iOS Safari User Gesture Activation 유지를 위해 클릭 핸들러 내부에서는
+      // 사전 DOM 조작, cleanup, 배너 표시, 비동기 호출 없이 오직 input.click()만 즉시 동기 호출!
+      if (fallbackFolderInput) {
+        fallbackFolderInput.value = '';
+        fallbackFolderInput.click();
+      }
+    });
+
+    fallbackFolderInput?.addEventListener('change', async () => {
+      // 1) 파일 객체 참조를 안전한 JS 배열에 즉시 확보 (FileList 무효화 방지)
+      const files = Array.from(fallbackFolderInput.files || []);
+      if (files.length === 0) return;
+
+      // 2) 진행도 배너를 화면에 띄우고 1프레임을 먼저 그려서 사용자에게 로딩 상태 표시
+      this.showLoadProgress(i18n.t('progress_grouping_clips'), `${files.length}개 파일 준비 중...`, 0, true);
+      await yieldToCompositor();
+
+      // 3) 이전 폴더의 ObjectURL과 <video> 태그 리소스 안전 정리 (Worker는 terminate하지 않고 유지)
+      this.cleanupPreviousResources();
+
+      // 4) 파일 스캔 및 클립 로드 실행
+      await this.loadFiles(files);
     });
 
     const fallbackFileInput = document.getElementById('fallback-file-input') as HTMLInputElement;
     fallbackFileInput?.addEventListener('change', async () => {
-      const fileList = fallbackFileInput.files;
-      if (fileList && fileList.length > 0) {
-        this.cleanupPreviousResources();
-        this.showLoadProgress(i18n.t('progress_grouping_clips'), `${fileList.length}개 파일 준비 중...`, 0, true);
-        await yieldToCompositor();
-        await this.loadFiles(fileList);
-      }
+      const files = Array.from(fallbackFileInput.files || []);
+      if (files.length === 0) return;
+
+      this.showLoadProgress(i18n.t('progress_grouping_clips'), `${files.length}개 파일 준비 중...`, 0, true);
+      await yieldToCompositor();
+      this.cleanupPreviousResources();
+      await this.loadFiles(files);
     });
 
     // Drag and Drop Folder
@@ -1367,13 +1388,7 @@ class CTDashcamStudioApp {
       this.folderGroups.length = 0;
     }
 
-    // 5. 백그라운드 SEI Worker 리셋
-    if (this.seiWorker) {
-      try {
-        this.seiWorker.terminate();
-      } catch {}
-      this.initSeiWorker();
-    }
+    // 5. 백그라운드 SEI Worker는 유지 (iOS Safari 안정성을 위해 Worker 재시작 없이 유지)
 
     // 6. 캔버스 프레임 버퍼 지우기
     if (this.canvas) {
@@ -1396,7 +1411,6 @@ class CTDashcamStudioApp {
   }
 
   private openWithDirectoryPicker() {
-    this.cleanupPreviousResources();
     (async () => {
       try {
         const dirHandle = await (window as any).showDirectoryPicker();
@@ -1414,72 +1428,14 @@ class CTDashcamStudioApp {
           this.hideLoadProgress();
           return;
         }
-        console.warn('showDirectoryPicker failed, falling back to dynamic input:', e);
-        this.openFolderWithDynamicInput();
+        console.warn('showDirectoryPicker failed, falling back to input:', e);
+        const fallbackFolderInput = document.getElementById('fallback-folder-input') as HTMLInputElement;
+        if (fallbackFolderInput) {
+          fallbackFolderInput.value = '';
+          fallbackFolderInput.click();
+        }
       }
     })();
-  }
-
-  private openFolderWithDynamicInput() {
-    // 1. 이전 리소스 100% 강제 해제
-    this.cleanupPreviousResources();
-
-    // 2. 기존 동적 input이나 고정 input 완전 파괴 (iOS Safari UIDocumentPickerViewController 생명주기 버그 해결)
-    const oldDynamic = document.getElementById('dynamic-folder-input');
-    if (oldDynamic) {
-      try { oldDynamic.remove(); } catch {}
-    }
-    const oldStatic = document.getElementById('fallback-folder-input');
-    if (oldStatic) {
-      try { oldStatic.remove(); } catch {}
-    }
-
-    // 3. 완전히 새로운 <input type="file"> 생성
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.id = 'dynamic-folder-input';
-    input.setAttribute('webkitdirectory', '');
-    input.setAttribute('directory', '');
-    input.setAttribute('multiple', '');
-    input.setAttribute('accept', 'video/mp4,video/*,.mp4');
-    input.style.display = 'none';
-
-    // 4. change 이벤트 바인딩
-    input.addEventListener('change', async () => {
-      const fileList = input.files;
-      if (fileList && fileList.length > 0) {
-        this.showLoadProgress(i18n.t('progress_grouping_clips'), `${fileList.length}개 파일 준비 중...`, 0, true);
-        await yieldToCompositor();
-        await this.loadFiles(fileList);
-      } else {
-        this.hideLoadProgress();
-      }
-      // 사용 완료 후 메모리 해제 및 DOM 제거
-      try { input.remove(); } catch {}
-    });
-
-    document.body.appendChild(input);
-
-    // 5. iOS에서 파일 시스템 목록을 준비하는 동안 안내 배너 표출
-    this.showLoadProgress(
-      i18n.t('progress_searching_clips'),
-      'iOS 파일 시스템에서 폴더 목록을 불러오는 중입니다...',
-      0,
-      true
-    );
-
-    // 사용자가 취소했을 때(파일 탐색기 닫히고 포커스 복귀 시) 배너 정리
-    const onWindowFocus = () => {
-      setTimeout(() => {
-        if (!input.files || input.files.length === 0) {
-          this.hideLoadProgress();
-        }
-      }, 1500);
-    };
-    window.addEventListener('focus', onWindowFocus, { once: true });
-
-    // 6. 절대 await나 setTimeout 없이 동기적으로 즉시 click() 호출! (User Gesture Activation 100% 유지)
-    input.click();
   }
 
   async loadFiles(files: (File | ScannedFileItem)[] | FileList | ArrayLike<any>) {
@@ -1525,15 +1481,17 @@ class CTDashcamStudioApp {
     }
 
     // 6. Select first clip if available on next animation frame
-    // 모바일(안드로이드/iOS)에서는 메모리 절약과 즉각적인 반응성을 위해 
-    // 폴더 스캔 직후 비디오나 SEI 디코더를 자동 로드하지 않고, 사용자가 직접 클립을 탭할 때만 로드함
-    const shouldAutoSelect = !this.isMobileDevice();
-    if (shouldAutoSelect && this.folderGroups.length > 0 && this.folderGroups[0].clips.length > 0) {
+    if (this.folderGroups.length > 0 && this.folderGroups[0].clips.length > 0) {
       const firstGroup = this.folderGroups[0];
-      const firstClip = firstGroup.clips[0];
-      requestAnimationFrame(() => {
-        this.selectClip(firstClip);
-      });
+      const folderInfo = formatFolderGroup(firstGroup.folderName, firstGroup.clips);
+      // 모바일(안드로이드/iOS)에서는 단일 폴더이거나 최근클립(recent)일 때 첫 클립 자동 선택
+      const shouldAutoSelect = !this.isMobileDevice() || this.folderGroups.length === 1 || folderInfo.type === 'recent';
+      if (shouldAutoSelect) {
+        const firstClip = firstGroup.clips[0];
+        requestAnimationFrame(() => {
+          this.selectClip(firstClip);
+        });
+      }
     }
   }
 
@@ -1640,15 +1598,16 @@ class CTDashcamStudioApp {
       const folderDiv = document.createElement('div');
       const folderInfo = formatFolderGroup(group.folderName, group.clips);
 
-      // 모바일(안드로이드/iOS)에서는 SavedClips, SentryClips는 반드시 접힌 상태(collapsed)로 시작.
-      // RecentClips만 최초 열림(isFolderOpen)을 허용하며 최소 정보만 나열.
+      // 모바일(안드로이드/iOS)에서는 단일 폴더이거나 최근클립(recent)일 때 최초 펼침.
+      // 복수 폴더일 때 저장/센트리 클립은 메모리 절약을 위해 기본 접힘 상태 (터치 시 동적 렌더링).
       // 데스크톱(PC)에서는 첫 폴더 또는 활성 폴더 기본 열림.
       let isFolderOpen = false;
       if (isMobile) {
-        if (folderInfo.type === 'recent') {
+        if (isSingleFolder) {
+          isFolderOpen = true;
+        } else if (folderInfo.type === 'recent') {
           isFolderOpen = activeFolder ? group.folderName === activeFolder : idx === 0;
         } else {
-          // 저장된 클립과 센트리 클립은 모바일에서 무조건 접힌 상태로 시작 (눌러서 열 때만 정보 로드)
           isFolderOpen = false;
         }
       } else {

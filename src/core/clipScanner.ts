@@ -173,15 +173,6 @@ export async function groupFilesIntoClips(
     const item = files[i];
     if (!item) continue;
 
-    // 1. 초고속 문자열 및 크기 필터링: .mp4가 아니거나 0바이트/숨김 파일(.DS_Store 등) 즉시 스킵
-    const itemName = item.name || '';
-    if (!itemName || itemName.startsWith('.') || !itemName.toLowerCase().endsWith('.mp4')) {
-      continue;
-    }
-    if ('size' in item && item.size === 0) {
-      continue;
-    }
-
     const isRealFile = item instanceof File || ('size' in item && typeof (item as any).slice === 'function');
     const fileObj = isRealFile ? (item as File) : (item as ScannedFileItem).file;
     const handleObj = !isRealFile ? (item as ScannedFileItem).handle : undefined;
@@ -189,7 +180,7 @@ export async function groupFilesIntoClips(
       (fileObj as any)?._relativePath ||
       fileObj?.webkitRelativePath ||
       (item as ScannedFileItem).relativePath ||
-      itemName;
+      item.name || '';
 
     const match = relPath.match(CAM_REGEX);
     if (match) {
