@@ -1336,15 +1336,15 @@ export class I18nManager {
     // 14. Mobile tabs
     const mobileClips = document.querySelectorAll('.mobile-tab-btn[data-tab="clips"]');
     mobileClips.forEach((btn) => {
-      btn.innerHTML = `<span class="mobile-tab-icon">🎬</span> <span class="tab-label">${dict.tab_clips || '클립 탐색'}</span>`;
+      btn.innerHTML = `<span class="tab-icon">🎬</span><span class="tab-label">${dict.tab_clips || '클립 탐색'}</span>`;
     });
     const mobileOverlays = document.querySelectorAll('.mobile-tab-btn[data-tab="overlays"]');
     mobileOverlays.forEach((btn) => {
-      btn.innerHTML = `<span class="mobile-tab-icon">⚙️</span> <span class="tab-label">${dict.tab_overlays || '오버레이'}</span>`;
+      btn.innerHTML = `<span class="tab-icon">🎛️</span><span class="tab-label">${dict.tab_overlays || '오버레이'}</span>`;
     });
     const mobileExport = document.querySelectorAll('.mobile-tab-btn[data-tab="export"]');
     mobileExport.forEach((btn) => {
-      btn.innerHTML = `<span class="mobile-tab-icon">💾</span> <span class="tab-label">${dict.tab_export_label || '설정·추출'}</span>`;
+      btn.innerHTML = `<span class="tab-icon">⚙️</span><span class="tab-label">${dict.tab_export_label || '설정·추출'}</span>`;
     });
 
     // 15. Drop overlay
