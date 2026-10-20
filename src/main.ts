@@ -248,13 +248,11 @@ class CTDashcamStudioApp {
 
   private loadSavedSettings() {
     try {
+      // 앱 실행 시 이전 레이아웃 잔여값을 정리하여 항상 기본 레이아웃으로 시작
+      localStorage.removeItem('ct_layout');
       const savedOrder = localStorage.getItem('ct_telemetry_order');
       if (savedOrder) {
         this.options.telemetryOrder = JSON.parse(savedOrder);
-      }
-      const savedLayout = localStorage.getItem('ct_layout');
-      if (savedLayout) {
-        this.options.layout = savedLayout as any;
       }
     } catch {
       // fallback
@@ -897,6 +895,85 @@ class CTDashcamStudioApp {
     document.getElementById('btn-confirm-hotkey')?.addEventListener('click', () => {
       if (hotkeyModal) hotkeyModal.style.display = 'none';
     });
+
+    // 12. 앱 실행 시 기존 선택값 초기화 (PC, iOS, 안드로이드 공통)
+    this.resetDefaultSelections();
+  }
+
+  private resetDefaultSelections() {
+    // 1. 이전 세션 잔여 레이아웃 저장값 삭제
+    try {
+      localStorage.removeItem('ct_layout');
+    } catch {}
+
+    // 2. 레이아웃 버튼 및 렌더러 옵션 초기화 (기본 1:3)
+    this.setLayoutMode('기본 (1:3 세로배치)');
+
+    // 3. 단일 카메라 팝업 선택값 초기화 (기본 전방 카메라)
+    document.querySelectorAll('.btn-cam-option').forEach((b) => {
+      if (b.getAttribute('data-cam') === 'front') {
+        b.classList.add('active');
+      } else {
+        b.classList.remove('active');
+      }
+    });
+    this.options.single_cam = 'front';
+
+    // 4. 오버레이 체크박스 초기화
+    const chkKeys: (keyof RenderOptions)[] = [
+      'timestamp', 'steering', 'speed', 'pedal',
+      'fsd', 'pillar_pip', 'turn_signal', 'map'
+    ];
+    chkKeys.forEach((key) => {
+      const elId = key === 'pillar_pip' ? 'chk-pillar-pip' : `chk-${key.replace('_', '-')}`;
+      const chk = document.getElementById(elId) as HTMLInputElement | null;
+      if (chk) {
+        chk.checked = Boolean(DEFAULT_RENDER_OPTIONS[key]);
+        (this.options as any)[key] = chk.checked;
+      }
+    });
+    this.updatePillarPipState();
+
+    // 5. 내보내기 설정 셀렉트박스 초기화
+    const resSelect = document.getElementById('export-resolution') as HTMLSelectElement | null;
+    if (resSelect) resSelect.value = 'FHD (1920x1080) - 권장 표준';
+    const speedSelect = document.getElementById('export-speed-select') as HTMLSelectElement | null;
+    if (speedSelect) {
+      speedSelect.value = '1';
+      this.options.exportSpeed = 1.0;
+    }
+    const fpsSelect = document.getElementById('export-fps-select') as HTMLSelectElement | null;
+    if (fpsSelect) fpsSelect.value = '30';
+    this.updateEstimatedSize();
+
+    // 6. 재생 속도 슬라이더 및 태그 초기화 (1.0x)
+    const speedSlider = document.getElementById('slider-preview-speed') as HTMLInputElement | null;
+    if (speedSlider) speedSlider.value = '2';
+    const speedValBadge = document.getElementById('lbl-preview-speed-val');
+    if (speedValBadge) speedValBadge.textContent = '1.0x';
+    this.options.playbackSpeed = 1.0;
+    this.applyPlaybackSpeed();
+
+    // 7. 밝기/대비 슬라이더 초기화
+    const brSlider = document.getElementById('slider-brightness') as HTMLInputElement | null;
+    const brSliderSub = document.getElementById('slider-brightness-sub') as HTMLInputElement | null;
+    const brSubVal = document.getElementById('lbl-brightness-sub-val');
+    if (brSlider) brSlider.value = '0';
+    if (brSliderSub) brSliderSub.value = '0';
+    if (brSubVal) brSubVal.textContent = '0';
+    this.options.brightness = 0;
+
+    const ctSlider = document.getElementById('slider-contrast') as HTMLInputElement | null;
+    const ctSliderSub = document.getElementById('slider-contrast-sub') as HTMLInputElement | null;
+    const ctSubVal = document.getElementById('lbl-contrast-sub-val');
+    if (ctSlider) ctSlider.value = '100';
+    if (ctSliderSub) ctSliderSub.value = '100';
+    if (ctSubVal) ctSubVal.textContent = '100%';
+    this.options.contrast = 1.0;
+
+    // 8. 연속 재생 체크박스 초기화
+    const chkAutoNext = document.getElementById('chk-auto-next') as HTMLInputElement | null;
+    if (chkAutoNext) chkAutoNext.checked = false;
   }
 
   private getCanvasCoordinatesFromPoint(clientX: number, clientY: number): { cx: number; cy: number } | null {
@@ -1155,7 +1232,6 @@ class CTDashcamStudioApp {
 
   private setLayoutMode(mode: RenderOptions['layout']) {
     this.options.layout = mode;
-    localStorage.setItem('ct_layout', mode);
 
     document.querySelectorAll('.btn-layout').forEach((btn) => {
       if (btn.getAttribute('data-layout') === mode) {
