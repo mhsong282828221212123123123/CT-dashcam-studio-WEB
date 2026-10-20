@@ -1,9 +1,18 @@
 export type SupportedLang = 'ko' | 'en' | 'ja' | 'zh-CN' | 'zh-TW';
 
+export function isIOSOrAndroid(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/i.test(ua);
+  return isIOS || isAndroid;
+}
+
 export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   ko: {
     // 1. Navigation & Header
     btn_open_folder: '📁 TeslaCam 폴더 지정',
+    btn_open_folder_mobile: '📁 클립 폴더 지정',
     col_name: '클립 탐색기',
     col_type: '유형 / 채널',
     empty_state: '폴더를 지정하거나 영상 파일을 선택하면 클립 목록이 여기에 표시됩니다.',
@@ -222,6 +231,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   en: {
     // 1. Navigation & Header
     btn_open_folder: '📁 Open TeslaCam Folder',
+    btn_open_folder_mobile: '📁 Open Clip Folder',
     col_name: 'Clip Explorer',
     col_type: 'Type / Channels',
     empty_state: 'Select a TeslaCam folder to load clips here.',
@@ -440,6 +450,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   ja: {
     // 1. Navigation & Header
     btn_open_folder: '📁 TeslaCamフォルダー指定',
+    btn_open_folder_mobile: '📁 クリップフォルダー指定',
     col_name: 'クリップエクスプローラー',
     col_type: 'タイプ / チャンネル',
     empty_state: 'フォルダーを指定するとクリップ一覧がここに表示されます。',
@@ -658,6 +669,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   'zh-CN': {
     // 1. Navigation & Header
     btn_open_folder: '📁 指定 TeslaCam 文件夹',
+    btn_open_folder_mobile: '📁 指定片段文件夹',
     col_name: '片段浏览器',
     col_type: '类型 / 通道',
     empty_state: '指定文件夹或选择视频文件后，片段列表将显示在此处。',
@@ -876,6 +888,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   'zh-TW': {
     // 1. Navigation & Header
     btn_open_folder: '📁 指定 TeslaCam 資料夾',
+    btn_open_folder_mobile: '📁 指定片段資料夾',
     col_name: '片段瀏覽器',
     col_type: '類型 / 頻道',
     empty_state: '指定資料夾或選擇影片檔案後，片段清單將顯示於此處。',
@@ -1145,7 +1158,10 @@ export class I18nManager {
 
     // 1. Folder button & Explorer header
     const btnOpenFolder = document.getElementById('btn-open-folder');
-    if (btnOpenFolder) btnOpenFolder.textContent = dict.btn_open_folder;
+    if (btnOpenFolder) {
+      const isMobileTarget = isIOSOrAndroid() || (typeof document !== 'undefined' && document.body?.classList.contains('view-mobile'));
+      btnOpenFolder.textContent = isMobileTarget ? (dict.btn_open_folder_mobile || dict.btn_open_folder) : dict.btn_open_folder;
+    }
 
     const colName = document.querySelector('.explorer-header .col-name');
     if (colName) colName.textContent = dict.col_name;

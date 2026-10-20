@@ -17,7 +17,7 @@ import { OverlayRenderer, RenderOptions, DEFAULT_RENDER_OPTIONS, DEFAULT_TELEMET
 import { detectDeviceCapabilities, CapabilityPolicy, getDeviceTierReason } from './core/capability';
 import { WebCodecsExporter, ExportClipSegment } from './core/exporter';
 import { RESOLUTIONS, CameraKey } from './core/constants';
-import { i18n, SupportedLang } from './core/i18n';
+import { i18n, SupportedLang, isIOSOrAndroid } from './core/i18n';
 
 export interface RangePoint {
   clipId: string;
@@ -496,6 +496,12 @@ class CTDashcamStudioApp {
     const body = document.body;
     const btnToggle = document.getElementById('btn-toggle-view-mode');
     const btnFloating = document.getElementById('btn-floating-view-mode');
+    const btnOpenFolder = document.getElementById('btn-open-folder');
+
+    if (btnOpenFolder) {
+      const isMobileTarget = isIOSOrAndroid() || isMobile;
+      btnOpenFolder.textContent = isMobileTarget ? i18n.t('btn_open_folder_mobile') : i18n.t('btn_open_folder');
+    }
 
     if (isMobile) {
       body.classList.add('view-mobile');
