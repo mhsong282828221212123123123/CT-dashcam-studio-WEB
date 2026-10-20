@@ -226,6 +226,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     alert_http_security: '브라우저 보안 정책상 HTTP 환경(공유기 IP)에서는 WebCodecs 비디오 인코딩이 지원되지 않습니다.\nHTTPS(dev:https)로 접속하거나 데스크톱 로컬(localhost)에서 내보내기를 진행해 주세요.',
     alert_no_range: '내보낼 영상 구간이 없습니다.',
     alert_pc_install: '브라우저 주소창 우측(⊕) 또는 메뉴(⋯) > 앱 > "CT Dashcam Studio 설치"를 선택하세요.',
+    alert_ios_silent_abort: '선택한 폴더의 파일 수나 용량이 너무 많아 iOS Safari에서 불러오기를 취소했습니다. 하위 폴더(개별 날짜/클립 단위)를 선택해 주세요.',
   },
 
   en: {
@@ -445,6 +446,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     alert_http_security: 'Browser security prevents WebCodecs video encoding on insecure HTTP.\nPlease access via HTTPS or localhost.',
     alert_no_range: 'No video range selected for export.',
     alert_pc_install: 'Please select "Install CT Dashcam Studio" in the browser address bar (⊕) or menu (⋯) > Apps.',
+    alert_ios_silent_abort: 'The selected folder contains too many files or is too large, so iOS Safari cancelled loading. Please select a subfolder (individual date or clip).',
   },
 
   ja: {
@@ -664,6 +666,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     alert_http_security: 'ブラウザのセキュリティ方針により、非セキュアなHTTP環境ではWebCodecsエンコードが制限されます。\nHTTPSまたはlocalhostでアクセスしてください。',
     alert_no_range: 'エクスポートする区間が選択されていません。',
     alert_pc_install: 'アドレスバー右側の(⊕)またはメニュー(⋯) > アプリ > 「CT Dashcam Studioをインストール」を選択してください。',
+    alert_ios_silent_abort: '選択したフォルダーのファイル数または容量が多すぎるため、iOS Safariで読み込みがキャンセルされました。下位フォルダー（個別の日時/クリップ単位）を選択してください。',
   },
 
   'zh-CN': {
@@ -883,6 +886,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     alert_http_security: '根据浏览器安全策略，HTTP 环境不支持 WebCodecs 视频编码。\n请使用 HTTPS 访问或在本地(localhost)进行导出。',
     alert_no_range: '未选择任何待导出的视频区间。',
     alert_pc_install: '请在浏览器地址栏右侧(⊕)或菜单(⋯) > 应用 > 选择“安装 CT Dashcam Studio”。',
+    alert_ios_silent_abort: '所选文件夹的文件数量或容量过大，iOS Safari 已取消加载。请选择子文件夹（单个日期/片段）。',
   },
 
   'zh-TW': {
@@ -1102,6 +1106,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     alert_http_security: '根據瀏覽器安全策略，HTTP 環境不支援 WebCodecs 影片編碼。\n請使用 HTTPS 連線或在本地(localhost)進行導出。',
     alert_no_range: '未選取任何待導出的影片區間。',
     alert_pc_install: '請在瀏覽器網址列右側(⊕)或選單(⋯) > 應用程式 > 選擇「安裝 CT Dashcam Studio」。',
+    alert_ios_silent_abort: '所選資料夾的檔案數量或容量過大，iOS Safari 已取消載入。請選擇子資料夾（個別日期/片段）。',
   },
 };
 

@@ -247,6 +247,28 @@ class CTDashcamStudioApp {
     }
   }
 
+  showToast(message: string, durationMs = 6000) {
+    let toast = document.getElementById('app-toast-notification');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'app-toast-notification';
+      toast.className = 'app-toast';
+      document.body.appendChild(toast);
+    }
+    toast.innerHTML = `<span class="toast-icon">⚠️</span><span class="toast-message">${message}</span><button class="toast-close" type="button" aria-label="닫기">✕</button>`;
+    toast.querySelector('.toast-close')?.addEventListener('click', () => {
+      if (toast) toast.style.display = 'none';
+    });
+    toast.style.display = 'flex';
+
+    if ((toast as any)._timeout) {
+      clearTimeout((toast as any)._timeout);
+    }
+    (toast as any)._timeout = setTimeout(() => {
+      if (toast) toast.style.display = 'none';
+    }, durationMs);
+  }
+
   private loadSavedSettings() {
     try {
       // 앱 실행 시 이전 레이아웃 잔여값을 정리하여 항상 기본 레이아웃으로 시작
@@ -594,7 +616,6 @@ class CTDashcamStudioApp {
     });
     // 1. Open Folder Button & Fallback Inputs
     const btnOpenFolder = document.getElementById('btn-open-folder');
-    const fallbackFolderInput = document.getElementById('fallback-folder-input') as HTMLInputElement;
 
     btnOpenFolder?.addEventListener('click', () => {
       // 1) 보안 컨텍스트에서 File System Access API(showDirectoryPicker) 지원 시 우선 사용 (데스크톱 Chromium)
@@ -604,28 +625,8 @@ class CTDashcamStudioApp {
       }
 
       // 2) iOS 및 showDirectoryPicker 미지원 환경:
-      // iOS Safari User Gesture Activation 유지를 위해 클릭 핸들러 내부에서는
-      // 사전 DOM 조작, cleanup, 배너 표시, 비동기 호출 없이 오직 input.click()만 즉시 동기 호출!
-      if (fallbackFolderInput) {
-        fallbackFolderInput.value = '';
-        fallbackFolderInput.click();
-      }
-    });
-
-    fallbackFolderInput?.addEventListener('change', async () => {
-      // 1) 파일 객체 참조를 안전한 JS 배열에 즉시 확보 (FileList 무효화 방지)
-      const files = Array.from(fallbackFolderInput.files || []);
-      if (files.length === 0) return;
-
-      // 2) 진행도 배너를 화면에 띄우고 1프레임을 먼저 그려서 사용자에게 로딩 상태 표시
-      this.showLoadProgress(i18n.t('progress_grouping_clips'), `${files.length}개 파일 준비 중...`, 0, true);
-      await yieldToCompositor();
-
-      // 3) 이전 폴더의 ObjectURL과 <video> 태그 리소스 안전 정리 (Worker는 terminate하지 않고 유지)
-      this.cleanupPreviousResources();
-
-      // 4) 파일 스캔 및 클립 로드 실행
-      await this.loadFiles(files);
+      // 이전 Pending Lock을 방지하기 위해 안전하게 새 input을 생성/교체하고 동기적으로 즉시 click() 호출
+      this.triggerSafeFolderPicker();
     });
 
     const fallbackFileInput = document.getElementById('fallback-file-input') as HTMLInputElement;
@@ -633,8 +634,13 @@ class CTDashcamStudioApp {
       const files = Array.from(fallbackFileInput.files || []);
       if (files.length === 0) return;
 
-      this.showLoadProgress(i18n.t('progress_grouping_clips'), `${files.length}개 파일 준비 중...`, 0, true);
-      await yieldToCompositor();
+      this.showLoadProgress(
+        i18n.t('progress_grouping_clips'),
+        `파일 목록 수신 완료 (${files.length}개), 분석 중...`,
+        0,
+        true
+      );
+      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
       this.cleanupPreviousResources();
       await this.loadFiles(files);
     });
@@ -1416,6 +1422,77 @@ class CTDashcamStudioApp {
     }
   }
 
+  private triggerSafeFolderPicker() {
+    // 1. 기존에 있던 input이 만약 이전 작업 실패/Silent Abort로 Lock이 걸려있을 수 있으니
+    // 이전 input을 DOM에서 제거 (단, change 도중이 아니라 "새 버튼 클릭 시점"에만 제거하여 FileList 무효화 방지)
+    const oldInput = document.getElementById('active-folder-input');
+    if (oldInput) {
+      try { oldInput.remove(); } catch {}
+    }
+    const staticInput = document.getElementById('fallback-folder-input');
+    if (staticInput) {
+      try { staticInput.remove(); } catch {}
+    }
+
+    // 2. 새로운 input 생성 및 실제 DOM 부착 (display: none 금지, position: fixed offscreen)
+    const newInput = document.createElement('input');
+    newInput.type = 'file';
+    newInput.id = 'active-folder-input';
+    newInput.setAttribute('webkitdirectory', '');
+    newInput.setAttribute('directory', '');
+    newInput.setAttribute('multiple', '');
+    newInput.setAttribute('accept', 'video/mp4,video/*,.mp4');
+    newInput.style.cssText = 'position: fixed; top: -100px; left: -100px; width: 1px; height: 1px; opacity: 0.01; pointer-events: none;';
+    document.body.appendChild(newInput);
+
+    let changeFired = false;
+    let abortTimer: any = null;
+    const clickTime = Date.now();
+
+    // 3. iOS 대용량 폴더 선택 시 OS 레벨 Silent Abort(무응답) 감지
+    const onWindowFocus = () => {
+      if (Date.now() - clickTime < 500) return;
+      abortTimer = setTimeout(() => {
+        if (!changeFired && (!newInput.files || newInput.files.length === 0)) {
+          this.showToast(i18n.t('alert_ios_silent_abort'));
+        }
+      }, 3000);
+    };
+    window.addEventListener('focus', onWindowFocus, { once: true });
+
+    // 4. change 이벤트 바인딩 (절대 change 내부에서 newInput.remove() 호출 금지!)
+    newInput.addEventListener('change', async () => {
+      changeFired = true;
+      if (abortTimer) clearTimeout(abortTimer);
+      window.removeEventListener('focus', onWindowFocus);
+
+      const fileList = newInput.files;
+      const count = fileList ? fileList.length : 0;
+      if (count === 0) return;
+
+      // 1) 첫 번째 줄에서 로딩 모달/배너 flex로 켜고 안내 텍스트 즉시 변경 후 1프레임 렌더링 보장
+      this.showLoadProgress(
+        i18n.t('progress_grouping_clips'),
+        `파일 목록 수신 완료 (${count}개), 분석 중...`,
+        0,
+        true
+      );
+      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+
+      // 2) 파일 스냅샷 안전 확보
+      const files = Array.from(fileList || []);
+
+      // 3) 이전 폴더 리소스 클린업
+      this.cleanupPreviousResources();
+
+      // 4) 파일 로드
+      await this.loadFiles(files);
+    });
+
+    // 5. User Gesture Activation 유지를 위해 동기적으로 즉시 click() 호출!
+    newInput.click();
+  }
+
   private openWithDirectoryPicker() {
     (async () => {
       try {
@@ -1435,11 +1512,7 @@ class CTDashcamStudioApp {
           return;
         }
         console.warn('showDirectoryPicker failed, falling back to input:', e);
-        const fallbackFolderInput = document.getElementById('fallback-folder-input') as HTMLInputElement;
-        if (fallbackFolderInput) {
-          fallbackFolderInput.value = '';
-          fallbackFolderInput.click();
-        }
+        this.triggerSafeFolderPicker();
       }
     })();
   }
