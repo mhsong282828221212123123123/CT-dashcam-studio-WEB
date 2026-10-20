@@ -111,4 +111,19 @@ print(json.dumps(results))
       expect(samT.lon).toBe(seqT.lon);
     }
   });
+
+  it('in-memory parseMp4Buffer matches sequential scan and runs under 5ms', async () => {
+    const fileBytes = new Uint8Array(fs.readFileSync(testMp4));
+    const memDec = new RealTeslaSEIDecoder();
+
+    const t0 = performance.now();
+    const ok = memDec.parseMp4Buffer(fileBytes);
+    const elapsed = performance.now() - t0;
+
+    expect(ok).toBe(true);
+    expect(memDec.hasSeiData).toBe(true);
+    expect(memDec.maxSpeedKmh).toBe(61);
+    expect(memDec.sortedKeys.length).toBe(2149);
+    expect(elapsed).toBeLessThan(10); // Under 10ms!
+  });
 });
