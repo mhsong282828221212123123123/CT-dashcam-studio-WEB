@@ -25,6 +25,21 @@ export interface FolderDisplayInfo {
   color: string;
 }
 
+/**
+ * iOS Safari / WebKit 및 모바일 브라우저에서 메인 스레드 멈춤(Freezing/Watchdog Kill)을 방지하고
+ * DOM 업데이트(진행도 바, 텍스트)를 화면에 즉각 페인트할 수 있도록 1프레임을 양보하는 헬퍼
+ */
+export function yieldToCompositor(): Promise<void> {
+  if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+    return new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => {
+        setTimeout(resolve, 0);
+      });
+    });
+  }
+  return new Promise<void>((resolve) => setTimeout(resolve, 0));
+}
+
 export function formatFolderGroup(folderName: string, clips?: ClipItem[]): FolderDisplayInfo {
   const normalized = folderName.replace(/\\/g, '/');
 
@@ -151,7 +166,8 @@ export async function groupFilesIntoClips(
   >();
 
   const total = files.length;
-  const CHUNK_SIZE = 150;
+  // iOS Safari 및 모바일 기기에서 UI 프리징 없이 실시간 진행도가 그려지도록 청크 크기 설정
+  const CHUNK_SIZE = 60;
 
   for (let i = 0; i < total; i++) {
     const item = files[i];
@@ -162,7 +178,7 @@ export async function groupFilesIntoClips(
       (fileObj as any)?._relativePath ||
       fileObj?.webkitRelativePath ||
       (item as ScannedFileItem).relativePath ||
-      item.name;
+      item.name || '';
 
     const match = relPath.match(CAM_REGEX);
     if (match) {
@@ -198,14 +214,12 @@ export async function groupFilesIntoClips(
       }
     }
 
-    if (i % CHUNK_SIZE === 0 || i === total - 1) {
+    if ((i + 1) % CHUNK_SIZE === 0 || i === total - 1) {
       if (onProgress) {
         onProgress(i + 1, total, mapByFolderAndTimestamp.size);
       }
-      // 모바일 기기 메모리/CPU 과열 및 메인 스레드 응답없음 방지를 위한 주기적 비동기 양보
-      if (i > 0 && i % 300 === 0) {
-        await new Promise((r) => setTimeout(r, 0));
-      }
+      // iOS 및 모바일 브라우저에 페인트 프레임을 양보하여 진행도 UI가 실시간으로 갱신되도록 보장
+      await yieldToCompositor();
     }
   }
 
@@ -278,8 +292,8 @@ export async function scanFileSystemDirectory(
       onProgress(items.length, scannedDirs);
     }
 
-    if (scannedDirs % 25 === 0) {
-      await new Promise((r) => setTimeout(r, 0));
+    if (scannedDirs % 5 === 0) {
+      await yieldToCompositor();
     }
 
     for (const dirEntry of dirEntries) {

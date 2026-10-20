@@ -10,6 +10,7 @@ import {
   getClipFile,
   ensureClipFiles,
   CAM_REGEX,
+  yieldToCompositor,
 } from './core/clipScanner';
 import { SeiWorkerResponse } from './core/seiWorker';
 import { OverlayRenderer, RenderOptions, DEFAULT_RENDER_OPTIONS, DEFAULT_TELEMETRY_ORDER, COL_WIDTH_BASE } from './core/renderer';
@@ -621,15 +622,22 @@ class CTDashcamStudioApp {
     });
 
     fallbackFolderInput?.addEventListener('change', async () => {
-      if (fallbackFolderInput.files && fallbackFolderInput.files.length > 0) {
-        await this.loadFiles(Array.from(fallbackFolderInput.files));
+      const fileList = fallbackFolderInput.files;
+      if (fileList && fileList.length > 0) {
+        // iOS에서 파일 선택 완료 직후 메인 스레드가 굳기 전에 로딩 배너를 화면에 즉각 렌더링
+        this.showLoadProgress(i18n.t('progress_grouping_clips'), `${fileList.length}개 파일 준비 중...`, 0, true);
+        await yieldToCompositor();
+        await this.loadFiles(fileList);
       }
     });
 
     const fallbackFileInput = document.getElementById('fallback-file-input') as HTMLInputElement;
     fallbackFileInput?.addEventListener('change', async () => {
-      if (fallbackFileInput.files && fallbackFileInput.files.length > 0) {
-        await this.loadFiles(Array.from(fallbackFileInput.files));
+      const fileList = fallbackFileInput.files;
+      if (fileList && fileList.length > 0) {
+        this.showLoadProgress(i18n.t('progress_grouping_clips'), `${fileList.length}개 파일 준비 중...`, 0, true);
+        await yieldToCompositor();
+        await this.loadFiles(fileList);
       }
     });
 
@@ -1346,6 +1354,8 @@ class CTDashcamStudioApp {
 
     const totalCount = files.length;
     this.showLoadProgress(i18n.t('progress_grouping_clips'), i18n.t('progress_grouping_status', [0, totalCount, 0, 0]), 0, false);
+    // 모바일(iOS 등)에서 0% 상태 진행도 배너가 화면에 페인트되도록 1프레임 양보
+    await yieldToCompositor();
 
     this.folderGroups = await groupFilesIntoClips(files, (done, total, clipCount) => {
       const pct = Math.round((done / total) * 100);
@@ -1368,6 +1378,8 @@ class CTDashcamStudioApp {
 
     // 4. Render tree with collapsible folders
     this.renderClipsTree();
+    // 100% 완료 상태가 화면에 잠깐 그려진 후 배너를 숨김
+    await yieldToCompositor();
     this.hideLoadProgress();
 
     // 5. On mobile portrait, expand bottom sheet so user sees clips
