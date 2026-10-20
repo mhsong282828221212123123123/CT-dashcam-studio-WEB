@@ -56,6 +56,187 @@ export class WebCodecsExporter {
     this.isCancelled = true;
   }
 
+  /**
+   * Android-exclusive Streaming Playback Capture Mode:
+   * Instead of step-seeking currentTime every 33ms (which flushes MediaCodec buffers and scrambles PTS/DTS into 1-3-2-4-6-5),
+   * this plays the video linearly forward and captures frames via requestVideoFrameCallback.
+   * Because MediaCodec decodes purely in forward hardware presentation order, temporal jitter is mathematically eliminated.
+   */
+  private async exportSegmentStreamingAndroid(
+    segment: ExportClipSegment,
+    segVideos: Partial<Record<CameraKey, HTMLVideoElement>>,
+    videoKeys: CameraKey[],
+    decoder: RealTeslaSEIDecoder | null,
+    exportCanvas: HTMLCanvasElement,
+    videoEncoder: VideoEncoder,
+    config: MultiClipExportConfig,
+    totalFrames: number,
+    segIdx: number,
+    onFrameEncoded: () => void,
+    getOutputFrameCount: () => number
+  ): Promise<void> {
+    const mainKey = videoKeys.includes('front') ? 'front' : videoKeys[0];
+    const mainVideo = segVideos[mainKey];
+    if (!mainVideo) return;
+
+    // 1. Initial Seek to segment.startSec (only once per segment!)
+    await Promise.all(
+      videoKeys.map((k) => {
+        const v = segVideos[k];
+        if (!v) return Promise.resolve();
+        return new Promise<void>((resolve) => {
+          if (Math.abs(v.currentTime - segment.startSec) < 0.05) {
+            resolve();
+            return;
+          }
+          const onSeeked = () => {
+            v.removeEventListener('seeked', onSeeked);
+            resolve();
+          };
+          v.addEventListener('seeked', onSeeked, { once: true });
+          v.currentTime = segment.startSec;
+        });
+      })
+    );
+
+    // 2. Configure playback rate & play
+    const playRate = Math.min(Math.max(0.5, config.exportSpeed), 2.0);
+    for (const k of videoKeys) {
+      const v = segVideos[k]!;
+      v.playbackRate = playRate;
+      v.muted = true;
+      v.playsInline = true;
+    }
+
+    try {
+      await Promise.all(videoKeys.map((k) => segVideos[k]!.play()));
+    } catch (e) {
+      console.warn("[StreamingExport] play() warning:", e);
+    }
+
+    const frameStepSec = (1.0 / config.targetFps) * config.exportSpeed;
+    let targetSourceSec = segment.startSec;
+
+    return new Promise<void>((resolve) => {
+      let settled = false;
+      let rvfcId: number | null = null;
+      let watchdogTimer: any = null;
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        if (watchdogTimer) clearTimeout(watchdogTimer);
+        if (rvfcId !== null && typeof (mainVideo as any).cancelVideoFrameCallback === 'function') {
+          (mainVideo as any).cancelVideoFrameCallback(rvfcId);
+        }
+        for (const k of videoKeys) {
+          try {
+            segVideos[k]?.pause();
+          } catch {}
+        }
+        resolve();
+      };
+
+      const resetWatchdog = () => {
+        if (watchdogTimer) clearTimeout(watchdogTimer);
+        watchdogTimer = setTimeout(() => {
+          // If no frame arrives for 3 seconds, finish segment safely
+          finish();
+        }, 3000);
+      };
+
+      const onFrame = (_now: number, metadata: any) => {
+        if (settled || this.isCancelled) {
+          finish();
+          return;
+        }
+
+        resetWatchdog();
+        const currentMediaSec = metadata?.mediaTime ?? mainVideo.currentTime;
+
+        // Check if segment has ended
+        if (currentMediaSec >= segment.endSec || mainVideo.ended) {
+          finish();
+          return;
+        }
+
+        // Catch up output frames up to currentMediaSec
+        while (targetSourceSec <= currentMediaSec && targetSourceSec <= segment.endSec && !this.isCancelled) {
+          const currentFrameIdx = Math.round(targetSourceSec * config.sourceFps);
+          const telemetry: TelemetryData = decoder
+            ? decoder.getFrameTelemetry(currentFrameIdx)
+            : {
+                speed_kmh: 0,
+                steering_deg: 0,
+                accel_pct: 0,
+                brake_applied: false,
+                brake_pct: 0,
+                ap_mode: 'MANUAL',
+                left_blinker: false,
+                right_blinker: false,
+                lat: 0,
+                lon: 0,
+                heading: 0,
+              };
+
+          const timestampText = `${segment.baseTimeStr} (+${targetSourceSec.toFixed(1)}s)`;
+
+          // Render overlay
+          OverlayRenderer.render(
+            exportCanvas,
+            segVideos,
+            telemetry,
+            timestampText,
+            targetSourceSec,
+            currentFrameIdx,
+            config.sourceFps,
+            config.options
+          );
+
+          // Feed to VideoEncoder
+          const count = getOutputFrameCount();
+          const timestampMicros = Math.round((count * 1_000_000) / config.targetFps);
+          const videoFrame = new VideoFrame(exportCanvas, {
+            timestamp: timestampMicros,
+            duration: Math.round(1_000_000 / config.targetFps),
+          });
+
+          const keyFrame = count % Math.round(config.targetFps * 2) === 0;
+          videoEncoder.encode(videoFrame, { keyFrame });
+          videoFrame.close();
+
+          onFrameEncoded();
+          targetSourceSec += frameStepSec;
+
+          const progressPct = Math.min(100, Math.round((getOutputFrameCount() / totalFrames) * 100));
+          config.onProgress(progressPct, segIdx + 1, config.segments.length);
+        }
+
+        if (targetSourceSec > segment.endSec) {
+          finish();
+          return;
+        }
+
+        // Request next video frame callback
+        rvfcId = (mainVideo as any).requestVideoFrameCallback(onFrame);
+      };
+
+      resetWatchdog();
+      if (typeof (mainVideo as any).requestVideoFrameCallback === 'function') {
+        rvfcId = (mainVideo as any).requestVideoFrameCallback(onFrame);
+      } else {
+        // Fallback for devices without rVFC
+        const intervalId = setInterval(() => {
+          if (settled) {
+            clearInterval(intervalId);
+            return;
+          }
+          onFrame(performance.now(), { mediaTime: mainVideo.currentTime });
+        }, 1000 / config.targetFps);
+      }
+    });
+  }
+
   async exportMultiClip(config: MultiClipExportConfig): Promise<Blob> {
     this.isCancelled = false;
 
@@ -183,8 +364,6 @@ export class WebCodecsExporter {
           v.muted = true;
           v.playsInline = true;
           v.preload = 'auto';
-          // On mobile, DOM attachment prevents iOS/Samsung background playback freeze.
-          // On PC, in-memory decoding avoids Chromium offscreen/occlusion throttling for maximum speed.
           if (isMobile && hiddenContainer) {
             hiddenContainer.appendChild(v);
           }
@@ -204,194 +383,110 @@ export class WebCodecsExporter {
 
         // Fetch SEI decoder
         const decoder = await config.getClipDecoder(segment.clip);
-
-        let currentSourceSec = segment.startSec;
         const videoKeys = Object.keys(segVideos) as CameraKey[];
 
-        // Android-specific: Track frame mediaTime and snapshots to prevent backward temporal jitter (1-3-2-4-6-5) in Samsung Gallery
-        const lastMediaTimes: Partial<Record<CameraKey, number>> = {};
-        const lastValidSnapshots: Partial<Record<CameraKey, HTMLCanvasElement>> = {};
-        const isBackwardsFlags: Partial<Record<CameraKey, boolean>> = {};
+        if (isAndroid) {
+          // Android: Streaming Playback Capture Mode (eliminates MediaCodec buffer flushing and 1-3-2-4 jitter)
+          await this.exportSegmentStreamingAndroid(
+            segment,
+            segVideos,
+            videoKeys,
+            decoder,
+            exportCanvas,
+            videoEncoder,
+            config,
+            totalFrames,
+            segIdx,
+            () => { outputFrameCount++; },
+            () => outputFrameCount
+          );
+        } else {
+          // PC & iOS: Fast Step-Seek Mode (Apple VideoToolbox / NVENC at maximum hardware throughput)
+          let currentSourceSec = segment.startSec;
 
-        while (currentSourceSec <= segment.endSec && !this.isCancelled) {
-          // Sync all camera videos to currentSourceSec
-          await Promise.all(
-            videoKeys.map((k) => {
-              const v = segVideos[k];
-              if (!v) return Promise.resolve();
-              return new Promise<void>((resolve) => {
-                // Add 0.001s (1ms) epsilon on Android to avoid floating point boundary rounding down to previous frame
-                const targetSeekTime = isAndroid
-                  ? Math.min(v.duration && v.duration > 0 ? v.duration - 0.0005 : currentSourceSec + 0.001, currentSourceSec + 0.001)
-                  : currentSourceSec;
-
-                if (Math.abs(v.currentTime - targetSeekTime) < 0.0001) {
-                  resolve();
-                  return;
-                }
-
-                let settled = false;
-                let timeoutId: any = null;
-                let rvfcId: number | null = null;
-                let isBackwards = false;
-
-                const prevMediaTime = lastMediaTimes[k] ?? -1;
-                const startTime = Date.now();
-
-                const finish = () => {
-                  if (settled) return;
-                  settled = true;
-                  if (timeoutId) clearTimeout(timeoutId);
-                  if (rvfcId !== null && typeof (v as any).cancelVideoFrameCallback === 'function') {
-                    (v as any).cancelVideoFrameCallback(rvfcId);
+          while (currentSourceSec <= segment.endSec && !this.isCancelled) {
+            // Sync all camera videos to currentSourceSec
+            await Promise.all(
+              videoKeys.map((k) => {
+                const v = segVideos[k];
+                if (!v) return Promise.resolve();
+                return new Promise<void>((resolve) => {
+                  if (Math.abs(v.currentTime - currentSourceSec) < 0.0001) {
+                    resolve();
+                    return;
                   }
-                  v.removeEventListener('seeked', onSeeked);
-                  if (isAndroid) {
-                    isBackwardsFlags[k] = isBackwards;
-                  }
-                  resolve();
-                };
 
-                // Fast path for PC & iOS: resolve immediately upon seeked to maximize decoding throughput!
-                // (iOS Apple VideoToolbox never suffers from the Samsung MediaCodec out-of-order buffer bug)
-                if (!isAndroid) {
+                  let settled = false;
+                  let timeoutId: any = null;
+
+                  const finish = () => {
+                    if (settled) return;
+                    settled = true;
+                    if (timeoutId) clearTimeout(timeoutId);
+                    v.removeEventListener('seeked', onSeeked);
+                    resolve();
+                  };
+
                   const onSeeked = () => finish();
                   timeoutId = setTimeout(finish, isMobile ? 800 : 400);
                   v.addEventListener('seeked', onSeeked, { once: true });
-                  v.currentTime = targetSeekTime;
-                  return;
-                }
+                  v.currentTime = currentSourceSec;
+                });
+              })
+            );
 
-                // Android path: requestVideoFrameCallback + backward frame guard (for Samsung Gallery 1-3-2-4 fix)
-                timeoutId = setTimeout(() => {
-                  finish();
-                }, 150);
-
-                const checkFrame = (_now: number, metadata: any) => {
-                  if (settled) return;
-                  const mediaTime = metadata?.mediaTime;
-                  if (typeof mediaTime === 'number') {
-                    // Check if this frame is equal to or older than the previous frame (backward temporal jitter)
-                    if (prevMediaTime >= 0 && mediaTime <= prevMediaTime + 0.0005) {
-                      isBackwards = true;
-                      const elapsed = Date.now() - startTime;
-                      // If within 150ms window, re-request rVFC to wait for the forward frame
-                      if (elapsed < 130 && typeof (v as any).requestVideoFrameCallback === 'function') {
-                        rvfcId = (v as any).requestVideoFrameCallback(checkFrame);
-                        return;
-                      }
-                      // Window expired, retain backward flag to use previous valid frame snapshot
-                      finish();
-                      return;
-                    }
-                    // Valid forward frame confirmed!
-                    isBackwards = false;
-                    lastMediaTimes[k] = mediaTime;
-                  }
-                  finish();
+            const currentFrameIdx = Math.round(currentSourceSec * config.sourceFps);
+            const telemetry: TelemetryData = decoder
+              ? decoder.getFrameTelemetry(currentFrameIdx)
+              : {
+                  speed_kmh: 0,
+                  steering_deg: 0,
+                  accel_pct: 0,
+                  brake_applied: false,
+                  brake_pct: 0,
+                  ap_mode: 'MANUAL',
+                  left_blinker: false,
+                  right_blinker: false,
+                  lat: 0,
+                  lon: 0,
+                  heading: 0,
                 };
 
-                const onSeeked = () => {
-                  if (settled) return;
-                  if (typeof (v as any).requestVideoFrameCallback === 'function' && !document.hidden) {
-                    rvfcId = (v as any).requestVideoFrameCallback(checkFrame);
-                  } else if (document.hidden) {
-                    queueMicrotask(finish);
-                  } else {
-                    requestAnimationFrame(() => {
-                      requestAnimationFrame(finish);
-                    });
-                  }
-                };
+            const timestampText = `${segment.baseTimeStr} (+${currentSourceSec.toFixed(1)}s)`;
 
-                v.addEventListener('seeked', onSeeked, { once: true });
-                v.currentTime = targetSeekTime;
-              });
-            })
-          );
+            // Render overlay onto offscreen export canvas
+            OverlayRenderer.render(
+              exportCanvas,
+              segVideos,
+              telemetry,
+              timestampText,
+              currentSourceSec,
+              currentFrameIdx,
+              config.sourceFps,
+              config.options
+            );
 
-          const currentFrameIdx = Math.round(currentSourceSec * config.sourceFps);
-          const telemetry: TelemetryData = decoder
-            ? decoder.getFrameTelemetry(currentFrameIdx)
-            : {
-                speed_kmh: 0,
-                steering_deg: 0,
-                accel_pct: 0,
-                brake_applied: false,
-                brake_pct: 0,
-                ap_mode: 'MANUAL',
-                left_blinker: false,
-                right_blinker: false,
-                lat: 0,
-                lon: 0,
-                heading: 0,
-              };
+            // Feed to VideoEncoder
+            const timestampMicros = Math.round((outputFrameCount * 1_000_000) / config.targetFps);
+            const videoFrame = new VideoFrame(exportCanvas, {
+              timestamp: timestampMicros,
+              duration: Math.round(1_000_000 / config.targetFps),
+            });
 
-          const timestampText = `${segment.baseTimeStr} (+${currentSourceSec.toFixed(1)}s)`;
+            const keyFrame = outputFrameCount % Math.round(config.targetFps * 2) === 0;
+            videoEncoder.encode(videoFrame, { keyFrame });
+            videoFrame.close();
 
-          // Prepare render frames:
-          // - PC & iOS: Pass segVideos directly for zero-copy maximum hardware performance
-          // - Android: If a backward frame was detected, substitute the previous valid frame snapshot
-          let renderFrames: Partial<Record<CameraKey, CanvasImageSource | null>> = segVideos;
-          if (isAndroid) {
-            const androidFrames: Partial<Record<CameraKey, CanvasImageSource | null>> = {};
-            for (const k of videoKeys) {
-              const v = segVideos[k];
-              if (!v) continue;
-              if (isBackwardsFlags[k] && lastValidSnapshots[k]) {
-                androidFrames[k] = lastValidSnapshots[k]!;
-              } else {
-                androidFrames[k] = v;
-                if (v.videoWidth > 0 && v.videoHeight > 0) {
-                  let snap = lastValidSnapshots[k];
-                  if (!snap || snap.width !== v.videoWidth || snap.height !== v.videoHeight) {
-                    snap = document.createElement('canvas');
-                    snap.width = v.videoWidth;
-                    snap.height = v.videoHeight;
-                    lastValidSnapshots[k] = snap;
-                  }
-                  const sCtx = snap.getContext('2d');
-                  if (sCtx) {
-                    sCtx.drawImage(v, 0, 0);
-                  }
-                }
-              }
+            outputFrameCount++;
+            currentSourceSec += frameStepSec;
+
+            const progressPct = Math.min(100, Math.round((outputFrameCount / totalFrames) * 100));
+            config.onProgress(progressPct, segIdx + 1, config.segments.length);
+
+            // Yield event loop without triggering background timer throttling in hidden tabs
+            if (outputFrameCount % 4 === 0) {
+              await fastYield();
             }
-            renderFrames = androidFrames;
-          }
-
-          // Render overlay onto offscreen export canvas
-          OverlayRenderer.render(
-            exportCanvas,
-            renderFrames,
-            telemetry,
-            timestampText,
-            currentSourceSec,
-            currentFrameIdx,
-            config.sourceFps,
-            config.options
-          );
-
-          // Feed to VideoEncoder
-          const timestampMicros = Math.round((outputFrameCount * 1_000_000) / config.targetFps);
-          const videoFrame = new VideoFrame(exportCanvas, {
-            timestamp: timestampMicros,
-            duration: Math.round(1_000_000 / config.targetFps),
-          });
-
-          const keyFrame = outputFrameCount % Math.round(config.targetFps * 2) === 0;
-          videoEncoder.encode(videoFrame, { keyFrame });
-          videoFrame.close();
-
-          outputFrameCount++;
-          currentSourceSec += frameStepSec;
-
-          const progressPct = Math.min(100, Math.round((outputFrameCount / totalFrames) * 100));
-          config.onProgress(progressPct, segIdx + 1, config.segments.length);
-
-          // Yield event loop without triggering background timer throttling in hidden tabs
-          if (outputFrameCount % 4 === 0) {
-            await fastYield();
           }
         }
 
@@ -405,9 +500,6 @@ export class WebCodecsExporter {
             segVideos[k]!.remove();
             delete segVideos[k];
           }
-          delete lastValidSnapshots[k];
-          delete lastMediaTimes[k];
-          delete isBackwardsFlags[k];
         }
       }
 
