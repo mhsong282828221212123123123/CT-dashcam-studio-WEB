@@ -69,6 +69,14 @@ body {
   box-sizing: border-box;
 }
 
+.folder-load-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
 .btn-folder-load {
   width: 100%;
   height: 34px;
@@ -90,6 +98,30 @@ body {
 .btn-folder-load:hover {
   background-color: #1084e3;
   box-shadow: 0 0 10px rgba(0, 120, 215, 0.45);
+}
+
+.btn-files-load {
+  width: 100%;
+  height: 32px;
+  background-color: #21262d;
+  color: #c9d1d9;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #30363d;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.btn-files-load:hover {
+  background-color: #30363d;
+  color: #58a6ff;
+  border-color: #58a6ff;
 }
 
 /* 동기 재생용 숨김 비디오 풀: display: none 사용 금지 (iOS/Android 미디어 엔진 중단 방지) */

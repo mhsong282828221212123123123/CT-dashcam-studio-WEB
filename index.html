@@ -61,12 +61,17 @@
 
           <!-- 1-1. 클립 목록 섹션 (모바일 탭: clips) -->
           <div class="sidebar-section mobile-tab-section active" data-mobile-tab="clips">
-            <button id="btn-open-folder" class="btn btn-folder-load">
-              📁 TeslaCam 폴더 지정
-            </button>
+            <div class="folder-load-actions">
+              <button id="btn-open-folder" class="btn btn-folder-load">
+                📁 TeslaCam 폴더 지정
+              </button>
+              <button id="btn-open-files" class="btn btn-files-load" title="대용량 RecentClips 또는 하위 파일 직접 다중 선택 (iOS 안정 로드)">
+                📄 파일 선택 (대용량/RecentClips)
+              </button>
+            </div>
             <!-- 폴더 선택 전용 인풋 (다른 PC / HTTP 접속 환경 지원) -->
             <input type="file" id="fallback-folder-input" webkitdirectory directory multiple style="display: none;" />
-            <input type="file" id="fallback-file-input" multiple accept="video/mp4,video/*" style="display: none;" />
+            <input type="file" id="fallback-file-input" multiple accept="video/mp4,.mp4,.json" style="display: none;" />
 
             <!-- 다중 파일 스캔 및 클립 그룹핑 실시간 진행도 배너 -->
             <div id="load-progress-banner" class="load-progress-banner" style="display: none;">

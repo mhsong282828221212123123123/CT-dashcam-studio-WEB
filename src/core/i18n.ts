@@ -19,6 +19,8 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     // 1. Navigation & Header
     btn_open_folder: '📁 TeslaCam 폴더 지정',
     btn_open_folder_mobile: '📁 클립 폴더 지정',
+    btn_open_files: '📄 파일 선택 (대용량/RecentClips)',
+    unit_min: '분',
     col_name: '클립 탐색기',
     col_type: '유형 / 채널',
     empty_state: '폴더를 지정하거나 영상 파일을 선택하면 클립 목록이 여기에 표시됩니다.',
@@ -232,13 +234,15 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     alert_http_security: '브라우저 보안 정책상 HTTP 환경(공유기 IP)에서는 WebCodecs 비디오 인코딩이 지원되지 않습니다.\nHTTPS(dev:https)로 접속하거나 데스크톱 로컬(localhost)에서 내보내기를 진행해 주세요.',
     alert_no_range: '내보낼 영상 구간이 없습니다.',
     alert_pc_install: '브라우저 주소창 우측(⊕) 또는 메뉴(⋯) > 앱 > "CT Dashcam Studio 설치"를 선택하세요.',
-    alert_ios_silent_abort: '선택한 폴더의 파일 수나 용량이 너무 많아 iOS Safari에서 불러오기를 취소했습니다. 하위 폴더(개별 날짜/클립 단위)를 선택해 주세요.',
+    alert_ios_silent_abort: '선택한 폴더의 파일이 너무 많아 iOS에서 불러오기를 취소했습니다. 개별 하위 폴더를 선택하거나 [파일 선택] 기능을 이용해 주세요.',
   },
 
   en: {
     // 1. Navigation & Header
     btn_open_folder: '📁 Open TeslaCam Folder',
     btn_open_folder_mobile: '📁 Open Clip Folder',
+    btn_open_files: '📄 Select Files (Large/Recent)',
+    unit_min: 'm',
     col_name: 'Clip Explorer',
     col_type: 'Type / Channels',
     empty_state: 'Select a TeslaCam folder to load clips here.',
@@ -452,13 +456,15 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     alert_http_security: 'Browser security prevents WebCodecs video encoding on insecure HTTP.\nPlease access via HTTPS or localhost.',
     alert_no_range: 'No video range selected for export.',
     alert_pc_install: 'Please select "Install CT Dashcam Studio" in the browser address bar (⊕) or menu (⋯) > Apps.',
-    alert_ios_silent_abort: 'The selected folder contains too many files or is too large, so iOS Safari cancelled loading. Please select a subfolder (individual date or clip).',
+    alert_ios_silent_abort: 'The selected folder contains too many files, so iOS cancelled loading. Please select a subfolder or use the [Select Files] option.',
   },
 
   ja: {
     // 1. Navigation & Header
     btn_open_folder: '📁 TeslaCamフォルダー指定',
     btn_open_folder_mobile: '📁 クリップフォルダー指定',
+    btn_open_files: '📄 ファイル選択 (大容量/Recent)',
+    unit_min: '分',
     col_name: 'クリップエクスプローラー',
     col_type: 'タイプ / チャンネル',
     empty_state: 'フォルダーを指定するとクリップ一覧がここに表示されます。',
@@ -672,13 +678,15 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     alert_http_security: 'ブラウザのセキュリティ方針により、非セキュアなHTTP環境ではWebCodecsエンコードが制限されます。\nHTTPSまたはlocalhostでアクセスしてください。',
     alert_no_range: 'エクスポートする区間が選択されていません。',
     alert_pc_install: 'アドレスバー右側の(⊕)またはメニュー(⋯) > アプリ > 「CT Dashcam Studioをインストール」を選択してください。',
-    alert_ios_silent_abort: '選択したフォルダーのファイル数または容量が多すぎるため、iOS Safariで読み込みがキャンセルされました。下位フォルダー（個別の日時/クリップ単位）を選択してください。',
+    alert_ios_silent_abort: '選択したフォルダーのファイルが多すぎるため、iOSで読み込みがキャンセルされました。個別フォルダーを選択するか、[ファイル選択]機能をご利用ください。',
   },
 
   'zh-CN': {
     // 1. Navigation & Header
     btn_open_folder: '📁 指定 TeslaCam 文件夹',
     btn_open_folder_mobile: '📁 指定片段文件夹',
+    btn_open_files: '📄 选择文件 (大容量/Recent)',
+    unit_min: '分',
     col_name: '片段浏览器',
     col_type: '类型 / 通道',
     empty_state: '指定文件夹或选择视频文件后，片段列表将显示在此处。',
@@ -892,13 +900,15 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     alert_http_security: '根据浏览器安全策略，HTTP 环境不支持 WebCodecs 视频编码。\n请使用 HTTPS 访问或在本地(localhost)进行导出。',
     alert_no_range: '未选择任何待导出的视频区间。',
     alert_pc_install: '请在浏览器地址栏右侧(⊕)或菜单(⋯) > 应用 > 选择“安装 CT Dashcam Studio”。',
-    alert_ios_silent_abort: '所选文件夹的文件数量或容量过大，iOS Safari 已取消加载。请选择子文件夹（单个日期/片段）。',
+    alert_ios_silent_abort: '所选文件夹中的文件过多，iOS 已取消加载。请选择子文件夹或使用【选择文件】功能。',
   },
 
   'zh-TW': {
     // 1. Navigation & Header
     btn_open_folder: '📁 指定 TeslaCam 資料夾',
     btn_open_folder_mobile: '📁 指定片段資料夾',
+    btn_open_files: '📄 選取檔案 (大容量/Recent)',
+    unit_min: '分',
     col_name: '片段瀏覽器',
     col_type: '類型 / 頻道',
     empty_state: '指定資料夾或選擇影片檔案後，片段清單將顯示於此處。',
@@ -1112,7 +1122,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     alert_http_security: '根據瀏覽器安全策略，HTTP 環境不支援 WebCodecs 影片編碼。\n請使用 HTTPS 連線或在本地(localhost)進行導出。',
     alert_no_range: '未選取任何待導出的影片區間。',
     alert_pc_install: '請在瀏覽器網址列右側(⊕)或選單(⋯) > 應用程式 > 選擇「安裝 CT Dashcam Studio」。',
-    alert_ios_silent_abort: '所選資料夾的檔案數量或容量過大，iOS Safari 已取消載入。請選擇子資料夾（個別日期/片段）。',
+    alert_ios_silent_abort: '所選資料夾中的檔案過多，iOS 已取消載入。請選擇子資料夾或使用【選取檔案】功能。',
   },
 };
 
@@ -1121,9 +1131,11 @@ export class I18nManager {
   private listeners: Array<(lang: SupportedLang) => void> = [];
 
   constructor() {
-    const saved = localStorage.getItem('ct_language') as SupportedLang;
-    if (saved && TRANSLATIONS[saved]) {
-      this.currentLang = saved;
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('ct_language') as SupportedLang;
+      if (saved && TRANSLATIONS[saved]) {
+        this.currentLang = saved;
+      }
     }
   }
 
@@ -1172,6 +1184,10 @@ export class I18nManager {
     if (btnOpenFolder) {
       const isMobileTarget = isIOSOrAndroid() || (typeof document !== 'undefined' && document.body?.classList.contains('view-mobile'));
       btnOpenFolder.textContent = isMobileTarget ? (dict.btn_open_folder_mobile || dict.btn_open_folder) : dict.btn_open_folder;
+    }
+    const btnOpenFiles = document.getElementById('btn-open-files');
+    if (btnOpenFiles) {
+      btnOpenFiles.textContent = dict.btn_open_files || '📄 파일 선택 (대용량/RecentClips)';
     }
 
     const colName = document.querySelector('.explorer-header .col-name');

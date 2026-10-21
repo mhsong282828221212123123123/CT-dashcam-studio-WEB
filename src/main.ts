@@ -519,10 +519,14 @@ class CTDashcamStudioApp {
     const btnToggle = document.getElementById('btn-toggle-view-mode');
     const btnFloating = document.getElementById('btn-floating-view-mode');
     const btnOpenFolder = document.getElementById('btn-open-folder');
+    const btnOpenFiles = document.getElementById('btn-open-files');
 
     if (btnOpenFolder) {
       const isMobileTarget = isIOSOrAndroid() || isMobile;
       btnOpenFolder.textContent = isMobileTarget ? i18n.t('btn_open_folder_mobile') : i18n.t('btn_open_folder');
+    }
+    if (btnOpenFiles) {
+      btnOpenFiles.textContent = i18n.t('btn_open_files');
     }
 
     if (isMobile) {
@@ -614,8 +618,9 @@ class CTDashcamStudioApp {
     tierModal?.addEventListener('click', (e) => {
       if (e.target === tierModal) closeTierModal();
     });
-    // 1. Open Folder Button & Fallback Inputs
+    // 1. Open Folder / Files Buttons & Fallback Inputs
     const btnOpenFolder = document.getElementById('btn-open-folder');
+    const btnOpenFiles = document.getElementById('btn-open-files');
 
     btnOpenFolder?.addEventListener('click', () => {
       // 1) 보안 컨텍스트에서 File System Access API(showDirectoryPicker) 지원 시 우선 사용 (데스크톱 Chromium)
@@ -627,6 +632,10 @@ class CTDashcamStudioApp {
       // 2) iOS 및 showDirectoryPicker 미지원 환경:
       // 이전 Pending Lock을 방지하기 위해 안전하게 새 input을 생성/교체하고 동기적으로 즉시 click() 호출
       this.triggerSafeFolderPicker();
+    });
+
+    btnOpenFiles?.addEventListener('click', () => {
+      this.triggerSafeFilePicker();
     });
 
     const fallbackFileInput = document.getElementById('fallback-file-input') as HTMLInputElement;
@@ -1422,9 +1431,57 @@ class CTDashcamStudioApp {
     }
   }
 
+  private triggerSafeFilePicker() {
+    // 1. 이전 input이 존재할 경우 DOM에서 제거 (Pending Lock 방지 및 새 선택 준비)
+    const oldInput = document.getElementById('active-file-input');
+    if (oldInput) {
+      try { oldInput.remove(); } catch {}
+    }
+    const staticInput = document.getElementById('fallback-file-input');
+    if (staticInput) {
+      try { staticInput.remove(); } catch {}
+    }
+
+    // 2. webkitdirectory 속성이 없는 일반 다중 파일 input 생성 및 실제 DOM 부착
+    const newInput = document.createElement('input');
+    newInput.type = 'file';
+    newInput.id = 'active-file-input';
+    newInput.setAttribute('multiple', '');
+    newInput.setAttribute('accept', 'video/mp4,.mp4,.json');
+    newInput.style.cssText = 'position: fixed; top: -100px; left: -100px; width: 1px; height: 1px; opacity: 0.01; pointer-events: none;';
+    document.body.appendChild(newInput);
+
+    // 3. change 이벤트 바인딩 (change 내부에서 newInput.remove() 호출 금지)
+    newInput.addEventListener('change', async () => {
+      // 1) 가장 먼저 파일 스냅샷 참조 확보
+      const files = Array.from(newInput.files || []);
+      const count = files.length;
+      if (count === 0) return;
+
+      // 2) 첫 번째 줄에서 로딩 모달/배너 켜고 텍스트 변경
+      this.showLoadProgress(
+        i18n.t('progress_grouping_clips'),
+        `파일 목록 수신 완료 (${count}개), 분류 중...`,
+        0,
+        true
+      );
+      // 3) 1프레임 양보하여 시각적 피드백 보장
+      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+
+      // 4) 이전 세션 리소스 클린업
+      this.cleanupPreviousResources();
+
+      // 5) 파일 로드 및 그룹핑 파이프라인 연결
+      await this.loadFiles(files);
+    });
+
+    // 4. User Gesture 보존을 위해 동기적으로 즉시 click() 호출
+    newInput.click();
+  }
+
   private triggerSafeFolderPicker() {
     // 1. 기존에 있던 input이 만약 이전 작업 실패/Silent Abort로 Lock이 걸려있을 수 있으니
-    // 이전 input을 DOM에서 제거 (단, change 도중이 아니라 "새 버튼 클릭 시점"에만 제거하여 FileList 무효화 방지)
+    // 이전 input을 DOM에서 제거 (새 버튼 클릭 시점에만 제거하여 FileList 무효화 방지)
     const oldInput = document.getElementById('active-folder-input');
     if (oldInput) {
       try { oldInput.remove(); } catch {}
@@ -1441,7 +1498,7 @@ class CTDashcamStudioApp {
     newInput.setAttribute('webkitdirectory', '');
     newInput.setAttribute('directory', '');
     newInput.setAttribute('multiple', '');
-    newInput.setAttribute('accept', 'video/mp4,video/*,.mp4');
+    newInput.setAttribute('accept', 'video/mp4,.mp4,.json');
     newInput.style.cssText = 'position: fixed; top: -100px; left: -100px; width: 1px; height: 1px; opacity: 0.01; pointer-events: none;';
     document.body.appendChild(newInput);
 
@@ -1449,43 +1506,42 @@ class CTDashcamStudioApp {
     let abortTimer: any = null;
     const clickTime = Date.now();
 
-    // 3. iOS 대용량 폴더 선택 시 OS 레벨 Silent Abort(무응답) 감지
+    // 3. iOS 대용량 폴더 선택 시 OS 레벨 Silent Abort(무응답) 감지 (focus 복귀 후 2.5초 경과 시 안내)
     const onWindowFocus = () => {
       if (Date.now() - clickTime < 500) return;
       abortTimer = setTimeout(() => {
         if (!changeFired && (!newInput.files || newInput.files.length === 0)) {
           this.showToast(i18n.t('alert_ios_silent_abort'));
         }
-      }, 3000);
+      }, 2500);
     };
     window.addEventListener('focus', onWindowFocus, { once: true });
 
-    // 4. change 이벤트 바인딩 (절대 change 내부에서 newInput.remove() 호출 금지!)
+    // 4. change 이벤트 바인딩 (change 내부에서 newInput.remove() 호출 금지)
     newInput.addEventListener('change', async () => {
       changeFired = true;
       if (abortTimer) clearTimeout(abortTimer);
       window.removeEventListener('focus', onWindowFocus);
 
-      const fileList = newInput.files;
-      const count = fileList ? fileList.length : 0;
+      // 1) 가장 먼저 파일 스냅샷 참조 확보
+      const files = Array.from(newInput.files || []);
+      const count = files.length;
       if (count === 0) return;
 
-      // 1) 첫 번째 줄에서 로딩 모달/배너 flex로 켜고 안내 텍스트 즉시 변경 후 1프레임 렌더링 보장
+      // 2) 첫 번째 줄에서 로딩 모달/배너 켜고 텍스트 변경
       this.showLoadProgress(
         i18n.t('progress_grouping_clips'),
-        `파일 목록 수신 완료 (${count}개), 분석 중...`,
+        `파일 목록 수신 완료 (${count}개), 분류 중...`,
         0,
         true
       );
+      // 3) 1프레임 양보하여 시각적 피드백 보장
       await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
 
-      // 2) 파일 스냅샷 안전 확보
-      const files = Array.from(fileList || []);
-
-      // 3) 이전 폴더 리소스 클린업
+      // 4) 이전 폴더 리소스 클린업
       this.cleanupPreviousResources();
 
-      // 4) 파일 로드
+      // 5) 파일 로드
       await this.loadFiles(files);
     });
 
@@ -1699,7 +1755,10 @@ class CTDashcamStudioApp {
       const folderHeader = document.createElement('div');
       folderHeader.className = `folder-header folder-type-${folderInfo.type}`;
       folderHeader.setAttribute('data-group-idx', String(idx));
-      folderHeader.innerHTML = `<span class="folder-arrow">${isFolderOpen ? '▼' : '▶'}</span> <span class="folder-icon">📁</span> <span class="folder-name">${folderInfo.displayTitle} (${group.clips.length})</span>`;
+      const titleText = folderInfo.displayTitle.includes('(')
+        ? folderInfo.displayTitle
+        : `${folderInfo.displayTitle} (${group.clips.length})`;
+      folderHeader.innerHTML = `<span class="folder-arrow">${isFolderOpen ? '▼' : '▶'}</span> <span class="folder-icon">📁</span> <span class="folder-name">${titleText}</span>`;
 
       const clipsContainer = document.createElement('div');
       clipsContainer.className = 'folder-clips';

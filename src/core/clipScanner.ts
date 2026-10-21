@@ -52,11 +52,37 @@ export function formatFolderGroup(folderName: string, clips?: ClipItem[]): Folde
     dateTimeStr = clips[0].timestampStr;
   }
 
-  // 1. RecentClips -> 최근클립 (녹색)
-  if (/RecentClips|Recent/i.test(normalized)) {
+  // 1. RecentClips -> 최근클립 - YYYY-MM-DD HH:MM ~ HH:MM (N분) (녹색)
+  if (/RecentClips|Recent/i.test(normalized) || (!/SentryClips|Sentry|SavedClips|Saved/i.test(normalized) && normalized.includes('TeslaCam'))) {
+    let title = i18n.t('folder_recent');
+    if (clips && clips.length > 0) {
+      const first = clips[0];
+      const last = clips[clips.length - 1];
+      const startParts = first.timestampRaw.split('_');
+      if (startParts.length === 2) {
+        const dateStr = startParts[0];
+        const startHM = startParts[1].substring(0, 5).replace('-', ':');
+
+        // End time = last clip start + 60s
+        const lastParts = last.timestampRaw.split('_');
+        let endHM = startHM;
+        if (lastParts.length === 2) {
+          const [ly, lm, ld] = lastParts[0].split('-').map(Number);
+          const [lhh, lmm, lss] = lastParts[1].split('-').map(Number);
+          const endDate = new Date(ly, lm - 1, ld, lhh, lmm, lss + 60);
+          const ehh = String(endDate.getHours()).padStart(2, '0');
+          const emm = String(endDate.getMinutes()).padStart(2, '0');
+          endHM = `${ehh}:${emm}`;
+        }
+
+        const minCount = clips.length;
+        const minUnit = i18n.t('unit_min') || '분';
+        title = `${i18n.t('folder_recent')} - ${dateStr} ${startHM} ~ ${endHM} (${minCount}${minUnit})`;
+      }
+    }
     return {
       type: 'recent',
-      displayTitle: i18n.t('folder_recent'),
+      displayTitle: title,
       color: '#3fb950',
     };
   }
@@ -149,6 +175,38 @@ export async function ensureClipFiles(clip: ClipItem): Promise<Partial<Record<Ca
     })
   );
   return clip.cams;
+}
+
+export function parseTimestampSec(timestampRaw: string): number {
+  const parts = timestampRaw.split('_');
+  if (parts.length === 2) {
+    const [y, m, d] = parts[0].split('-').map(Number);
+    const [hh, mm, ss] = parts[1].split('-').map(Number);
+    return Math.floor(new Date(y, m - 1, d, hh, mm, ss).getTime() / 1000);
+  }
+  return 0;
+}
+
+export function splitSessionInto10MinChunks(session: ClipItem[]): ClipItem[][] {
+  const chunks: ClipItem[][] = [];
+  const n = session.length;
+  if (n <= 12) {
+    // 10개 이하거나, 10개 초과라도 남은 짜투리가 1~2개(즉 총 11~12개)이면 단일 클립으로 유지
+    return [session];
+  }
+
+  let start = 0;
+  while (start < n) {
+    const remaining = n - start;
+    if (remaining <= 12) {
+      chunks.push(session.slice(start));
+      break;
+    } else {
+      chunks.push(session.slice(start, start + 10));
+      start += 10;
+    }
+  }
+  return chunks;
 }
 
 export async function groupFilesIntoClips(
@@ -253,10 +311,68 @@ export async function groupFilesIntoClips(
   const result: FolderGroup[] = [];
   for (const [folderName, clips] of folderMap.entries()) {
     clips.sort((a, b) => a.timestampRaw.localeCompare(b.timestampRaw));
-    result.push({
-      folderName,
-      clips,
-    });
+
+    const isRecentFolder = /RecentClips|Recent/i.test(folderName);
+    const isEventFolder = /SavedClips\/[\d_-]+|SentryClips\/[\d_-]+/i.test(folderName);
+    const shouldSplit = isRecentFolder || !isEventFolder;
+
+    if (!shouldSplit) {
+      result.push({
+        folderName,
+        clips,
+      });
+      continue;
+    }
+
+    // 1단계: 주행 세션 분리 (3분 Gap 기준: gap >= 180초)
+    const sessions: ClipItem[][] = [];
+    let currentSession: ClipItem[] = [];
+
+    for (const clip of clips) {
+      if (currentSession.length === 0) {
+        currentSession.push(clip);
+      } else {
+        const prevClip = currentSession[currentSession.length - 1];
+        const prevSec = parseTimestampSec(prevClip.timestampRaw);
+        const currSec = parseTimestampSec(clip.timestampRaw);
+        const gap = currSec - prevSec;
+        if (gap >= 180) {
+          sessions.push(currentSession);
+          currentSession = [clip];
+        } else {
+          currentSession.push(clip);
+        }
+      }
+    }
+    if (currentSession.length > 0) {
+      sessions.push(currentSession);
+    }
+
+    // 2단계: 연속 주행 10분 단위 분할 (짜투리 < 3개는 직전 클립에 합침)
+    const baseFolderName = isRecentFolder
+      ? (folderName.includes('/') ? folderName : `TeslaCam/${folderName}`)
+      : (folderName === 'TeslaCam' ? 'TeslaCam/RecentClips' : folderName);
+
+    for (const session of sessions) {
+      const chunks = splitSessionInto10MinChunks(session);
+      for (const chunk of chunks) {
+        const firstClip = chunk[0];
+        const lastClip = chunk[chunk.length - 1];
+        const groupFolderName = `${baseFolderName}/${firstClip.timestampRaw}_${lastClip.timestampRaw}`;
+
+        // 각 클립의 folder, id, safeId 갱신
+        for (const clip of chunk) {
+          clip.folder = groupFolderName;
+          clip.id = `${groupFolderName}/${clip.timestampRaw}`;
+          clip.safeId = clip.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+        }
+
+        result.push({
+          folderName: groupFolderName,
+          clips: chunk,
+        });
+      }
+    }
   }
 
   result.sort((a, b) => a.folderName.localeCompare(b.folderName));
