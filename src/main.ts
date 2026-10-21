@@ -518,8 +518,8 @@ class CTDashcamStudioApp {
     const body = document.body;
     const btnToggle = document.getElementById('btn-toggle-view-mode');
     const btnFloating = document.getElementById('btn-floating-view-mode');
-    const btnOpenFolder = document.getElementById('btn-open-folder');
-    const btnOpenFiles = document.getElementById('btn-open-files');
+    const btnOpenFolder = document.getElementById('btn-open-folder-text') || document.getElementById('btn-open-folder');
+    const btnOpenFiles = document.getElementById('btn-open-files-text') || document.getElementById('btn-open-files');
 
     if (btnOpenFolder) {
       const isMobileTarget = isIOSOrAndroid() || isMobile;
@@ -618,41 +618,21 @@ class CTDashcamStudioApp {
     tierModal?.addEventListener('click', (e) => {
       if (e.target === tierModal) closeTierModal();
     });
-    // 1. Open Folder / Files Buttons & Fallback Inputs
+    // 1. Open Folder / Files Buttons
     const btnOpenFolder = document.getElementById('btn-open-folder');
-    const btnOpenFiles = document.getElementById('btn-open-files');
 
-    btnOpenFolder?.addEventListener('click', () => {
-      // 1) 보안 컨텍스트에서 File System Access API(showDirectoryPicker) 지원 시 우선 사용 (데스크톱 Chromium)
-      if ('showDirectoryPicker' in window && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    // Desktop Chromium with showDirectoryPicker support
+    btnOpenFolder?.addEventListener('click', (e) => {
+      if (this.canUseDirectoryPicker()) {
+        e.preventDefault();
+        e.stopPropagation();
         this.openWithDirectoryPicker();
-        return;
       }
-
-      // 2) iOS 및 showDirectoryPicker 미지원 환경:
-      // 이전 Pending Lock을 방지하기 위해 안전하게 새 input을 생성/교체하고 동기적으로 즉시 click() 호출
-      this.triggerSafeFolderPicker();
     });
 
-    btnOpenFiles?.addEventListener('click', () => {
-      this.triggerSafeFilePicker();
-    });
-
-    const fallbackFileInput = document.getElementById('fallback-file-input') as HTMLInputElement;
-    fallbackFileInput?.addEventListener('change', async () => {
-      const files = Array.from(fallbackFileInput.files || []);
-      if (files.length === 0) return;
-
-      this.showLoadProgress(
-        i18n.t('progress_grouping_clips'),
-        `파일 목록 수신 완료 (${files.length}개), 분석 중...`,
-        0,
-        true
-      );
-      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
-      this.cleanupPreviousResources();
-      await this.loadFiles(files);
-    });
+    // Mount native transparent overlay inputs for direct touch/click
+    this.mountFolderOverlayInput();
+    this.mountFileOverlayInput();
 
     // Drag and Drop Folder
     const dropArea = document.querySelector('.canvas-container') as HTMLElement;
@@ -1431,122 +1411,182 @@ class CTDashcamStudioApp {
     }
   }
 
-  private triggerSafeFilePicker() {
-    // 1. 이전 input이 존재할 경우 DOM에서 제거 (Pending Lock 방지 및 새 선택 준비)
-    const oldInput = document.getElementById('active-file-input');
-    if (oldInput) {
-      try { oldInput.remove(); } catch {}
-    }
-    const staticInput = document.getElementById('fallback-file-input');
-    if (staticInput) {
-      try { staticInput.remove(); } catch {}
-    }
-
-    // 2. webkitdirectory 속성이 없는 일반 다중 파일 input 생성 및 실제 DOM 부착
-    const newInput = document.createElement('input');
-    newInput.type = 'file';
-    newInput.id = 'active-file-input';
-    newInput.setAttribute('multiple', '');
-    newInput.setAttribute('accept', 'video/mp4,.mp4,.json');
-    newInput.style.cssText = 'position: fixed; top: -100px; left: -100px; width: 1px; height: 1px; opacity: 0.01; pointer-events: none;';
-    document.body.appendChild(newInput);
-
-    // 3. change 이벤트 바인딩 (change 내부에서 newInput.remove() 호출 금지)
-    newInput.addEventListener('change', async () => {
-      // 1) 가장 먼저 파일 스냅샷 참조 확보
-      const files = Array.from(newInput.files || []);
-      const count = files.length;
-      if (count === 0) return;
-
-      // 2) 첫 번째 줄에서 로딩 모달/배너 켜고 텍스트 변경
-      this.showLoadProgress(
-        i18n.t('progress_grouping_clips'),
-        `파일 목록 수신 완료 (${count}개), 분류 중...`,
-        0,
-        true
-      );
-      // 3) 1프레임 양보하여 시각적 피드백 보장
-      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
-
-      // 4) 이전 세션 리소스 클린업
-      this.cleanupPreviousResources();
-
-      // 5) 파일 로드 및 그룹핑 파이프라인 연결
-      await this.loadFiles(files);
-    });
-
-    // 4. User Gesture 보존을 위해 동기적으로 즉시 click() 호출
-    newInput.click();
+  private canUseDirectoryPicker(): boolean {
+    if (typeof window === 'undefined') return false;
+    const isIOSDevice = isIOS();
+    const isAndroidDevice = /android/i.test(navigator.userAgent || '');
+    if (isIOSDevice || isAndroidDevice) return false;
+    return (
+      'showDirectoryPicker' in window &&
+      (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    );
   }
 
-  private triggerSafeFolderPicker() {
-    // 1. 기존에 있던 input이 만약 이전 작업 실패/Silent Abort로 Lock이 걸려있을 수 있으니
-    // 이전 input을 DOM에서 제거 (새 버튼 클릭 시점에만 제거하여 FileList 무효화 방지)
-    const oldInput = document.getElementById('active-folder-input');
-    if (oldInput) {
-      try { oldInput.remove(); } catch {}
-    }
-    const staticInput = document.getElementById('fallback-folder-input');
-    if (staticInput) {
-      try { staticInput.remove(); } catch {}
+  private mountFolderOverlayInput() {
+    const container = document.getElementById('btn-open-folder');
+    if (!container) return;
+
+    // Remove any previous active-folder-input
+    const existing = document.getElementById('active-folder-input');
+    if (existing) {
+      try { existing.remove(); } catch {}
     }
 
-    // 2. 새로운 input 생성 및 실제 DOM 부착 (display: none 금지, position: fixed offscreen)
-    const newInput = document.createElement('input');
-    newInput.type = 'file';
-    newInput.id = 'active-folder-input';
-    newInput.setAttribute('webkitdirectory', '');
-    newInput.setAttribute('directory', '');
-    newInput.setAttribute('multiple', '');
-    newInput.setAttribute('accept', 'video/mp4,.mp4,.json');
-    newInput.style.cssText = 'position: fixed; top: -100px; left: -100px; width: 1px; height: 1px; opacity: 0.01; pointer-events: none;';
-    document.body.appendChild(newInput);
+    // On desktop Chromium with showDirectoryPicker, do not mount overlay input
+    if (this.canUseDirectoryPicker()) {
+      return;
+    }
 
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.id = 'active-folder-input';
+    input.className = 'native-overlay-input';
+    input.setAttribute('webkitdirectory', '');
+    input.setAttribute('directory', '');
+    input.setAttribute('multiple', '');
+    input.setAttribute('accept', 'video/mp4,.mp4,.json');
+
+    this.bindPickerLifecycle(input, 'folder');
+    container.appendChild(input);
+  }
+
+  private mountFileOverlayInput() {
+    const container = document.getElementById('btn-open-files');
+    if (!container) return;
+
+    // Remove any previous active-file-input
+    const existing = document.getElementById('active-file-input');
+    if (existing) {
+      try { existing.remove(); } catch {}
+    }
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.id = 'active-file-input';
+    input.className = 'native-overlay-input';
+    input.setAttribute('multiple', '');
+    input.setAttribute('accept', 'video/mp4,.mp4,.json');
+
+    this.bindPickerLifecycle(input, 'files');
+    container.appendChild(input);
+  }
+
+  private bindPickerLifecycle(input: HTMLInputElement, type: 'folder' | 'files') {
     let changeFired = false;
     let abortTimer: any = null;
-    const clickTime = Date.now();
+    let clickTime = 0;
 
-    // 3. iOS 대용량 폴더 선택 시 OS 레벨 Silent Abort(무응답) 감지 (focus 복귀 후 2.5초 경과 시 안내)
+    const cleanupFocus = () => {
+      window.removeEventListener('focus', onWindowFocus);
+      if (abortTimer) {
+        clearTimeout(abortTimer);
+        abortTimer = null;
+      }
+    };
+
     const onWindowFocus = () => {
-      if (Date.now() - clickTime < 500) return;
+      // Ignore if focus returned too quickly (< 600ms)
+      if (Date.now() - clickTime < 600) return;
       abortTimer = setTimeout(() => {
-        if (!changeFired && (!newInput.files || newInput.files.length === 0)) {
-          this.showToast(i18n.t('alert_ios_silent_abort'));
+        if (!changeFired && (!input.files || input.files.length === 0)) {
+          // iOS Silent Abort detected
+          this.handlePickerAbortedOrCancelled(type, input, true);
         }
       }, 2500);
     };
-    window.addEventListener('focus', onWindowFocus, { once: true });
 
-    // 4. change 이벤트 바인딩 (change 내부에서 newInput.remove() 호출 금지)
-    newInput.addEventListener('change', async () => {
+    // User touched/clicked the native overlay input
+    input.addEventListener('click', () => {
+      clickTime = Date.now();
+      changeFired = false;
+      cleanupFocus();
+      window.addEventListener('focus', onWindowFocus, { once: true });
+    });
+
+    // User canceled the file picker
+    input.addEventListener('cancel', () => {
+      cleanupFocus();
+      this.handlePickerAbortedOrCancelled(type, input, false);
+    });
+
+    // User selected files
+    input.addEventListener('change', async () => {
       changeFired = true;
-      if (abortTimer) clearTimeout(abortTimer);
-      window.removeEventListener('focus', onWindowFocus);
+      cleanupFocus();
 
-      // 1) 가장 먼저 파일 스냅샷 참조 확보
-      const files = Array.from(newInput.files || []);
-      const count = files.length;
-      if (count === 0) return;
+      const files = Array.from(input.files || []);
+      if (files.length === 0) {
+        this.handlePickerAbortedOrCancelled(type, input, false);
+        return;
+      }
 
-      // 2) 첫 번째 줄에서 로딩 모달/배너 켜고 텍스트 변경
+      // 1) 즉시 진행도 배너 띄우기
       this.showLoadProgress(
         i18n.t('progress_grouping_clips'),
-        `파일 목록 수신 완료 (${count}개), 분류 중...`,
+        `파일 목록 수신 완료 (${files.length}개), 분류 중...`,
         0,
         true
       );
-      // 3) 1프레임 양보하여 시각적 피드백 보장
+
+      // 2) 1프레임 양보하여 시각적 피드백 보장
       await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
 
-      // 4) 이전 폴더 리소스 클린업
+      // 3) 이전 세션 리소스 클린업
       this.cleanupPreviousResources();
 
-      // 5) 파일 로드
-      await this.loadFiles(files);
-    });
+      // 4) 방금 사용 완료된 input을 제거하고 새 투명 input을 즉시 미리 마운트해 둠
+      // (change 완료 시점에 새 input으로 교체해 두어 다음번 터치 시 즉시 native 활성화 가능)
+      if (type === 'folder') {
+        this.mountFolderOverlayInput();
+      } else {
+        this.mountFileOverlayInput();
+      }
 
-    // 5. User Gesture Activation 유지를 위해 동기적으로 즉시 click() 호출!
-    newInput.click();
+      // 5) 파일 로드 및 그룹핑 파이프라인 시작
+      try {
+        await this.loadFiles(files);
+      } catch (err) {
+        console.error('[App] Failed to load files:', err);
+        this.hideLoadProgress();
+      }
+    });
+  }
+
+  private handlePickerAbortedOrCancelled(type: 'folder' | 'files', deadInput: HTMLInputElement, isSilentAbort: boolean) {
+    // 1. 모든 로딩 배너/모달/오버레이 즉시 100% 강제 숨김
+    this.hideLoadProgress();
+    this.hideSeiProgress();
+    const dropOverlay = document.getElementById('drop-overlay');
+    if (dropOverlay) dropOverlay.style.display = 'none';
+
+    // 2. 내부 플래그 및 버튼 상태 100% 초기화
+    this.isSelectingClip = false;
+    const btnOpenFolder = document.getElementById('btn-open-folder');
+    const btnOpenFiles = document.getElementById('btn-open-files');
+    if (btnOpenFolder) {
+      btnOpenFolder.removeAttribute('disabled');
+      (btnOpenFolder as HTMLElement).style.pointerEvents = 'auto';
+    }
+    if (btnOpenFiles) {
+      btnOpenFiles.removeAttribute('disabled');
+      (btnOpenFiles as HTMLElement).style.pointerEvents = 'auto';
+    }
+
+    // 3. 응답 없이 죽은 input을 즉시 제거하고 새 input을 미리 마운트
+    try {
+      deadInput.remove();
+    } catch {}
+
+    if (type === 'folder') {
+      this.mountFolderOverlayInput();
+    } else {
+      this.mountFileOverlayInput();
+    }
+
+    // 4. Silent Abort인 경우 안내 토스트 표시
+    if (isSilentAbort) {
+      this.showToast(i18n.t('alert_ios_silent_abort'));
+    }
   }
 
   private openWithDirectoryPicker() {
@@ -1568,7 +1608,7 @@ class CTDashcamStudioApp {
           return;
         }
         console.warn('showDirectoryPicker failed, falling back to input:', e);
-        this.triggerSafeFolderPicker();
+        this.mountFolderOverlayInput();
       }
     })();
   }

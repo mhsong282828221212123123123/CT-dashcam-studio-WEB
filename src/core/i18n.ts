@@ -1180,12 +1180,12 @@ export class I18nManager {
     const dict = TRANSLATIONS[lang] || TRANSLATIONS['ko'];
 
     // 1. Folder button & Explorer header
-    const btnOpenFolder = document.getElementById('btn-open-folder');
+    const btnOpenFolder = document.getElementById('btn-open-folder-text') || document.getElementById('btn-open-folder');
     if (btnOpenFolder) {
       const isMobileTarget = isIOSOrAndroid() || (typeof document !== 'undefined' && document.body?.classList.contains('view-mobile'));
       btnOpenFolder.textContent = isMobileTarget ? (dict.btn_open_folder_mobile || dict.btn_open_folder) : dict.btn_open_folder;
     }
-    const btnOpenFiles = document.getElementById('btn-open-files');
+    const btnOpenFiles = document.getElementById('btn-open-files-text') || document.getElementById('btn-open-files');
     if (btnOpenFiles) {
       btnOpenFiles.textContent = dict.btn_open_files || '📄 파일 선택 (대용량/RecentClips)';
     }
