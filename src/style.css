@@ -135,7 +135,7 @@ body {
   border: 1px solid #30363d;
   border-radius: 5px;
   cursor: pointer;
-  display: flex;
+  display: none; /* PC 데스크톱에서는 폴더 지정만 필요하므로 숨김 (모바일/iOS에서만 표시) */
   align-items: center;
   justify-content: center;
   gap: 6px;
@@ -1901,6 +1901,12 @@ kbd {
     display: flex;
   }
 
+  /* 모바일 기기(iOS 등)에서만 대용량 직접 파일 선택 버튼 표시 */
+  body:not(.view-desktop) .btn-files-load,
+  body.view-mobile .btn-files-load {
+    display: flex;
+  }
+
   /* 모바일/아이폰 전용: 불러오기 진행도 배너를 화면 상단 고정 플로팅 모달로 표시 */
   .floating-load-progress {
     position: fixed !important;
@@ -2934,7 +2940,8 @@ body.view-desktop .mobile-top-bar,
 body.view-desktop .mobile-tabs-nav,
 body.view-desktop .mobile-drawer-backdrop,
 body.view-desktop .mobile-drawer-header,
-body.view-desktop .btn-floating-drawer {
+body.view-desktop .btn-floating-drawer,
+body.view-desktop .btn-files-load {
   display: none !important;
 }
 
