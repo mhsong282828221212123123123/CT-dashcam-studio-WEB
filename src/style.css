@@ -1292,7 +1292,7 @@ body {
   display: none !important;
 }
 
-@media all and (display-mode: standalone), (max-width: 850px) {
+@media all and (display-mode: standalone), (max-width: 850px), ((orientation: landscape) and (max-height: 600px)) {
   .btn-pc-install {
     display: none !important;
   }
@@ -1888,9 +1888,9 @@ kbd {
 }
 
 /* -------------------------------------------------------------------------
-   모바일 모드 활성화 상태 (미디어 쿼리 850px 이하 또는 .view-mobile 클래스 적용 시)
+   모바일 모드 활성화 상태 (미디어 쿼리 850px 이하, 가로모드 600px 이하, 또는 .view-mobile 적용 시)
    ------------------------------------------------------------------------- */
-@media (max-width: 850px), (pointer: coarse) {
+@media (max-width: 850px), (pointer: coarse), ((orientation: landscape) and (max-height: 600px)) {
   /* PC 버전 강제 모드가 아닐 때 기본적으로 모바일 UI 적용 */
   body:not(.view-desktop) #app,
   body.view-mobile #app {
@@ -2093,8 +2093,8 @@ kbd {
     }
   }
 
-  /* ── 세로 모드 (Portrait) 레이아웃 ── */
-  @media (orientation: portrait), (max-width: 600px) {
+  /* ── 세로 모드 (Portrait) 및 폴더블 태블릿 레이아웃 ── */
+  @media (orientation: portrait), (min-height: 601px) {
     body:not(.view-desktop) .main-container,
     body.view-mobile .main-container {
       display: flex;
@@ -2252,24 +2252,25 @@ kbd {
     body.view-mobile .transport-group {
       display: flex;
       align-items: center;
-      gap: 3px;
+      gap: 2.5px;
       flex-shrink: 0;
       min-width: 0;
     }
 
     body:not(.view-desktop) .btn-transport-sub,
     body.view-mobile .btn-transport-sub {
-      padding: 4px 6px !important;
+      padding: 4px 5px !important;
       font-size: 11px !important;
       white-space: nowrap !important;
       flex-shrink: 0 !important;
+      min-width: 26px !important;
     }
 
     body:not(.view-desktop) .btn-play-main,
     body.view-mobile .btn-play-main {
-      min-width: 72px !important;
-      padding: 4px 8px !important;
-      font-size: 11.5px !important;
+      min-width: 68px !important;
+      padding: 4px 7px !important;
+      font-size: 11px !important;
       white-space: nowrap !important;
       flex-shrink: 0 !important;
     }
@@ -2278,7 +2279,7 @@ kbd {
     body.view-mobile .speed-cluster {
       display: flex;
       align-items: center;
-      gap: 3px;
+      gap: 2.5px;
       flex-shrink: 0;
       min-width: 0;
     }
@@ -2292,8 +2293,8 @@ kbd {
 
     body:not(.view-desktop) #slider-preview-speed,
     body.view-mobile #slider-preview-speed {
-      width: 48px !important;
-      min-width: 38px !important;
+      width: 44px !important;
+      min-width: 32px !important;
     }
 
     body:not(.view-desktop) .speed-value-badge,
@@ -2308,12 +2309,13 @@ kbd {
     body.view-mobile .speed-cluster .chk-item {
       display: inline-flex !important;
       align-items: center !important;
-      gap: 3px !important;
+      gap: 2.5px !important;
       font-size: 11px !important;
-      margin-left: 5px !important;
+      margin-left: 4px !important;
       white-space: nowrap !important;
       cursor: pointer !important;
       color: #c9d1d9 !important;
+      flex-shrink: 0 !important;
     }
     body:not(.view-desktop) .speed-cluster .chk-item input[type="checkbox"],
     body.view-mobile .speed-cluster .chk-item input[type="checkbox"] {
@@ -2321,6 +2323,89 @@ kbd {
       height: 14px !important;
       margin: 0 !important;
       cursor: pointer !important;
+      flex-shrink: 0 !important;
+    }
+
+    /* 410px 이하 (갤럭시 S24/아이폰 일반) 초슬림 뷰포트 최적화 */
+    @media (max-width: 410px) {
+      body:not(.view-desktop) #lbl-speed-tag,
+      body.view-mobile #lbl-speed-tag {
+        font-size: 0 !important;
+        width: auto !important;
+      }
+      body:not(.view-desktop) #lbl-speed-tag::before,
+      body.view-mobile #lbl-speed-tag::before {
+        content: '⚡';
+        font-size: 11px !important;
+      }
+      body:not(.view-desktop) #slider-preview-speed,
+      body.view-mobile #slider-preview-speed {
+        width: 38px !important;
+        min-width: 30px !important;
+      }
+      body:not(.view-desktop) .btn-play-main,
+      body.view-mobile .btn-play-main {
+        min-width: 62px !important;
+        padding: 4px 5px !important;
+        font-size: 11px !important;
+      }
+      body:not(.view-desktop) .speed-value-badge,
+      body.view-mobile .speed-value-badge {
+        font-size: 9.5px !important;
+        padding: 1px 3px !important;
+      }
+      body:not(.view-desktop) #chk-auto-next-text,
+      body.view-mobile #chk-auto-next-text {
+        font-size: 10.5px !important;
+      }
+    }
+
+    /* 355px 이하 (갤럭시 Z 폴드 5 커버 화면: 344px) 극협소 뷰포트 대응 */
+    @media (max-width: 355px) {
+      body:not(.view-desktop) .timeline-deck,
+      body.view-mobile .timeline-deck {
+        padding: 6px 6px !important;
+      }
+      body:not(.view-desktop) .transport-group,
+      body.view-mobile .transport-group {
+        gap: 2px !important;
+      }
+      body:not(.view-desktop) .btn-transport-sub,
+      body.view-mobile .btn-transport-sub {
+        padding: 3px 4px !important;
+        font-size: 10px !important;
+        min-width: 22px !important;
+      }
+      body:not(.view-desktop) .btn-play-main,
+      body.view-mobile .btn-play-main {
+        min-width: 56px !important;
+        padding: 3px 4px !important;
+        font-size: 10.5px !important;
+      }
+      body:not(.view-desktop) .speed-cluster,
+      body.view-mobile .speed-cluster {
+        gap: 2px !important;
+      }
+      body:not(.view-desktop) #slider-preview-speed,
+      body.view-mobile #slider-preview-speed {
+        width: 32px !important;
+        min-width: 26px !important;
+      }
+      body:not(.view-desktop) #chk-auto-next-text,
+      body.view-mobile #chk-auto-next-text {
+        font-size: 0 !important;
+      }
+      body:not(.view-desktop) #chk-auto-next-text::before,
+      body.view-mobile #chk-auto-next-text::before {
+        content: '연속';
+        font-size: 10px !important;
+      }
+      body:not(.view-desktop) .btn-range,
+      body.view-mobile .btn-range {
+        font-size: 10.5px !important;
+        height: 25px !important;
+        padding: 0 2px !important;
+      }
     }
 
     body:not(.view-desktop) .filter-cluster,
@@ -2724,6 +2809,7 @@ kbd {
       position: fixed;
       inset: 0;
       width: 100vw;
+      max-width: 100vw;
       height: 100vh;
       height: 100dvh;
       background: #000;
@@ -2731,15 +2817,25 @@ kbd {
       display: flex;
       flex-direction: column;
       justify-content: center;
+      padding: 0 !important;
+      margin: 0 !important;
+      box-sizing: border-box !important;
     }
 
     body:not(.view-desktop) .canvas-container,
     body.view-mobile .canvas-container {
-      width: 100vw;
-      height: 100vh;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 100% !important;
+      max-height: 100% !important;
       display: flex;
       align-items: center;
       justify-content: center;
+      border: none !important;
+      border-radius: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-sizing: border-box !important;
     }
 
     body:not(.view-desktop) #player-canvas,

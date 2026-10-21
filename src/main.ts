@@ -337,7 +337,8 @@ class CTDashcamStudioApp {
     const isTouch = navigator.maxTouchPoints > 0;
     const isMobileUa = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
     const isSmallScreen = window.innerWidth <= 850;
-    return isMobileUa || (isTouch && isSmallScreen) || isSmallScreen;
+    const isMobileLandscape = window.innerHeight <= 600 && window.innerWidth > window.innerHeight;
+    return isMobileUa || (isTouch && isSmallScreen) || isSmallScreen || isMobileLandscape;
   }
 
   private isMobilePortrait(): boolean {
@@ -2700,7 +2701,7 @@ class CTDashcamStudioApp {
     const maxFps = Math.min(120, Math.round(baseFps * exportSpeed));
 
     const currentVal = parseInt(fpsSelect.value) || 0;
-    const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 850px), (pointer: coarse)').matches;
+    const isMobile = this.isMobileDevice();
 
     // Standard output FPS candidates:
     // - On PC: default to maxFps (e.g. 72 FPS for 2x, 120 FPS for 4x, 36 FPS for 1x) for full original smoothness!
@@ -2805,7 +2806,7 @@ class CTDashcamStudioApp {
     const exportModalFileSeg = document.getElementById('export-modal-file-seg');
     const btnCancelExportModal = document.getElementById('btn-cancel-export-modal') as HTMLButtonElement | null;
 
-    const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 850px), (pointer: coarse)').matches;
+    const isMobile = this.isMobileDevice();
     const exportSpeed = parseFloat(speedSelect?.value || '1.0');
     const targetFps = fpsSelect ? parseInt(fpsSelect.value) || (isMobile ? 30 : Math.round(this.fps * exportSpeed)) : (isMobile ? 30 : 36);
     this.options.exportSpeed = exportSpeed;
