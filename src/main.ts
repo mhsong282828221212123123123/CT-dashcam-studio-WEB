@@ -1472,13 +1472,17 @@ class CTDashcamStudioApp {
   }
 
   private bindPickerLifecycle(input: HTMLInputElement, _type: 'folder' | 'files') {
-    // User selected files / folder
-    input.addEventListener('change', async () => {
-      const files = Array.from(input.files || []);
-      // Reset input value so selecting the same folder or files again triggers change event
+    // Reset value on click so selecting the same folder or files again triggers change event,
+    // without prematurely clearing the input value during active playback/file reads
+    input.addEventListener('click', () => {
       try {
         input.value = '';
       } catch {}
+    });
+
+    // User selected files / folder
+    input.addEventListener('change', async () => {
+      const files = Array.from(input.files || []);
 
       if (files.length === 0) return;
 
@@ -1804,6 +1808,10 @@ class CTDashcamStudioApp {
         const isMaster = key === 'front' || key === camKeys[0];
         video.preload = isIOSDevice ? (isMaster ? 'auto' : 'metadata') : 'auto';
 
+        video.addEventListener('error', (e) => {
+          console.warn(`[Video Error] Camera ${key} failed to load:`, video.error, e);
+        });
+
         if (!isIOSDevice) {
           // PC/Android: When auxiliary camera decodes first frame or seeks, repaint canvas immediately if paused
           const onFrameReady = () => {
@@ -1825,7 +1833,11 @@ class CTDashcamStudioApp {
               } catch {}
             }
           };
-          video.addEventListener('loadedmetadata', handleInitialSeek, { once: true });
+          if (video.readyState >= 1) {
+            handleInitialSeek();
+          } else {
+            video.addEventListener('loadedmetadata', handleInitialSeek, { once: true });
+          }
         }
 
         this.videoContainer.appendChild(video);
@@ -1835,9 +1847,22 @@ class CTDashcamStudioApp {
         } catch {}
       }
 
-      // Get duration from master video with safe timeout for mobile browsers
+      // Get duration from master video with safe timeout for external USB / mobile browsers
       const masterVideo = this.videoPool.front || Object.values(this.videoPool)[0];
       if (masterVideo) {
+        // Persistent metadata listener to update duration and timeline UI whenever metadata arrives
+        const onMetadataLoaded = () => {
+          if (masterVideo.duration && !isNaN(masterVideo.duration) && masterVideo.duration > 0) {
+            this.durationSec = masterVideo.duration;
+            this.updateTimelineUI();
+            this.updateRangeUI();
+            if (!this.isPlaying && this.activeClip?.id === clip.id) {
+              this.renderFrame();
+            }
+          }
+        };
+        masterVideo.addEventListener('loadedmetadata', onMetadataLoaded);
+
         await new Promise<void>((resolve) => {
           if (masterVideo.readyState >= 1) {
             resolve();
@@ -1850,12 +1875,15 @@ class CTDashcamStudioApp {
               resolve();
             }
           };
-          masterVideo.onloadedmetadata = finish;
-          masterVideo.onloadeddata = finish;
-          masterVideo.oncanplay = finish;
-          masterVideo.onerror = finish;
-          // 1.5s fallback timeout: ensures mobile UI never freezes if metadata is delayed or blocked
-          setTimeout(finish, 1500);
+          masterVideo.addEventListener('loadedmetadata', finish, { once: true });
+          masterVideo.addEventListener('loadeddata', finish, { once: true });
+          masterVideo.addEventListener('canplay', finish, { once: true });
+          masterVideo.addEventListener('error', (e) => {
+            console.warn('[App] masterVideo error during initial load:', masterVideo.error, e);
+            finish();
+          }, { once: true });
+          // Fallback timeout: 15s (15000ms) ensures slow external USB drives have sufficient time to demux MP4 headers
+          setTimeout(finish, 15000);
         });
         this.durationSec = masterVideo.duration && !isNaN(masterVideo.duration) && masterVideo.duration > 0
           ? masterVideo.duration
@@ -1873,7 +1901,7 @@ class CTDashcamStudioApp {
       this.seekTo(0);
       this.updatePlayButton();
 
-      // [PC/Android !isIOSDevice] Wait for all active cameras to complete initial frame seek/load (max 300ms fallback)
+      // [PC/Android !isIOSDevice] Wait for all active cameras to complete initial frame seek/load (max 4000ms fallback for external USB drives)
       if (!isIOSDevice) {
         const activeVideos = Object.values(this.videoPool).filter(Boolean) as HTMLVideoElement[];
         await Promise.all(
@@ -1890,7 +1918,8 @@ class CTDashcamStudioApp {
               v.addEventListener('seeked', done, { once: true });
               v.addEventListener('loadeddata', done, { once: true });
               v.addEventListener('canplay', done, { once: true });
-              setTimeout(done, 300);
+              v.addEventListener('error', done, { once: true });
+              setTimeout(done, 4000);
             });
           })
         );
