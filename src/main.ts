@@ -17,7 +17,7 @@ import { OverlayRenderer, RenderOptions, DEFAULT_RENDER_OPTIONS, DEFAULT_TELEMET
 import { detectDeviceCapabilities, CapabilityPolicy, getDeviceTierReason } from './core/capability';
 import { WebCodecsExporter, ExportClipSegment } from './core/exporter';
 import { RESOLUTIONS, CameraKey } from './core/constants';
-import { i18n, SupportedLang, isIOSOrAndroid, isIOS } from './core/i18n';
+import { i18n, SupportedLang, isIOSOrAndroid, isIOS, isAndroid } from './core/i18n';
 
 export interface RangePoint {
   clipId: string;
@@ -106,6 +106,7 @@ class CTDashcamStudioApp {
   // Background SEI telemetry worker & generation token
   private seiWorker: Worker | null = null;
   private currentClipGeneration = 0;
+  private loadSeqId = 0;
 
   // Mobile portrait bottom sheet state
   private isExplorerExpanded = false;
@@ -132,6 +133,7 @@ class CTDashcamStudioApp {
     i18n.onChange(() => {
       this.updatePlayButton();
       this.applyViewMode();
+      this.updateSpeedSliderRange();
       this.renderClipsTree();
       this.updateRangeUI();
       this.updateFpsOptions(false);
@@ -423,6 +425,39 @@ class CTDashcamStudioApp {
     return this.isMobileDevice() && isPortrait;
   }
 
+  private isMobile(): boolean {
+    return (
+      this.isMobileDevice() ||
+      isIOSOrAndroid() ||
+      document.body.classList.contains('view-mobile') ||
+      window.innerWidth <= 850
+    );
+  }
+
+  private getEffectivePlaybackSpeed(rate?: number): number {
+    const rawRate = rate !== undefined ? rate : (this.options.playbackSpeed || 1.0);
+    return this.isMobile() ? Math.min(rawRate, 4.0) : rawRate;
+  }
+
+  private updateSpeedSliderRange() {
+    const isMobileEnv = this.isMobile();
+    const speedSlider = document.getElementById('slider-preview-speed') as HTMLInputElement | null;
+    const speedValBadge = document.getElementById('lbl-preview-speed-val');
+    if (!speedSlider) return;
+
+    if (isMobileEnv) {
+      speedSlider.max = '8'; // index 8 = 4.0x
+      if (parseInt(speedSlider.value, 10) > 8) {
+        speedSlider.value = '8';
+        this.options.playbackSpeed = 4.0;
+        if (speedValBadge) speedValBadge.textContent = '4.0x';
+        this.applyPlaybackSpeed();
+      }
+    } else {
+      speedSlider.max = '10'; // up to 8.0x
+    }
+  }
+
   toggleExplorerSheet(force?: boolean) {
     if (!this.isMobilePortrait()) {
       document.body.classList.remove('explorer-expanded');
@@ -670,6 +705,7 @@ class CTDashcamStudioApp {
       }
     }
     this.updatePlayButton();
+    this.updateSpeedSliderRange();
   }
 
   private toggleViewMode() {
@@ -994,9 +1030,10 @@ class CTDashcamStudioApp {
     const speedTag = document.getElementById('lbl-speed-tag');
 
     speedSlider?.addEventListener('input', () => {
-      const idx = parseInt(speedSlider.value);
+      const idx = parseInt(speedSlider.value, 10);
       const speeds = [0.5, 1.0, 1.2, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 8.0];
-      const spd = speeds[idx - 1] || 1.0;
+      let spd = speeds[idx - 1] || 1.0;
+      spd = this.getEffectivePlaybackSpeed(spd);
       this.options.playbackSpeed = spd;
       if (speedValBadge) speedValBadge.textContent = `${spd.toFixed(1)}x`;
       this.applyPlaybackSpeed();
@@ -1596,6 +1633,9 @@ class CTDashcamStudioApp {
 
   private cleanupPreviousResources() {
     this.hasNotifiedEncryptedClips = false;
+    this.loadSeqId++;
+    this.currentClipGeneration = this.loadSeqId;
+    this.isSelectingClip = false;
     // 1. 재생 즉시 중지 및 UI 동기화
     this.isPlaying = false;
     this.updatePlayButton();
@@ -1605,10 +1645,12 @@ class CTDashcamStudioApp {
       const v = this.videoPool[key];
       if (v) {
         try {
+          v.playbackRate = 1.0;
           v.pause();
           v.removeAttribute('src');
           v.load();
           v.onloadedmetadata = null;
+          v.onloadeddata = null;
           v.onended = null;
           v.onpause = null;
         } catch {}
@@ -2038,11 +2080,14 @@ class CTDashcamStudioApp {
 
   async selectClip(clip: ClipItem) {
     this.isSelectingClip = true;
-    const clipGen = ++this.currentClipGeneration;
+    const loadSeqId = ++this.loadSeqId;
+    this.currentClipGeneration = loadSeqId;
     try {
       this.activeClip = clip;
       // Resolve files for this clip lazily
       await ensureClipFiles(clip);
+      // Abort if a newer clip selection request arrived during file resolution
+      if (loadSeqId !== this.loadSeqId) return;
 
       const hasPillars = Boolean(
         clip.cams.left_pillar ||
@@ -2074,22 +2119,27 @@ class CTDashcamStudioApp {
       }
 
       const isIOSDevice = isIOS();
+      const isAndroidDevice = isAndroid();
       const activeCamKeys = (Object.keys(clip.cams) as CameraKey[]).filter((k) => Boolean(clip.cams[k]));
       const masterKey: CameraKey = clip.cams.front ? 'front' : (activeCamKeys[0] || 'front');
 
-      // Requirement 2 & 3: 고정된 <video> 풀 재사용 + 새 src 할당 직전 3줄 실행 + 이전 Blob URL 즉시 해제
+      // Requirement 2:
+      // 1) 비디오 전환 전 모든 비디오의 playbackRate = 1.0 일시 초기화 및 디코더 강제 반환 / Blob URL 즉시 해제
       for (const key of this.allCameraKeys) {
         const v = this.videoPool[key];
         if (!v) continue;
 
-        // [중요] 기존 하드웨어 디코더 강제 반환 (안드로이드 MediaCodec 좀비 방지)
         try {
+          v.playbackRate = 1.0;
           v.pause();
           v.removeAttribute('src');
           v.load();
+          v.onloadedmetadata = null;
+          v.onloadeddata = null;
+          v.onended = null;
+          v.onpause = null;
         } catch {}
 
-        // [Requirement 1] 이전 Blob URL 즉시 해제
         const oldUrl = this.activeSegmentBlobUrls.get(key);
         if (oldUrl) {
           try {
@@ -2097,6 +2147,21 @@ class CTDashcamStudioApp {
           } catch {}
           this.activeSegmentBlobUrls.delete(key);
         }
+      }
+
+      // 2) 안드로이드 환경: MediaCodec 파이프라인 완전 반환 대기 (약 50ms)
+      if (isAndroidDevice) {
+        await new Promise((r) => setTimeout(r, 50));
+        // Requirement 3: 비동기 대기 중 새로운 클립 선택 요청이 발생했으면 즉시 중단 (Latest-wins)
+        if (loadSeqId !== this.loadSeqId) return;
+      }
+
+      const configuredSpeed = this.getEffectivePlaybackSpeed();
+
+      // 3) 새로운 세그먼트의 blob: URL을 생성하여 v.src에 할당
+      for (const key of this.allCameraKeys) {
+        const v = this.videoPool[key];
+        if (!v) continue;
 
         const file = clip.cams[key];
         if (file) {
@@ -2109,10 +2174,18 @@ class CTDashcamStudioApp {
           const isMaster = key === masterKey;
           v.preload = isIOSDevice ? (isMaster ? 'auto' : 'metadata') : 'auto';
 
+          // loadeddata 이후 원래 설정된 배속(최대 4.0x)을 다시 적용
+          v.onloadeddata = () => {
+            if (loadSeqId !== this.loadSeqId) return;
+            try {
+              v.playbackRate = configuredSpeed;
+            } catch {}
+          };
+
           if (!isIOSDevice) {
             // Android/PC: loadedmetadata 1회성 프로퍼티 콜백으로 마이크로 시크 (이벤트 누적 원천 차단)
             v.onloadedmetadata = () => {
-              if (clipGen !== this.currentClipGeneration) return;
+              if (loadSeqId !== this.loadSeqId) return;
               if (!this.isPlaying && v.currentTime < 0.002) {
                 try {
                   const master = this.videoPool[masterKey];
@@ -2130,6 +2203,7 @@ class CTDashcamStudioApp {
           } catch {}
         } else {
           v.onloadedmetadata = null;
+          v.onloadeddata = null;
         }
       }
 
@@ -2137,7 +2211,10 @@ class CTDashcamStudioApp {
       const masterVideo = this.videoPool[masterKey];
       if (masterVideo) {
         masterVideo.onloadedmetadata = () => {
-          if (clipGen !== this.currentClipGeneration) return;
+          if (loadSeqId !== this.loadSeqId) return;
+          try {
+            masterVideo.playbackRate = configuredSpeed;
+          } catch {}
           if (masterVideo.duration && !isNaN(masterVideo.duration) && masterVideo.duration > 0) {
             this.durationSec = masterVideo.duration;
             this.updateTimelineUI();
@@ -2163,6 +2240,8 @@ class CTDashcamStudioApp {
         }
       }
 
+      if (loadSeqId !== this.loadSeqId) return;
+
       this.currentTimeSec = 0;
       this.updateTimelineUI();
       this.updatePlayButton();
@@ -2170,9 +2249,11 @@ class CTDashcamStudioApp {
       this.renderFrame();
 
       // Start non-blocking background telemetry extraction
-      this.startBackgroundTelemetry(clip, clipGen);
+      this.startBackgroundTelemetry(clip, loadSeqId);
     } finally {
-      this.isSelectingClip = false;
+      if (loadSeqId === this.loadSeqId) {
+        this.isSelectingClip = false;
+      }
     }
   }
 
@@ -2228,7 +2309,7 @@ class CTDashcamStudioApp {
     this.isPlaying = false;
     const masterVideo = this.getMasterVideo();
     const targetTime = masterVideo ? masterVideo.currentTime : this.currentTimeSec;
-    const baseSpeed = this.options.playbackSpeed || 1.0;
+    const baseSpeed = this.getEffectivePlaybackSpeed();
 
     // 1. 모든 활성 비디오 즉시 동기 pause 및 playbackRate 원복
     const activeVideos = this.getActiveVideos();
@@ -2296,7 +2377,7 @@ class CTDashcamStudioApp {
     if (this.isExporting) return;
     this.currentTimeSec = Math.max(0, Math.min(this.durationSec, targetSec));
     const isIOSDevice = isIOS();
-    const baseSpeed = this.options.playbackSpeed || 1.0;
+    const baseSpeed = this.getEffectivePlaybackSpeed();
     const seekTime = (!isIOSDevice && this.currentTimeSec === 0) ? 0.001 : this.currentTimeSec;
     this.getActiveVideos().forEach((v) => {
       try {
@@ -2331,15 +2412,16 @@ class CTDashcamStudioApp {
     const allClips = this.folderGroups.flatMap((g) => g.clips);
     const idx = allClips.findIndex((c) => c.id === this.activeClip!.id);
     if (idx >= 0 && idx < allClips.length - 1) {
-      await this.selectClip(allClips[idx + 1]);
-      if (auto) {
+      const nextTarget = allClips[idx + 1];
+      await this.selectClip(nextTarget);
+      if (auto && this.activeClip?.id === nextTarget.id) {
         this.togglePlay();
       }
     }
   }
 
   private applyPlaybackSpeed() {
-    const baseSpeed = this.options.playbackSpeed || 1.0;
+    const baseSpeed = this.getEffectivePlaybackSpeed();
     this.getActiveVideos().forEach((v) => {
       try {
         v.playbackRate = baseSpeed;
@@ -2369,7 +2451,7 @@ class CTDashcamStudioApp {
         if (this.isPlaying) {
           this.handleMasterEnded();
         } else if (!this.isSelectingClip) {
-          const baseSpeed = this.options.playbackSpeed || 1.0;
+          const baseSpeed = this.getEffectivePlaybackSpeed();
           const videos = this.getActiveVideos();
           for (let i = 0; i < videos.length; i++) {
             const v = videos[i];
@@ -2392,7 +2474,9 @@ class CTDashcamStudioApp {
         } else {
           // Sync other cameras to master video time
           const masterTime = masterVideo.currentTime;
-          const targetSpeed = this.options.playbackSpeed || 1.0;
+          const isMobileEnv = this.isMobile();
+          const maxSpeedLimit = isMobileEnv ? 4.0 : 16.0;
+          const targetSpeed = this.getEffectivePlaybackSpeed();
           const activeKeys = Object.keys(this.activeClip?.cams || {}) as CameraKey[];
 
           for (let i = 0; i < activeKeys.length; i++) {
@@ -2418,8 +2502,9 @@ class CTDashcamStudioApp {
                 // 보조 비디오가 앞서 있음 -> 감속
                 v.playbackRate = Math.max(0.5, targetSpeed * 0.9);
               } else {
-                // 보조 비디오가 뒤쳐짐 -> 가속
-                v.playbackRate = Math.min(2.0, targetSpeed * 1.1);
+                // 보조 비디오가 뒤쳐짐 -> 가속 (모바일 환경에서는 4.0x를 절대 초과하지 않도록 클램핑)
+                const accelerated = targetSpeed * 1.1;
+                v.playbackRate = Math.min(maxSpeedLimit, accelerated);
               }
             } else {
               if (v.playbackRate !== targetSpeed) {

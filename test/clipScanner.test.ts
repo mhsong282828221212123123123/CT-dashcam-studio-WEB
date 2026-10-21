@@ -144,4 +144,10 @@ describe('clipScanner - groupFilesIntoClips & formatFolderGroup', () => {
     expect(groups[0].clips.length).toBe(1);
     expect(groups[0].clips[0].timestampRaw).toBe('2026-08-17_12-00-00');
   });
+
+  it('verifies isAndroid and isIOSOrAndroid detection helpers', async () => {
+    const { isAndroid, isIOSOrAndroid } = await import('../src/core/i18n');
+    expect(typeof isAndroid).toBe('function');
+    expect(typeof isIOSOrAndroid).toBe('function');
+  });
 });

@@ -6,12 +6,14 @@ export function isIOS(): boolean {
   return /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
 
-export function isIOSOrAndroid(): boolean {
+export function isAndroid(): boolean {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent || '';
-  const isIos = isIOS();
-  const isAndroid = /Android/i.test(ua);
-  return isIos || isAndroid;
+  return /Android/i.test(ua);
+}
+
+export function isIOSOrAndroid(): boolean {
+  return isIOS() || isAndroid();
 }
 
 export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
