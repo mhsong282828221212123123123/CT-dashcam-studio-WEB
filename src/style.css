@@ -2370,8 +2370,30 @@ kbd {
       flex-shrink: 0 !important;
     }
 
-    /* 410px 이하 (갤럭시 S24/아이폰 일반) 초슬림 뷰포트 최적화 */
-    @media (max-width: 410px) {
+    /* 420px 이하 (갤럭시 S24/아이폰 일반) 초슬림 뷰포트 최적화: 이전/다음 버튼을 아이콘 모드로 전환하여 "연속재생" 전체 글자 표기 공간 확보 */
+    @media (max-width: 420px) {
+      body:not(.view-desktop) #btn-prev-clip,
+      body.view-mobile #btn-prev-clip {
+        font-size: 0 !important;
+        padding: 4px 5px !important;
+        min-width: 26px !important;
+      }
+      body:not(.view-desktop) #btn-prev-clip::before,
+      body.view-mobile #btn-prev-clip::before {
+        content: '|◀';
+        font-size: 11px !important;
+      }
+      body:not(.view-desktop) #btn-next-clip,
+      body.view-mobile #btn-next-clip {
+        font-size: 0 !important;
+        padding: 4px 5px !important;
+        min-width: 26px !important;
+      }
+      body:not(.view-desktop) #btn-next-clip::before,
+      body.view-mobile #btn-next-clip::before {
+        content: '▶|';
+        font-size: 11px !important;
+      }
       body:not(.view-desktop) #lbl-speed-tag,
       body.view-mobile #lbl-speed-tag {
         font-size: 0 !important;
@@ -2385,7 +2407,7 @@ kbd {
       body:not(.view-desktop) #slider-preview-speed,
       body.view-mobile #slider-preview-speed {
         width: 38px !important;
-        min-width: 30px !important;
+        min-width: 28px !important;
       }
       body:not(.view-desktop) .btn-play-main,
       body.view-mobile .btn-play-main {
@@ -2401,10 +2423,12 @@ kbd {
       body:not(.view-desktop) #chk-auto-next-text,
       body.view-mobile #chk-auto-next-text {
         font-size: 10.5px !important;
+        white-space: nowrap !important;
+        word-break: keep-all !important;
       }
     }
 
-    /* 355px 이하 (갤럭시 Z 폴드 5 커버 화면: 344px) 극협소 뷰포트 대응 */
+    /* 355px 이하 (갤럭시 Z 폴드 5 커버 화면: 344px) 극협소 뷰포트에서도 "연속재생" 전체 글자 100% 완전 표기 */
     @media (max-width: 355px) {
       body:not(.view-desktop) .timeline-deck,
       body.view-mobile .timeline-deck {
@@ -2432,21 +2456,18 @@ kbd {
       }
       body:not(.view-desktop) #slider-preview-speed,
       body.view-mobile #slider-preview-speed {
-        width: 32px !important;
-        min-width: 26px !important;
+        width: 30px !important;
+        min-width: 24px !important;
       }
       body:not(.view-desktop) #chk-auto-next-text,
       body.view-mobile #chk-auto-next-text {
-        font-size: 0 !important;
-      }
-      body:not(.view-desktop) #chk-auto-next-text::before,
-      body.view-mobile #chk-auto-next-text::before {
-        content: '연속';
         font-size: 10px !important;
+        white-space: nowrap !important;
+        word-break: keep-all !important;
       }
       body:not(.view-desktop) .btn-range,
       body.view-mobile .btn-range {
-        font-size: 10.5px !important;
+        font-size: 10px !important;
         height: 25px !important;
         padding: 0 2px !important;
       }

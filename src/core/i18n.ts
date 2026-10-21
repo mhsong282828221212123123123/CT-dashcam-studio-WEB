@@ -148,7 +148,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     btn_in: '[ 시작점',
     btn_out: '] 끝점',
     btn_reset: '↺ 초기화',
-    chk_auto_next: '연속 재생',
+    chk_auto_next: '연속재생',
     lbl_speed: '⚡ 배속',
     lbl_bright: '☀ 밝기',
     lbl_contrast: '◐ 대비',
