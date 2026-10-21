@@ -1812,17 +1812,17 @@ class CTDashcamStudioApp {
           console.warn(`[Video Error] Camera ${key} failed to load:`, video.error, e);
         });
 
-        if (!isIOSDevice) {
-          // PC/Android: When auxiliary camera decodes first frame or seeks, repaint canvas immediately if paused
-          const onFrameReady = () => {
-            if (!this.isPlaying && this.activeClip?.id === clip.id) {
-              this.renderFrame();
-            }
-          };
-          video.addEventListener('loadeddata', onFrameReady);
-          video.addEventListener('canplay', onFrameReady);
-          video.addEventListener('seeked', onFrameReady);
+        // Repaint canvas immediately when any camera's first frame or seeked frame is ready while paused
+        const onFrameReady = () => {
+          if (!this.isPlaying && this.activeClip?.id === clip.id) {
+            this.renderFrame();
+          }
+        };
+        video.addEventListener('loadeddata', onFrameReady);
+        video.addEventListener('canplay', onFrameReady);
+        video.addEventListener('seeked', onFrameReady);
 
+        if (!isIOSDevice) {
           // PC/Android: Micro-seek on metadata load so Chromium's video decoder wakes up and produces GPU texture
           const handleInitialSeek = () => {
             if (!this.isPlaying && video.currentTime < 0.002) {
@@ -1847,11 +1847,11 @@ class CTDashcamStudioApp {
         } catch {}
       }
 
-      // Get duration from master video with safe timeout for external USB / mobile browsers
+      // Non-blocking duration setup from master video (updates timeline & UI as soon as metadata arrives)
       const masterVideo = this.videoPool.front || Object.values(this.videoPool)[0];
       if (masterVideo) {
-        // Persistent metadata listener to update duration and timeline UI whenever metadata arrives
         const onMetadataLoaded = () => {
+          if (clipGen !== this.currentClipGeneration) return;
           if (masterVideo.duration && !isNaN(masterVideo.duration) && masterVideo.duration > 0) {
             this.durationSec = masterVideo.duration;
             this.updateTimelineUI();
@@ -1861,33 +1861,12 @@ class CTDashcamStudioApp {
             }
           }
         };
-        masterVideo.addEventListener('loadedmetadata', onMetadataLoaded);
 
-        await new Promise<void>((resolve) => {
-          if (masterVideo.readyState >= 1) {
-            resolve();
-            return;
-          }
-          let done = false;
-          const finish = () => {
-            if (!done) {
-              done = true;
-              resolve();
-            }
-          };
-          masterVideo.addEventListener('loadedmetadata', finish, { once: true });
-          masterVideo.addEventListener('loadeddata', finish, { once: true });
-          masterVideo.addEventListener('canplay', finish, { once: true });
-          masterVideo.addEventListener('error', (e) => {
-            console.warn('[App] masterVideo error during initial load:', masterVideo.error, e);
-            finish();
-          }, { once: true });
-          // Fallback timeout: 15s (15000ms) ensures slow external USB drives have sufficient time to demux MP4 headers
-          setTimeout(finish, 15000);
-        });
-        this.durationSec = masterVideo.duration && !isNaN(masterVideo.duration) && masterVideo.duration > 0
-          ? masterVideo.duration
-          : 60.0;
+        if (masterVideo.readyState >= 1) {
+          onMetadataLoaded();
+        } else {
+          masterVideo.addEventListener('loadedmetadata', onMetadataLoaded, { once: true });
+        }
 
         masterVideo.addEventListener('ended', () => {
           this.handleMasterEnded();
@@ -1900,33 +1879,8 @@ class CTDashcamStudioApp {
 
       this.seekTo(0);
       this.updatePlayButton();
-
-      // [PC/Android !isIOSDevice] Wait for all active cameras to complete initial frame seek/load (max 4000ms fallback for external USB drives)
-      if (!isIOSDevice) {
-        const activeVideos = Object.values(this.videoPool).filter(Boolean) as HTMLVideoElement[];
-        await Promise.all(
-          activeVideos.map((v) => {
-            if (v.readyState >= 2) return Promise.resolve();
-            return new Promise<void>((res) => {
-              let resolved = false;
-              const done = () => {
-                if (!resolved) {
-                  resolved = true;
-                  res();
-                }
-              };
-              v.addEventListener('seeked', done, { once: true });
-              v.addEventListener('loadeddata', done, { once: true });
-              v.addEventListener('canplay', done, { once: true });
-              v.addEventListener('error', done, { once: true });
-              setTimeout(done, 4000);
-            });
-          })
-        );
-        if (clipGen === this.currentClipGeneration) {
-          this.renderFrame();
-        }
-      }
+      // Render canvas immediately (zero-latency visual feedback for slot placeholders & HUD)
+      this.renderFrame();
 
       // Start non-blocking background telemetry extraction
       this.startBackgroundTelemetry(clip, clipGen);
