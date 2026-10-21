@@ -1,11 +1,17 @@
 export type SupportedLang = 'ko' | 'en' | 'ja' | 'zh-CN' | 'zh-TW';
 
+export function isIOS(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  return /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
 export function isIOSOrAndroid(): boolean {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent || '';
-  const isIOS = /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isIos = isIOS();
   const isAndroid = /Android/i.test(ua);
-  return isIOS || isAndroid;
+  return isIos || isAndroid;
 }
 
 export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {

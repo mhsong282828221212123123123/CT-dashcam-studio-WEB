@@ -17,7 +17,7 @@ import { OverlayRenderer, RenderOptions, DEFAULT_RENDER_OPTIONS, DEFAULT_TELEMET
 import { detectDeviceCapabilities, CapabilityPolicy, getDeviceTierReason } from './core/capability';
 import { WebCodecsExporter, ExportClipSegment } from './core/exporter';
 import { RESOLUTIONS, CameraKey } from './core/constants';
-import { i18n, SupportedLang, isIOSOrAndroid } from './core/i18n';
+import { i18n, SupportedLang, isIOSOrAndroid, isIOS } from './core/i18n';
 
 export interface RangePoint {
   clipId: string;
@@ -1768,6 +1768,7 @@ class CTDashcamStudioApp {
       this.currentVideoUrls = [];
       this.videoPool = {};
 
+      const isIOSDevice = isIOS();
       const camKeys = Object.keys(clip.cams) as CameraKey[];
       for (const key of camKeys) {
         const file = clip.cams[key];
@@ -1782,9 +1783,34 @@ class CTDashcamStudioApp {
         video.setAttribute('playsinline', '');
         video.setAttribute('webkit-playsinline', '');
 
-        // Master camera preloads 'auto', other cameras preload 'metadata'
+        // Master camera preloads 'auto', other cameras preload 'metadata' on iOS
+        // On PC/Android (!isIOSDevice), all cameras preload 'auto' for Chromium lazy decoding wake-up
         const isMaster = key === 'front' || key === camKeys[0];
-        video.preload = isMaster ? 'auto' : 'metadata';
+        video.preload = isIOSDevice ? (isMaster ? 'auto' : 'metadata') : 'auto';
+
+        if (!isIOSDevice) {
+          // PC/Android: When auxiliary camera decodes first frame or seeks, repaint canvas immediately if paused
+          const onFrameReady = () => {
+            if (!this.isPlaying && this.activeClip?.id === clip.id) {
+              this.renderFrame();
+            }
+          };
+          video.addEventListener('loadeddata', onFrameReady);
+          video.addEventListener('canplay', onFrameReady);
+          video.addEventListener('seeked', onFrameReady);
+
+          // PC/Android: Micro-seek on metadata load so Chromium's video decoder wakes up and produces GPU texture
+          const handleInitialSeek = () => {
+            if (!this.isPlaying && video.currentTime < 0.002) {
+              try {
+                const master = this.videoPool.front || Object.values(this.videoPool)[0];
+                const seekTarget = (master && master.currentTime > 0) ? master.currentTime : 0.001;
+                video.currentTime = seekTarget;
+              } catch {}
+            }
+          };
+          video.addEventListener('loadedmetadata', handleInitialSeek, { once: true });
+        }
 
         this.videoContainer.appendChild(video);
         this.videoPool[key] = video;
@@ -1830,6 +1856,32 @@ class CTDashcamStudioApp {
 
       this.seekTo(0);
       this.updatePlayButton();
+
+      // [PC/Android !isIOSDevice] Wait for all active cameras to complete initial frame seek/load (max 300ms fallback)
+      if (!isIOSDevice) {
+        const activeVideos = Object.values(this.videoPool).filter(Boolean) as HTMLVideoElement[];
+        await Promise.all(
+          activeVideos.map((v) => {
+            if (v.readyState >= 2) return Promise.resolve();
+            return new Promise<void>((res) => {
+              let resolved = false;
+              const done = () => {
+                if (!resolved) {
+                  resolved = true;
+                  res();
+                }
+              };
+              v.addEventListener('seeked', done, { once: true });
+              v.addEventListener('loadeddata', done, { once: true });
+              v.addEventListener('canplay', done, { once: true });
+              setTimeout(done, 300);
+            });
+          })
+        );
+        if (clipGen === this.currentClipGeneration) {
+          this.renderFrame();
+        }
+      }
 
       // Start non-blocking background telemetry extraction
       this.startBackgroundTelemetry(clip, clipGen);
@@ -1958,11 +2010,13 @@ class CTDashcamStudioApp {
 
   private seekTo(targetSec: number) {
     this.currentTimeSec = Math.max(0, Math.min(this.durationSec, targetSec));
+    const isIOSDevice = isIOS();
     const baseSpeed = this.options.playbackSpeed || 1.0;
+    const seekTime = (!isIOSDevice && this.currentTimeSec === 0) ? 0.001 : this.currentTimeSec;
     Object.values(this.videoPool).forEach((v) => {
       if (v) {
         try {
-          v.currentTime = Math.min(v.duration || this.currentTimeSec, this.currentTimeSec);
+          v.currentTime = Math.min(v.duration || seekTime, seekTime);
           v.playbackRate = baseSpeed;
         } catch {}
       }
@@ -2010,12 +2064,12 @@ class CTDashcamStudioApp {
       if (!this.isPlaying || !masterVideo || masterVideo.paused || masterVideo.ended) {
         if (this.isPlaying) {
           this.handleMasterEnded();
-        } else {
+        } else if (!this.isSelectingClip) {
           const baseSpeed = this.options.playbackSpeed || 1.0;
           const videos = Object.values(this.videoPool);
           for (let i = 0; i < videos.length; i++) {
             const v = videos[i];
-            if (v && !v.paused) {
+            if (v && !v.paused && !v.seeking) {
               try { v.pause(); } catch {}
               try { v.playbackRate = baseSpeed; } catch {}
             }
@@ -2734,13 +2788,13 @@ class CTDashcamStudioApp {
       if (modalInstallGuide) modalInstallGuide.style.display = 'flex';
       // Detect platform
       const ua = navigator.userAgent.toLowerCase();
-      const isIOS = /iphone|ipad|ipod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      const isAndroid = /android/.test(ua);
+      const isIOSDevice = isIOS();
+      const isAndroid = /android/i.test(navigator.userAgent || '');
       const guideAndroid = document.getElementById('guide-android');
       const guideIOS = document.getElementById('guide-ios');
       const guideDesktop = document.getElementById('guide-desktop');
 
-      if (isIOS) {
+      if (isIOSDevice) {
         if (guideIOS) guideIOS.style.display = 'block';
         if (guideAndroid) guideAndroid.style.display = 'none';
         if (guideDesktop) guideDesktop.style.display = 'none';
