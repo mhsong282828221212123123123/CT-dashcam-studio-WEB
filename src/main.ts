@@ -1426,10 +1426,10 @@ class CTDashcamStudioApp {
     const container = document.getElementById('btn-open-folder');
     if (!container) return;
 
-    // Remove any previous active-folder-input
+    // If input already exists, keep it
     const existing = document.getElementById('active-folder-input');
     if (existing) {
-      try { existing.remove(); } catch {}
+      return;
     }
 
     // On desktop Chromium with showDirectoryPicker, do not mount overlay input
@@ -1454,10 +1454,10 @@ class CTDashcamStudioApp {
     const container = document.getElementById('btn-open-files');
     if (!container) return;
 
-    // Remove any previous active-file-input
+    // If input already exists, keep it
     const existing = document.getElementById('active-file-input');
     if (existing) {
-      try { existing.remove(); } catch {}
+      return;
     }
 
     const input = document.createElement('input');
@@ -1471,54 +1471,16 @@ class CTDashcamStudioApp {
     container.appendChild(input);
   }
 
-  private bindPickerLifecycle(input: HTMLInputElement, type: 'folder' | 'files') {
-    let changeFired = false;
-    let abortTimer: any = null;
-    let clickTime = 0;
-
-    const cleanupFocus = () => {
-      window.removeEventListener('focus', onWindowFocus);
-      if (abortTimer) {
-        clearTimeout(abortTimer);
-        abortTimer = null;
-      }
-    };
-
-    const onWindowFocus = () => {
-      // Ignore if focus returned too quickly (< 600ms)
-      if (Date.now() - clickTime < 600) return;
-      abortTimer = setTimeout(() => {
-        if (!changeFired && (!input.files || input.files.length === 0)) {
-          // iOS Silent Abort detected
-          this.handlePickerAbortedOrCancelled(type, input, true);
-        }
-      }, 2500);
-    };
-
-    // User touched/clicked the native overlay input
-    input.addEventListener('click', () => {
-      clickTime = Date.now();
-      changeFired = false;
-      cleanupFocus();
-      window.addEventListener('focus', onWindowFocus, { once: true });
-    });
-
-    // User canceled the file picker
-    input.addEventListener('cancel', () => {
-      cleanupFocus();
-      this.handlePickerAbortedOrCancelled(type, input, false);
-    });
-
-    // User selected files
+  private bindPickerLifecycle(input: HTMLInputElement, _type: 'folder' | 'files') {
+    // User selected files / folder
     input.addEventListener('change', async () => {
-      changeFired = true;
-      cleanupFocus();
-
       const files = Array.from(input.files || []);
-      if (files.length === 0) {
-        this.handlePickerAbortedOrCancelled(type, input, false);
-        return;
-      }
+      // Reset input value so selecting the same folder or files again triggers change event
+      try {
+        input.value = '';
+      } catch {}
+
+      if (files.length === 0) return;
 
       // 1) 즉시 진행도 배너 띄우기
       this.showLoadProgress(
@@ -1534,15 +1496,7 @@ class CTDashcamStudioApp {
       // 3) 이전 세션 리소스 클린업
       this.cleanupPreviousResources();
 
-      // 4) 방금 사용 완료된 input을 제거하고 새 투명 input을 즉시 미리 마운트해 둠
-      // (change 완료 시점에 새 input으로 교체해 두어 다음번 터치 시 즉시 native 활성화 가능)
-      if (type === 'folder') {
-        this.mountFolderOverlayInput();
-      } else {
-        this.mountFileOverlayInput();
-      }
-
-      // 5) 파일 로드 및 그룹핑 파이프라인 시작
+      // 4) 파일 로드 및 그룹핑 파이프라인 시작
       try {
         await this.loadFiles(files);
       } catch (err) {
@@ -1550,43 +1504,6 @@ class CTDashcamStudioApp {
         this.hideLoadProgress();
       }
     });
-  }
-
-  private handlePickerAbortedOrCancelled(type: 'folder' | 'files', deadInput: HTMLInputElement, isSilentAbort: boolean) {
-    // 1. 모든 로딩 배너/모달/오버레이 즉시 100% 강제 숨김
-    this.hideLoadProgress();
-    this.hideSeiProgress();
-    const dropOverlay = document.getElementById('drop-overlay');
-    if (dropOverlay) dropOverlay.style.display = 'none';
-
-    // 2. 내부 플래그 및 버튼 상태 100% 초기화
-    this.isSelectingClip = false;
-    const btnOpenFolder = document.getElementById('btn-open-folder');
-    const btnOpenFiles = document.getElementById('btn-open-files');
-    if (btnOpenFolder) {
-      btnOpenFolder.removeAttribute('disabled');
-      (btnOpenFolder as HTMLElement).style.pointerEvents = 'auto';
-    }
-    if (btnOpenFiles) {
-      btnOpenFiles.removeAttribute('disabled');
-      (btnOpenFiles as HTMLElement).style.pointerEvents = 'auto';
-    }
-
-    // 3. 응답 없이 죽은 input을 즉시 제거하고 새 input을 미리 마운트
-    try {
-      deadInput.remove();
-    } catch {}
-
-    if (type === 'folder') {
-      this.mountFolderOverlayInput();
-    } else {
-      this.mountFileOverlayInput();
-    }
-
-    // 4. Silent Abort인 경우 안내 토스트 표시
-    if (isSilentAbort) {
-      this.showToast(i18n.t('alert_ios_silent_abort'));
-    }
   }
 
   private openWithDirectoryPicker() {
