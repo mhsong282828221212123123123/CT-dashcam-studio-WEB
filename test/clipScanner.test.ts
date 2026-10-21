@@ -124,4 +124,24 @@ describe('clipScanner - groupFilesIntoClips & formatFolderGroup', () => {
     expect(sentry.color).toBe('#f85149');
     expect(sentry.displayTitle).toContain('센트리 클립 - 2026-08-17 15:30:00');
   });
+
+  it('detects and ignores files in EncryptedClips directory and triggers callback', async () => {
+    let encryptedDetected = false;
+    const files = [
+      { name: '2026-08-17_12-00-00-front.mp4', relativePath: 'RecentClips/2026-08-17_12-00-00-front.mp4' },
+      { name: '2026-08-17_12-05-00-front.mp4', relativePath: 'EncryptedClips/2026-08-17_12-05-00-front.mp4' },
+      { name: '2026-08-17_12-05-00-back.mp4', relativePath: 'TeslaCam/EncryptedClips/2026-08-17_12-05-00-back.mp4' },
+    ];
+
+    const groups = await groupFilesIntoClips(
+      files,
+      undefined,
+      () => { encryptedDetected = true; }
+    );
+
+    expect(encryptedDetected).toBe(true);
+    expect(groups.length).toBe(1);
+    expect(groups[0].clips.length).toBe(1);
+    expect(groups[0].clips[0].timestampRaw).toBe('2026-08-17_12-00-00');
+  });
 });

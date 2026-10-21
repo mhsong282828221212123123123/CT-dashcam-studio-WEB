@@ -475,29 +475,30 @@ export class WebCodecsExporter {
         await ensureClipFiles(segment.clip);
         const segVideos: Partial<Record<CameraKey, HTMLVideoElement>> = {};
         const objectUrls: string[] = [];
-        const activeCamKeys = this.getActiveCamKeys(config.options);
-        const camKeys = (Object.keys(segment.clip.cams) as CameraKey[]).filter((k) =>
-          activeCamKeys.includes(k)
-        );
+        try {
+          const activeCamKeys = this.getActiveCamKeys(config.options);
+          const camKeys = (Object.keys(segment.clip.cams) as CameraKey[]).filter((k) =>
+            activeCamKeys.includes(k)
+          );
 
-        const hiddenContainer = document.getElementById('hidden-video-container');
+          const hiddenContainer = document.getElementById('hidden-video-container');
 
-        for (const k of camKeys) {
-          const file = segment.clip.cams[k];
-          if (!file) continue;
-          const url = URL.createObjectURL(file);
-          objectUrls.push(url);
+          for (const k of camKeys) {
+            const file = segment.clip.cams[k];
+            if (!file) continue;
+            const url = URL.createObjectURL(file);
+            objectUrls.push(url);
 
-          const v = document.createElement('video');
-          v.src = url;
-          v.muted = true;
-          v.playsInline = true;
-          v.preload = 'auto';
-          if (isMobile && hiddenContainer) {
-            hiddenContainer.appendChild(v);
+            const v = document.createElement('video');
+            v.src = url;
+            v.muted = true;
+            v.playsInline = true;
+            v.preload = 'auto';
+            if (isMobile && hiddenContainer) {
+              hiddenContainer.appendChild(v);
+            }
+            segVideos[k] = v;
           }
-          segVideos[k] = v;
-        }
 
         // Wait for video metadata
         await Promise.all(
@@ -623,19 +624,23 @@ export class WebCodecsExporter {
         }
 
         cumulativeCompletedSec += Math.max(0.01, segment.endSec - segment.startSec);
-
-        // Cleanup this segment's video URLs and remove elements from hidden container
+      } finally {
+        // Cleanup this segment's video URLs and forcibly release hardware decoders
         for (const url of objectUrls) {
           URL.revokeObjectURL(url);
         }
-        for (const k of videoKeys) {
-          if (segVideos[k]) {
-            segVideos[k]!.src = '';
-            segVideos[k]!.remove();
+        for (const k of Object.keys(segVideos) as CameraKey[]) {
+          const v = segVideos[k];
+          if (v) {
+            v.pause();
+            v.removeAttribute('src');
+            v.load();
+            v.remove();
             delete segVideos[k];
           }
         }
       }
+    }
 
       if (this.isCancelled) {
         throw new Error("비디오 내보내기가 취소되었습니다.");

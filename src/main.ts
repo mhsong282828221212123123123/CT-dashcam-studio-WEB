@@ -60,9 +60,10 @@ class CTDashcamStudioApp {
   private fps = 36.0;
   private options: RenderOptions = { ...DEFAULT_RENDER_OPTIONS };
 
-  // Video elements pool
+  // Video elements fixed pool & active segment Blob URLs tracking
+  private readonly allCameraKeys: CameraKey[] = ['front', 'back', 'left_repeater', 'right_repeater', 'left_pillar', 'right_pillar'];
   private videoPool: Partial<Record<CameraKey, HTMLVideoElement>> = {};
-  private currentVideoUrls: string[] = [];
+  private activeSegmentBlobUrls: Map<CameraKey, string> = new Map();
   private videoContainer: HTMLElement;
   private canvas: HTMLCanvasElement;
 
@@ -100,6 +101,7 @@ class CTDashcamStudioApp {
 
   private loadGeneration = 0;
   private isSelectingClip = false;
+  private hasNotifiedEncryptedClips = false;
 
   // Background SEI telemetry worker & generation token
   private seiWorker: Worker | null = null;
@@ -111,6 +113,7 @@ class CTDashcamStudioApp {
   constructor() {
     this.canvas = document.getElementById('player-canvas') as HTMLCanvasElement;
     this.videoContainer = document.getElementById('hidden-video-container') as HTMLElement;
+    this.initVideoPool();
 
     this.loadSavedSettings();
     i18n.applyDOM();
@@ -155,6 +158,79 @@ class CTDashcamStudioApp {
         }
       });
     }
+  }
+
+  private initVideoPool() {
+    if (!this.videoContainer) return;
+    this.videoContainer.innerHTML = '';
+    for (const key of this.allCameraKeys) {
+      const video = document.createElement('video');
+      video.id = `video-slot-${key}`;
+      video.muted = true;
+      video.playsInline = true;
+      video.setAttribute('playsinline', '');
+      video.setAttribute('webkit-playsinline', '');
+      video.preload = 'auto';
+      video.style.display = 'none';
+
+      // One-time frame ready listener for paused canvas repainting
+      const onFrameReady = () => {
+        if (!this.isPlaying && this.activeClip) {
+          this.renderFrame();
+        }
+      };
+      video.addEventListener('loadeddata', onFrameReady);
+      video.addEventListener('canplay', onFrameReady);
+      video.addEventListener('seeked', onFrameReady);
+
+      video.addEventListener('error', (e) => {
+        if (video.src) {
+          console.warn(`[Video Error] Camera ${key} failed to load:`, video.error, e);
+        }
+      });
+
+      this.videoContainer.appendChild(video);
+      this.videoPool[key] = video;
+    }
+  }
+
+  private clearActiveSegmentBlobUrls() {
+    for (const [key, url] of this.activeSegmentBlobUrls.entries()) {
+      try {
+        URL.revokeObjectURL(url);
+      } catch {}
+    }
+    this.activeSegmentBlobUrls.clear();
+  }
+
+  private getMasterVideo(): HTMLVideoElement | null {
+    if (!this.activeClip) return null;
+    if (this.activeClip.cams.front && this.videoPool.front) {
+      return this.videoPool.front;
+    }
+    const activeKey = (Object.keys(this.activeClip.cams) as CameraKey[]).find((k) => Boolean(this.activeClip!.cams[k]));
+    return activeKey ? (this.videoPool[activeKey] || null) : null;
+  }
+
+  private getActiveVideos(): HTMLVideoElement[] {
+    if (!this.activeClip) return [];
+    const list: HTMLVideoElement[] = [];
+    for (const k of Object.keys(this.activeClip.cams) as CameraKey[]) {
+      if (this.activeClip.cams[k] && this.videoPool[k]) {
+        list.push(this.videoPool[k]!);
+      }
+    }
+    return list;
+  }
+
+  private notifyEncryptedClipsDetected() {
+    if (this.hasNotifiedEncryptedClips) return;
+    this.hasNotifiedEncryptedClips = true;
+    this.showToast(
+      i18n.t('toast_encrypted_clips') ||
+      '테슬라 차량의 블랙박스 암호화(EncryptedClips) 폴더가 감지되었습니다. 암호화된 클립은 차량 내 화면이나 테슬라 앱에서만 재생할 수 있습니다.',
+      8000
+    );
   }
 
   private initSeiWorker() {
@@ -1519,41 +1595,40 @@ class CTDashcamStudioApp {
   }
 
   private cleanupPreviousResources() {
+    this.hasNotifiedEncryptedClips = false;
     // 1. 재생 즉시 중지 및 UI 동기화
     this.isPlaying = false;
     this.updatePlayButton();
 
-    // 2. 비디오 엘리먼트 완전 정지 및 하드웨어 디코더 / 파일 디스크립터 반환
-    if (this.videoPool) {
-      Object.values(this.videoPool).forEach((v) => {
-        if (v) {
-          try {
-            v.pause();
-            v.removeAttribute('src');
-            v.load(); // WebKit 내부의 미디어 디코더 인스턴스 강제 파괴
-          } catch {}
-        }
-      });
-      this.videoPool = {};
-    }
-    if (this.videoContainer) {
-      this.videoContainer.innerHTML = '';
-    }
-
-    // 3. 생성되었던 모든 blob ObjectURL 해제 (메모리 누수 원천 차단)
-    if (this.currentVideoUrls && this.currentVideoUrls.length > 0) {
-      for (const url of this.currentVideoUrls) {
+    // 2. 고정 비디오 엘리먼트 풀 디코더 강제 반환 (MediaCodec 인스턴스 즉시 파괴)
+    for (const key of this.allCameraKeys) {
+      const v = this.videoPool[key];
+      if (v) {
         try {
-          URL.revokeObjectURL(url);
+          v.pause();
+          v.removeAttribute('src');
+          v.load();
+          v.onloadedmetadata = null;
+          v.onended = null;
+          v.onpause = null;
         } catch {}
       }
-      this.currentVideoUrls.length = 0;
     }
+
+    // 3. 생성되었던 모든 blob ObjectURL 즉시 해제 (메모리 누수 원천 차단)
+    this.clearActiveSegmentBlobUrls();
 
     // 4. 이전 클립의 File 참조 및 SEI 디코더 캐시 메모리 완전 해제
     this.activeClip = null;
     this.clipDecoders.clear();
     this.clipMap.clear();
+
+    if (this.seiWorker) {
+      try {
+        this.seiWorker.terminate();
+      } catch {}
+      this.initSeiWorker();
+    }
 
     if (this.folderGroups && this.folderGroups.length > 0) {
       for (const group of this.folderGroups) {
@@ -1706,12 +1781,20 @@ class CTDashcamStudioApp {
     (async () => {
       try {
         const dirHandle = await (window as any).showDirectoryPicker();
+        this.hasNotifiedEncryptedClips = false;
+        if (dirHandle.name && /EncryptedClips/i.test(dirHandle.name)) {
+          this.notifyEncryptedClipsDetected();
+        }
         // 2분 초과 지연 방지 타임아웃 워치독 가동
         this.startLoadWatchdog(120000);
         this.showLoadProgress(i18n.t('progress_searching_clips'), i18n.t('progress_searching_videos'), 0, true);
-        const items = await scanFileSystemDirectory(dirHandle, (filesCount, dirsCount) => {
-          this.showLoadProgress(i18n.t('progress_searching_clips'), i18n.t('progress_found_videos', [filesCount, dirsCount]), 0, true);
-        });
+        const items = await scanFileSystemDirectory(
+          dirHandle,
+          (filesCount, dirsCount) => {
+            this.showLoadProgress(i18n.t('progress_searching_clips'), i18n.t('progress_found_videos', [filesCount, dirsCount]), 0, true);
+          },
+          () => this.notifyEncryptedClipsDetected()
+        );
         if (items && items.length > 0) {
           await this.loadFiles(items);
         } else {
@@ -1753,15 +1836,19 @@ class CTDashcamStudioApp {
     // 모바일(iOS 등)에서 0% 상태 진행도 배너가 화면에 페인트되도록 1프레임 양보
     await yieldToCompositor();
 
-    this.folderGroups = await groupFilesIntoClips(files, (done, total, clipCount) => {
-      const pct = Math.round((done / total) * 100);
-      this.showLoadProgress(
-        i18n.t('progress_grouping_clips'),
-        i18n.t('progress_grouping_status', [done, total, pct, clipCount]),
-        pct,
-        false
-      );
-    });
+    this.folderGroups = await groupFilesIntoClips(
+      files,
+      (done, total, clipCount) => {
+        const pct = Math.round((done / total) * 100);
+        this.showLoadProgress(
+          i18n.t('progress_grouping_clips'),
+          i18n.t('progress_grouping_status', [done, total, pct, clipCount]),
+          pct,
+          false
+        );
+      },
+      () => this.notifyEncryptedClipsDetected()
+    );
     console.log('[App] Parsed folderGroups count:', this.folderGroups.length);
 
     // 3. Populate clipMap
@@ -1977,93 +2064,79 @@ class CTDashcamStudioApp {
       const activeEl = document.getElementById(`clip-item-${clip.safeId}`);
       if (activeEl) activeEl.classList.add('active');
 
-      // Setup Video Elements - cleanly detach old videos
-      Object.values(this.videoPool).forEach((v) => {
-        if (v) {
-          try {
-            v.pause();
-            v.removeAttribute('src');
-            v.load();
-          } catch {}
-        }
-      });
-      this.videoContainer.innerHTML = '';
-
-      // Revoke previous URLs to prevent memory bloat
-      if (this.currentVideoUrls && this.currentVideoUrls.length > 0) {
-        this.currentVideoUrls.forEach((url) => {
-          try {
-            URL.revokeObjectURL(url);
-          } catch {}
-        });
+      // Requirement 4: 클립 전환 시 SEI 파싱 메모리 및 이전 클립 캐시 즉시 정리
+      this.clipDecoders.clear();
+      if (this.seiWorker) {
+        try {
+          this.seiWorker.terminate();
+        } catch {}
+        this.initSeiWorker();
       }
-      this.currentVideoUrls = [];
-      this.videoPool = {};
 
       const isIOSDevice = isIOS();
-      const camKeys = Object.keys(clip.cams) as CameraKey[];
-      for (const key of camKeys) {
-        const file = clip.cams[key];
-        if (!file) continue;
+      const activeCamKeys = (Object.keys(clip.cams) as CameraKey[]).filter((k) => Boolean(clip.cams[k]));
+      const masterKey: CameraKey = clip.cams.front ? 'front' : (activeCamKeys[0] || 'front');
 
-        const video = document.createElement('video');
-        const url = URL.createObjectURL(file);
-        this.currentVideoUrls.push(url);
-        video.src = url;
-        video.muted = true;
-        video.playsInline = true;
-        video.setAttribute('playsinline', '');
-        video.setAttribute('webkit-playsinline', '');
+      // Requirement 2 & 3: 고정된 <video> 풀 재사용 + 새 src 할당 직전 3줄 실행 + 이전 Blob URL 즉시 해제
+      for (const key of this.allCameraKeys) {
+        const v = this.videoPool[key];
+        if (!v) continue;
 
-        // Master camera preloads 'auto', other cameras preload 'metadata' on iOS
-        // On PC/Android (!isIOSDevice), all cameras preload 'auto' for Chromium lazy decoding wake-up
-        const hasFront = Boolean(clip.cams.front);
-        const isMaster = hasFront ? key === 'front' : key === camKeys[0];
-        video.preload = isIOSDevice ? (isMaster ? 'auto' : 'metadata') : 'auto';
+        // [중요] 기존 하드웨어 디코더 강제 반환 (안드로이드 MediaCodec 좀비 방지)
+        try {
+          v.pause();
+          v.removeAttribute('src');
+          v.load();
+        } catch {}
 
-        video.addEventListener('error', (e) => {
-          console.warn(`[Video Error] Camera ${key} failed to load:`, video.error, e);
-        });
-
-        // Repaint canvas immediately when any camera's first frame or seeked frame is ready while paused
-        const onFrameReady = () => {
-          if (!this.isPlaying && this.activeClip?.id === clip.id) {
-            this.renderFrame();
-          }
-        };
-        video.addEventListener('loadeddata', onFrameReady);
-        video.addEventListener('canplay', onFrameReady);
-        video.addEventListener('seeked', onFrameReady);
-
-        if (!isIOSDevice) {
-          // PC/Android: Micro-seek on metadata load so Chromium's video decoder wakes up and produces GPU texture
-          const handleInitialSeek = () => {
-            if (!this.isPlaying && video.currentTime < 0.002) {
-              try {
-                const master = this.videoPool.front || Object.values(this.videoPool)[0];
-                const seekTarget = (master && master.currentTime > 0) ? master.currentTime : 0.001;
-                video.currentTime = seekTarget;
-              } catch {}
-            }
-          };
-          if (video.readyState >= 1) {
-            handleInitialSeek();
-          } else {
-            video.addEventListener('loadedmetadata', handleInitialSeek, { once: true });
-          }
+        // [Requirement 1] 이전 Blob URL 즉시 해제
+        const oldUrl = this.activeSegmentBlobUrls.get(key);
+        if (oldUrl) {
+          try {
+            URL.revokeObjectURL(oldUrl);
+          } catch {}
+          this.activeSegmentBlobUrls.delete(key);
         }
 
-        this.videoContainer.appendChild(video);
-        this.videoPool[key] = video;
-        try {
-          video.load();
-        } catch {}
+        const file = clip.cams[key];
+        if (file) {
+          const newUrl = URL.createObjectURL(file);
+          this.activeSegmentBlobUrls.set(key, newUrl);
+          v.src = newUrl;
+          v.muted = true;
+          v.playsInline = true;
+
+          const isMaster = key === masterKey;
+          v.preload = isIOSDevice ? (isMaster ? 'auto' : 'metadata') : 'auto';
+
+          if (!isIOSDevice) {
+            // Android/PC: loadedmetadata 1회성 프로퍼티 콜백으로 마이크로 시크 (이벤트 누적 원천 차단)
+            v.onloadedmetadata = () => {
+              if (clipGen !== this.currentClipGeneration) return;
+              if (!this.isPlaying && v.currentTime < 0.002) {
+                try {
+                  const master = this.videoPool[masterKey];
+                  const seekTarget = (master && master.currentTime > 0) ? master.currentTime : 0.001;
+                  v.currentTime = seekTarget;
+                } catch {}
+              }
+            };
+          } else {
+            v.onloadedmetadata = null;
+          }
+
+          try {
+            v.load();
+          } catch {}
+        } else {
+          v.onloadedmetadata = null;
+        }
       }
 
-      // Non-blocking duration setup from master video (updates timeline & UI as soon as metadata arrives)
-      const masterVideo = this.videoPool.front || Object.values(this.videoPool)[0];
+      // Non-blocking duration setup from master video (프로퍼티 할당으로 중복 리스너 누적 방지)
+      const masterVideo = this.videoPool[masterKey];
       if (masterVideo) {
-        const onMetadataLoaded = () => {
+        masterVideo.onloadedmetadata = () => {
           if (clipGen !== this.currentClipGeneration) return;
           if (masterVideo.duration && !isNaN(masterVideo.duration) && masterVideo.duration > 0) {
             this.durationSec = masterVideo.duration;
@@ -2075,19 +2148,19 @@ class CTDashcamStudioApp {
           }
         };
 
-        if (masterVideo.readyState >= 1) {
-          onMetadataLoaded();
-        } else {
-          masterVideo.addEventListener('loadedmetadata', onMetadataLoaded, { once: true });
-        }
-
-        masterVideo.addEventListener('ended', () => {
+        masterVideo.onended = () => {
           this.handleMasterEnded();
-        });
-        masterVideo.addEventListener('pause', () => {
+        };
+        masterVideo.onpause = () => {
           if (!this.isPlaying) return;
           this.pauseAllVideos(false);
-        });
+        };
+
+        if (masterVideo.readyState >= 1 && masterVideo.duration > 0) {
+          this.durationSec = masterVideo.duration;
+          this.updateTimelineUI();
+          this.updateRangeUI();
+        }
       }
 
       this.currentTimeSec = 0;
@@ -2153,26 +2226,25 @@ class CTDashcamStudioApp {
 
   private pauseAllVideos(alignTimes = true) {
     this.isPlaying = false;
-    const masterVideo = this.videoPool.front || Object.values(this.videoPool)[0];
+    const masterVideo = this.getMasterVideo();
     const targetTime = masterVideo ? masterVideo.currentTime : this.currentTimeSec;
     const baseSpeed = this.options.playbackSpeed || 1.0;
 
-    // 1. 모든 비디오 즉시 동기 pause 및 playbackRate 원복
-    Object.values(this.videoPool).forEach((v) => {
-      if (v) {
-        try {
-          if (!v.paused) v.pause();
-        } catch {}
-        try {
-          v.playbackRate = baseSpeed;
-        } catch {}
-      }
+    // 1. 모든 활성 비디오 즉시 동기 pause 및 playbackRate 원복
+    const activeVideos = this.getActiveVideos();
+    activeVideos.forEach((v) => {
+      try {
+        if (!v.paused) v.pause();
+      } catch {}
+      try {
+        v.playbackRate = baseSpeed;
+      } catch {}
     });
 
     // 2. 정지 시점에 보조 카메라들의 시간을 마스터 비디오 시간에 정확히 정렬 (멈춘 상태에서 어긋나거나 뒤늦게 툭 튀는 현상 방지)
     if (alignTimes && masterVideo) {
       this.currentTimeSec = targetTime;
-      Object.values(this.videoPool).forEach((v) => {
+      activeVideos.forEach((v) => {
         if (v && v !== masterVideo) {
           try {
             // 보조 카메라가 이미 ended 상태인 경우 마지막 프레임을 유지하고, 그렇지 않으면 마스터 시간에 정렬
@@ -2202,7 +2274,7 @@ class CTDashcamStudioApp {
   private togglePlay() {
     if (this.isExporting) return;
     this.isPlaying = !this.isPlaying;
-    const masterVideo = this.videoPool.front || Object.values(this.videoPool)[0];
+    const masterVideo = this.getMasterVideo();
 
     if (this.isPlaying) {
       if (masterVideo && (masterVideo.ended || (this.durationSec > 0 && masterVideo.currentTime >= this.durationSec - 0.04))) {
@@ -2210,11 +2282,9 @@ class CTDashcamStudioApp {
       }
       this.applyPlaybackSpeed();
       // Upgrade any metadata preload to auto for smooth multi-cam playback
-      Object.values(this.videoPool).forEach((v) => {
-        if (v) {
-          if (v.preload !== 'auto') v.preload = 'auto';
-          v.play().catch(() => {});
-        }
+      this.getActiveVideos().forEach((v) => {
+        if (v.preload !== 'auto') v.preload = 'auto';
+        v.play().catch(() => {});
       });
     } else {
       this.pauseAllVideos(true);
@@ -2228,17 +2298,18 @@ class CTDashcamStudioApp {
     const isIOSDevice = isIOS();
     const baseSpeed = this.options.playbackSpeed || 1.0;
     const seekTime = (!isIOSDevice && this.currentTimeSec === 0) ? 0.001 : this.currentTimeSec;
-    Object.values(this.videoPool).forEach((v) => {
-      if (v) {
-        try {
-          if (v.readyState >= 1) {
-            v.currentTime = Math.min(v.duration || seekTime, seekTime);
-          }
-          v.playbackRate = baseSpeed;
-        } catch {}
-      }
+    this.getActiveVideos().forEach((v) => {
+      try {
+        if (v.readyState >= 1) {
+          v.currentTime = Math.min(v.duration || seekTime, seekTime);
+        }
+        v.playbackRate = baseSpeed;
+      } catch {}
     });
     this.updateTimelineUI();
+    if (!this.isPlaying) {
+      this.renderFrame();
+    }
   }
 
   private seekRelative(deltaSec: number) {
@@ -2246,31 +2317,33 @@ class CTDashcamStudioApp {
     this.seekTo(this.currentTimeSec + deltaSec);
   }
 
-  private prevClip() {
+  private async prevClip() {
     if (this.isExporting || !this.activeClip) return;
     const allClips = this.folderGroups.flatMap((g) => g.clips);
     const idx = allClips.findIndex((c) => c.id === this.activeClip!.id);
     if (idx > 0) {
-      this.selectClip(allClips[idx - 1]);
+      await this.selectClip(allClips[idx - 1]);
     }
   }
 
-  private nextClip(auto = false) {
+  private async nextClip(auto = false) {
     if (this.isExporting || !this.activeClip) return;
     const allClips = this.folderGroups.flatMap((g) => g.clips);
     const idx = allClips.findIndex((c) => c.id === this.activeClip!.id);
     if (idx >= 0 && idx < allClips.length - 1) {
-      this.selectClip(allClips[idx + 1]);
+      await this.selectClip(allClips[idx + 1]);
       if (auto) {
-        setTimeout(() => this.togglePlay(), 100);
+        this.togglePlay();
       }
     }
   }
 
   private applyPlaybackSpeed() {
     const baseSpeed = this.options.playbackSpeed || 1.0;
-    Object.values(this.videoPool).forEach((v) => {
-      if (v) v.playbackRate = baseSpeed;
+    this.getActiveVideos().forEach((v) => {
+      try {
+        v.playbackRate = baseSpeed;
+      } catch {}
     });
   }
 
@@ -2278,7 +2351,7 @@ class CTDashcamStudioApp {
     const loop = () => {
       if (this.isExporting) {
         // Enforce pause during video export across all platforms
-        const videos = Object.values(this.videoPool);
+        const videos = this.getActiveVideos();
         for (let i = 0; i < videos.length; i++) {
           const v = videos[i];
           if (v && !v.paused) {
@@ -2289,7 +2362,7 @@ class CTDashcamStudioApp {
         return;
       }
 
-      const masterVideo = this.videoPool.front || Object.values(this.videoPool)[0];
+      const masterVideo = this.getMasterVideo();
 
       // [Requirement 1] 마스터 비디오가 없거나 정지/종료 상태인 경우: 어떤 보조 비디오도 혼자 재생되지 못하도록 즉시 동기 pause()
       if (!this.isPlaying || !masterVideo || masterVideo.paused || masterVideo.ended) {
@@ -2297,7 +2370,7 @@ class CTDashcamStudioApp {
           this.handleMasterEnded();
         } else if (!this.isSelectingClip) {
           const baseSpeed = this.options.playbackSpeed || 1.0;
-          const videos = Object.values(this.videoPool);
+          const videos = this.getActiveVideos();
           for (let i = 0; i < videos.length; i++) {
             const v = videos[i];
             if (v && !v.paused && !v.seeking) {
@@ -2320,10 +2393,10 @@ class CTDashcamStudioApp {
           // Sync other cameras to master video time
           const masterTime = masterVideo.currentTime;
           const targetSpeed = this.options.playbackSpeed || 1.0;
-          const keys = Object.keys(this.videoPool) as CameraKey[];
+          const activeKeys = Object.keys(this.activeClip?.cams || {}) as CameraKey[];
 
-          for (let i = 0; i < keys.length; i++) {
-            const k = keys[i];
+          for (let i = 0; i < activeKeys.length; i++) {
+            const k = activeKeys[i];
             const v = this.videoPool[k];
             if (!v || v === masterVideo) continue;
 
@@ -2383,9 +2456,18 @@ class CTDashcamStudioApp {
 
     const baseDateStr = this.activeClip ? this.activeClip.timestampStr : '2026-10-07 00:00:00';
 
+    const activeFrames: Partial<Record<CameraKey, HTMLVideoElement>> = {};
+    if (this.activeClip) {
+      for (const k of Object.keys(this.activeClip.cams) as CameraKey[]) {
+        if (this.activeClip.cams[k] && this.videoPool[k]) {
+          activeFrames[k] = this.videoPool[k]!;
+        }
+      }
+    }
+
     OverlayRenderer.render(
       this.canvas,
-      this.videoPool,
+      activeFrames,
       telemetry,
       baseDateStr,
       this.currentTimeSec,

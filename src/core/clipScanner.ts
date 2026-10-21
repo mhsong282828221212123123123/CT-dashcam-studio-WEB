@@ -211,7 +211,8 @@ export function splitSessionInto10MinChunks(session: ClipItem[]): ClipItem[][] {
 
 export async function groupFilesIntoClips(
   files: (File | ScannedFileItem)[] | FileList | ArrayLike<any>,
-  onProgress?: (processed: number, total: number, clipCount: number) => void
+  onProgress?: (processed: number, total: number, clipCount: number) => void,
+  onEncryptedDetected?: () => void
 ): Promise<FolderGroup[]> {
   const mapByFolderAndTimestamp = new Map<
     string,
@@ -239,6 +240,12 @@ export async function groupFilesIntoClips(
       fileObj?.webkitRelativePath ||
       (item as ScannedFileItem).relativePath ||
       item.name || '';
+
+    // 테슬라 블랙박스 암호화 디렉토리(EncryptedClips) 감지 시 제외 및 콜백 호출
+    if (/EncryptedClips/i.test(relPath)) {
+      onEncryptedDetected?.();
+      continue;
+    }
 
     const match = relPath.match(CAM_REGEX);
     if (match) {
@@ -381,12 +388,18 @@ export async function groupFilesIntoClips(
 
 export async function scanFileSystemDirectory(
   dirHandle: FileSystemDirectoryHandle,
-  onProgress?: (scannedFiles: number, scannedDirs: number) => void
+  onProgress?: (scannedFiles: number, scannedDirs: number) => void,
+  onEncryptedDetected?: () => void
 ): Promise<ScannedFileItem[]> {
   const items: ScannedFileItem[] = [];
   let scannedDirs = 0;
 
   async function traverse(handle: FileSystemDirectoryHandle, currentPath: string) {
+    if (/EncryptedClips/i.test(handle.name) || /EncryptedClips/i.test(currentPath)) {
+      onEncryptedDetected?.();
+      return;
+    }
+
     scannedDirs++;
     const entries: any[] = [];
     try {
@@ -400,15 +413,21 @@ export async function scanFileSystemDirectory(
 
     // Filter candidate video files without calling getFile()!
     const fileEntries = entries.filter((e) => e.kind === 'file' && isTeslaCamVideo(e.name));
-    // Exclude Windows / OS system and hidden folders
-    const dirEntries = entries.filter((e) =>
-      e.kind === 'directory' &&
-      !e.name.startsWith('$') &&
-      !e.name.startsWith('.') &&
-      e.name !== 'System Volume Information' &&
-      e.name !== 'found.000' &&
-      e.name !== 'Recovery'
-    );
+    // Exclude Windows / OS system and hidden folders, and detect/skip EncryptedClips
+    const dirEntries = entries.filter((e) => {
+      if (e.kind !== 'directory') return false;
+      if (/EncryptedClips/i.test(e.name)) {
+        onEncryptedDetected?.();
+        return false;
+      }
+      return (
+        !e.name.startsWith('$') &&
+        !e.name.startsWith('.') &&
+        e.name !== 'System Volume Information' &&
+        e.name !== 'found.000' &&
+        e.name !== 'Recovery'
+      );
+    });
 
     for (const entry of fileEntries) {
       const entryPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
