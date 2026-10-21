@@ -1818,6 +1818,14 @@ class CTDashcamStudioApp {
         this.durationSec = masterVideo.duration && !isNaN(masterVideo.duration) && masterVideo.duration > 0
           ? masterVideo.duration
           : 60.0;
+
+        masterVideo.addEventListener('ended', () => {
+          this.handleMasterEnded();
+        });
+        masterVideo.addEventListener('pause', () => {
+          if (!this.isPlaying) return;
+          this.pauseAllVideos(false);
+        });
       }
 
       this.seekTo(0);
@@ -1878,14 +1886,63 @@ class CTDashcamStudioApp {
     }
   }
 
+  private pauseAllVideos(alignTimes = true) {
+    this.isPlaying = false;
+    const masterVideo = this.videoPool.front || Object.values(this.videoPool)[0];
+    const targetTime = masterVideo ? masterVideo.currentTime : this.currentTimeSec;
+    const baseSpeed = this.options.playbackSpeed || 1.0;
+
+    // 1. 모든 비디오 즉시 동기 pause 및 playbackRate 원복
+    Object.values(this.videoPool).forEach((v) => {
+      if (v) {
+        try {
+          if (!v.paused) v.pause();
+        } catch {}
+        try {
+          v.playbackRate = baseSpeed;
+        } catch {}
+      }
+    });
+
+    // 2. 정지 시점에 보조 카메라들의 시간을 마스터 비디오 시간에 정확히 정렬 (멈춘 상태에서 어긋나거나 뒤늦게 툭 튀는 현상 방지)
+    if (alignTimes && masterVideo) {
+      this.currentTimeSec = targetTime;
+      Object.values(this.videoPool).forEach((v) => {
+        if (v && v !== masterVideo) {
+          try {
+            // 보조 카메라가 이미 ended 상태인 경우 마지막 프레임을 유지하고, 그렇지 않으면 마스터 시간에 정렬
+            if (!v.ended && Math.abs(v.currentTime - targetTime) > 0.02) {
+              v.currentTime = Math.min(v.duration || targetTime, targetTime);
+            }
+          } catch {}
+        }
+      });
+      this.updateTimelineUI();
+    }
+
+    this.updatePlayButton();
+  }
+
+  private handleMasterEnded() {
+    // 1. 마스터 비디오 종료 즉시 모든 보조 카메라 동기 pause 및 배속 초기화
+    this.pauseAllVideos(true);
+
+    // 2. 자동 다음 클립(chk-auto-next) 체크 여부에 따른 분기
+    const chkAutoNext = document.getElementById('chk-auto-next') as HTMLInputElement | null;
+    if (chkAutoNext && chkAutoNext.checked) {
+      this.nextClip(true);
+    }
+  }
+
   private togglePlay() {
     this.isPlaying = !this.isPlaying;
     const masterVideo = this.videoPool.front || Object.values(this.videoPool)[0];
 
     if (this.isPlaying) {
-      if (masterVideo && masterVideo.ended) {
+      if (masterVideo && (masterVideo.ended || (this.durationSec > 0 && masterVideo.currentTime >= this.durationSec - 0.04))) {
         this.seekTo(0);
       }
+      this.applyPlaybackSpeed();
       // Upgrade any metadata preload to auto for smooth multi-cam playback
       Object.values(this.videoPool).forEach((v) => {
         if (v) {
@@ -1894,17 +1951,21 @@ class CTDashcamStudioApp {
         }
       });
     } else {
-      Object.values(this.videoPool).forEach((v) => {
-        if (v) v.pause();
-      });
+      this.pauseAllVideos(true);
     }
     this.updatePlayButton();
   }
 
   private seekTo(targetSec: number) {
     this.currentTimeSec = Math.max(0, Math.min(this.durationSec, targetSec));
+    const baseSpeed = this.options.playbackSpeed || 1.0;
     Object.values(this.videoPool).forEach((v) => {
-      if (v) v.currentTime = this.currentTimeSec;
+      if (v) {
+        try {
+          v.currentTime = Math.min(v.duration || this.currentTimeSec, this.currentTimeSec);
+          v.playbackRate = baseSpeed;
+        } catch {}
+      }
     });
     this.updateTimelineUI();
   }
@@ -1935,37 +1996,81 @@ class CTDashcamStudioApp {
   }
 
   private applyPlaybackSpeed() {
+    const baseSpeed = this.options.playbackSpeed || 1.0;
     Object.values(this.videoPool).forEach((v) => {
-      if (v) v.playbackRate = this.options.playbackSpeed;
+      if (v) v.playbackRate = baseSpeed;
     });
   }
 
   private startRenderLoop() {
     const loop = () => {
       const masterVideo = this.videoPool.front || Object.values(this.videoPool)[0];
-      if (masterVideo && this.isPlaying) {
-        this.currentTimeSec = masterVideo.currentTime;
-        if (masterVideo.ended) {
-          const chkAutoNext = document.getElementById('chk-auto-next') as HTMLInputElement;
-          if (chkAutoNext && chkAutoNext.checked) {
-            this.nextClip(true);
-          } else {
-            this.isPlaying = false;
-            this.updatePlayButton();
-          }
-        }
 
-        // Sync other cameras
-        const keys = Object.keys(this.videoPool) as CameraKey[];
-        for (const k of keys) {
-          const v = this.videoPool[k];
-          if (v && v !== masterVideo) {
-            if (Math.abs(v.currentTime - masterVideo.currentTime) > 0.08) {
-              v.currentTime = masterVideo.currentTime;
+      // [Requirement 1] 마스터 비디오가 없거나 정지/종료 상태인 경우: 어떤 보조 비디오도 혼자 재생되지 못하도록 즉시 동기 pause()
+      if (!this.isPlaying || !masterVideo || masterVideo.paused || masterVideo.ended) {
+        if (this.isPlaying) {
+          this.handleMasterEnded();
+        } else {
+          const baseSpeed = this.options.playbackSpeed || 1.0;
+          const videos = Object.values(this.videoPool);
+          for (let i = 0; i < videos.length; i++) {
+            const v = videos[i];
+            if (v && !v.paused) {
+              try { v.pause(); } catch {}
+              try { v.playbackRate = baseSpeed; } catch {}
             }
           }
         }
-        this.updateTimelineUI();
+      } else {
+        // [Requirement 1 & 2] 마스터 비디오 정상 재생 중
+        this.currentTimeSec = masterVideo.currentTime;
+
+        // 마스터 비디오가 끝에 도달했는지 확인 (ended 또는 duration 끝 도달)
+        const isMasterFinished = masterVideo.ended ||
+          (this.durationSec > 0 && masterVideo.currentTime >= this.durationSec - 0.04);
+
+        if (isMasterFinished) {
+          this.handleMasterEnded();
+        } else {
+          // Sync other cameras to master video time
+          const masterTime = masterVideo.currentTime;
+          const targetSpeed = this.options.playbackSpeed || 1.0;
+          const keys = Object.keys(this.videoPool) as CameraKey[];
+
+          for (let i = 0; i < keys.length; i++) {
+            const k = keys[i];
+            const v = this.videoPool[k];
+            if (!v || v === masterVideo) continue;
+
+            // [Requirement 2] 만약 보조 비디오가 마스터보다 먼저 끝(v.ended)에 도달한 경우 마지막 프레임 유지
+            if (v.ended) {
+              continue;
+            }
+
+            // [Requirement 2] 보조 카메라가 마스터 비디오보다 앞서 가지 못하도록 제한
+            const diff = v.currentTime - masterTime;
+
+            if (Math.abs(diff) > 0.08) {
+              try {
+                v.currentTime = Math.min(v.duration || masterTime, masterTime);
+              } catch {}
+              v.playbackRate = targetSpeed;
+            } else if (Math.abs(diff) > 0.03) {
+              if (diff > 0) {
+                // 보조 비디오가 앞서 있음 -> 감속
+                v.playbackRate = Math.max(0.5, targetSpeed * 0.9);
+              } else {
+                // 보조 비디오가 뒤쳐짐 -> 가속
+                v.playbackRate = Math.min(2.0, targetSpeed * 1.1);
+              }
+            } else {
+              if (v.playbackRate !== targetSpeed) {
+                v.playbackRate = targetSpeed;
+              }
+            }
+          }
+          this.updateTimelineUI();
+        }
       }
 
       this.renderFrame();
@@ -2414,6 +2519,10 @@ class CTDashcamStudioApp {
     if (segments.length === 0) {
       alert(i18n.t('alert_no_range'));
       return;
+    }
+
+    if (this.isPlaying) {
+      this.pauseAllVideos(true);
     }
 
     this.isExporting = true;
