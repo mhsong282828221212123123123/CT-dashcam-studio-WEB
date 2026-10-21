@@ -800,17 +800,31 @@ body {
   color: #93c5fd;
 }
 
-/* Single Camera Floating Menu */
+/* Single Camera Floating Menu (버튼 위치 기준 자동 정렬) */
 .single-cam-popup {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  background: rgba(18, 22, 32, 0.95);
+  position: fixed;
+  background: rgba(18, 22, 32, 0.98);
   border: 1px solid var(--accent-cyan);
   border-radius: 6px;
   padding: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
-  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85), 0 0 12px rgba(0, 230, 255, 0.25);
+  z-index: 10000;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  min-width: 200px;
+  max-width: 90vw;
+  animation: singlePopupFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes singlePopupFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .popup-title {
@@ -819,6 +833,7 @@ body {
   color: var(--accent-cyan);
   margin-bottom: 6px;
   text-align: center;
+  user-select: none;
 }
 
 .cam-options-grid {
@@ -828,13 +843,21 @@ body {
 }
 
 .btn-cam-option {
-  padding: 4px 8px;
-  font-size: 10.5px;
+  padding: 6px 8px;
+  font-size: 11px;
   background: #141822;
   border: 1px solid #283244;
   color: #c5ccd9;
   border-radius: 4px;
   cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+
+.btn-cam-option:hover:not(:disabled):not(.disabled) {
+  background: #1c2333;
+  border-color: var(--accent-cyan);
+  color: #ffffff;
 }
 
 .btn-cam-option.active {
@@ -842,6 +865,7 @@ body {
   color: #ffffff;
   border-color: #00d4ff;
   font-weight: bold;
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.4);
 }
 
 .btn-cam-option:disabled,

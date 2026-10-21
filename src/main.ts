@@ -746,18 +746,44 @@ class CTDashcamStudioApp {
     const singlePopup = document.getElementById('single-cam-popup');
 
     layoutBtns.forEach((btn) => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', () => {
         const targetLayout = btn.getAttribute('data-layout') as RenderOptions['layout'];
         if (targetLayout === '단일 카메라') {
-          // Toggle floating popup
+          const isAlreadySingle = this.options.layout === '단일 카메라';
+          if (!isAlreadySingle) {
+            if (!this.options.single_cam) {
+              this.options.single_cam = 'front';
+            }
+            this.setLayoutMode('단일 카메라');
+          }
+
           if (singlePopup) {
-            singlePopup.style.display = singlePopup.style.display === 'none' ? 'block' : 'none';
+            const isCurrentlyOpen = singlePopup.style.display !== 'none';
+            if (isAlreadySingle && isCurrentlyOpen) {
+              singlePopup.style.display = 'none';
+            } else {
+              this.positionSingleCamPopup();
+              singlePopup.style.display = 'block';
+            }
           }
         } else {
           if (singlePopup) singlePopup.style.display = 'none';
           this.setLayoutMode(targetLayout);
         }
       });
+    });
+
+    // Reposition single camera popup on resize or sidebar scroll
+    window.addEventListener('resize', () => {
+      if (singlePopup && singlePopup.style.display !== 'none') {
+        this.positionSingleCamPopup();
+      }
+    });
+
+    document.getElementById('sidebar-panel')?.addEventListener('scroll', () => {
+      if (singlePopup && singlePopup.style.display !== 'none') {
+        this.positionSingleCamPopup();
+      }
     });
 
     // Single Camera Option Buttons in Popup
@@ -1364,6 +1390,51 @@ class CTDashcamStudioApp {
       if (this.options.layout === '단일 카메라') {
         this.renderFrame();
       }
+    }
+  }
+
+  private positionSingleCamPopup() {
+    const popup = document.getElementById('single-cam-popup');
+    const btn = document.getElementById('btn-layout-single');
+    if (!popup || !btn) return;
+
+    // 측정 가능하도록 임시 노출 후 크기 계산
+    const prevDisplay = popup.style.display;
+    const isHidden = prevDisplay === 'none' || !prevDisplay;
+    if (isHidden) {
+      popup.style.visibility = 'hidden';
+      popup.style.display = 'block';
+    }
+
+    const rect = btn.getBoundingClientRect();
+    const popupWidth = popup.offsetWidth || 210;
+    const popupHeight = popup.offsetHeight || 120;
+
+    // 기본: [단일] 버튼 바로 위쪽에 팝업 정렬
+    let top = rect.top - popupHeight - 8;
+    // 위쪽 공간이 부족할 경우(화면 상단 근접 시) 버튼 아래쪽으로 표시
+    if (top < 10) {
+      top = rect.bottom + 8;
+    }
+
+    // 좌우 위치: 버튼 우측단 정렬
+    let left = rect.right - popupWidth;
+    if (left < 10) {
+      left = Math.max(10, rect.left);
+    }
+    if (left + popupWidth > window.innerWidth - 10) {
+      left = window.innerWidth - popupWidth - 10;
+    }
+
+    popup.style.position = 'fixed';
+    popup.style.top = `${Math.round(top)}px`;
+    popup.style.left = `${Math.round(left)}px`;
+    popup.style.right = 'auto';
+    popup.style.bottom = 'auto';
+
+    if (isHidden) {
+      popup.style.display = prevDisplay;
+      popup.style.visibility = 'visible';
     }
   }
 

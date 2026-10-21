@@ -257,19 +257,6 @@
               <span class="sei-badge-icon">📊</span>
               <span id="sei-progress-text" class="sei-badge-text">주행 데이터 분석 중... 0%</span>
             </div>
-
-            <!-- Single Camera Selection Popup (Floating menu on single layout) -->
-            <div id="single-cam-popup" class="single-cam-popup" style="display: none;">
-              <div class="popup-title">카메라 선택</div>
-              <div class="cam-options-grid">
-                <button class="btn btn-cam-option active" data-cam="front">전방 (Front)</button>
-                <button class="btn btn-cam-option" data-cam="back">후방 (Rear)</button>
-                <button class="btn btn-cam-option" data-cam="left_repeater">좌측 펜더 (Left)</button>
-                <button class="btn btn-cam-option" data-cam="right_repeater">우측 펜더 (Right)</button>
-                <button class="btn btn-cam-option" data-cam="left_pillar">좌측 B필러</button>
-                <button class="btn btn-cam-option" data-cam="right_pillar">우측 B필러</button>
-              </div>
-            </div>
           </div>
 
           <!-- 하단 타임라인 플로팅 컨트롤 덱 -->
@@ -556,6 +543,19 @@
               ⏹ 내보내기 취소
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- 단일 카메라 선택 플로팅 팝업 (버튼 위치 기준 자동 정렬) -->
+      <div id="single-cam-popup" class="single-cam-popup" style="display: none;">
+        <div class="popup-title">카메라 선택</div>
+        <div class="cam-options-grid">
+          <button class="btn btn-cam-option active" data-cam="front">전방 (Front)</button>
+          <button class="btn btn-cam-option" data-cam="back">후방 (Rear)</button>
+          <button class="btn btn-cam-option" data-cam="left_repeater">좌측 펜더 (Left)</button>
+          <button class="btn btn-cam-option" data-cam="right_repeater">우측 펜더 (Right)</button>
+          <button class="btn btn-cam-option" data-cam="left_pillar">좌측 B필러</button>
+          <button class="btn btn-cam-option" data-cam="right_pillar">우측 B필러</button>
         </div>
       </div>
 
