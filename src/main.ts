@@ -32,7 +32,7 @@ export function parseClipTimeMs(timestampRaw: string): number {
   const parts = timestampRaw.split('_');
   if (parts.length === 2) {
     const [y, m, d] = parts[0].split('-').map(Number);
-    const [hh, mm, ss] = parts[1].split('-').map(Number);
+    const [hh, mm, ss] = parts[1].replace(/:/g, '-').split('-').map(Number);
     return new Date(y, m - 1, d, hh, mm, ss).getTime();
   }
   return 0;
@@ -771,6 +771,7 @@ class CTDashcamStudioApp {
     };
 
     const startScrub = (e: PointerEvent) => {
+      if (this.isExporting) return;
       e.preventDefault();
       isScrubbing = true;
       try {
@@ -1294,6 +1295,10 @@ class CTDashcamStudioApp {
         return;
       }
 
+      if (this.isExporting && e.code !== 'Escape') {
+        return;
+      }
+
       switch (e.code) {
         case 'Space':
           e.preventDefault();
@@ -1422,14 +1427,18 @@ class CTDashcamStudioApp {
     );
   }
 
-  private mountFolderOverlayInput() {
+  private mountFolderOverlayInput(forceRecreate = false) {
     const container = document.getElementById('btn-open-folder');
     if (!container) return;
 
-    // If input already exists, keep it
+    // If input already exists, keep it unless force recreation is requested
     const existing = document.getElementById('active-folder-input');
     if (existing) {
-      return;
+      if (forceRecreate) {
+        existing.remove();
+      } else {
+        return;
+      }
     }
 
     // On desktop Chromium with showDirectoryPicker, do not mount overlay input
@@ -1450,14 +1459,18 @@ class CTDashcamStudioApp {
     container.appendChild(input);
   }
 
-  private mountFileOverlayInput() {
+  private mountFileOverlayInput(forceRecreate = false) {
     const container = document.getElementById('btn-open-files');
     if (!container) return;
 
-    // If input already exists, keep it
+    // If input already exists, keep it unless force recreation is requested
     const existing = document.getElementById('active-file-input');
     if (existing) {
-      return;
+      if (forceRecreate) {
+        existing.remove();
+      } else {
+        return;
+      }
     }
 
     const input = document.createElement('input');
@@ -1471,18 +1484,17 @@ class CTDashcamStudioApp {
     container.appendChild(input);
   }
 
-  private bindPickerLifecycle(input: HTMLInputElement, _type: 'folder' | 'files') {
-    // Reset value on click so selecting the same folder or files again triggers change event,
-    // without prematurely clearing the input value during active playback/file reads
-    input.addEventListener('click', () => {
-      try {
-        input.value = '';
-      } catch {}
-    });
-
+  private bindPickerLifecycle(input: HTMLInputElement, type: 'folder' | 'files') {
     // User selected files / folder
     input.addEventListener('change', async () => {
       const files = Array.from(input.files || []);
+
+      // Immediately recreate fresh input element for next pick without modifying value during click
+      if (type === 'folder') {
+        this.mountFolderOverlayInput(true);
+      } else {
+        this.mountFileOverlayInput(true);
+      }
 
       if (files.length === 0) return;
 
@@ -1508,6 +1520,10 @@ class CTDashcamStudioApp {
         this.hideLoadProgress();
       }
     });
+
+    input.addEventListener('cancel', () => {
+      this.hideLoadProgress();
+    });
   }
 
   private openWithDirectoryPicker() {
@@ -1522,13 +1538,15 @@ class CTDashcamStudioApp {
           await this.loadFiles(items);
         } else {
           this.hideLoadProgress();
+          this.showToast(i18n.t('empty_no_clips'));
         }
       } catch (e: any) {
+        this.hideLoadProgress();
         if (e.name === 'AbortError') {
-          this.hideLoadProgress();
           return;
         }
         console.warn('showDirectoryPicker failed, falling back to input:', e);
+        this.showToast(`폴더를 열 수 없습니다: ${e.message || e}`);
         this.mountFolderOverlayInput();
       }
     })();
@@ -1570,6 +1588,11 @@ class CTDashcamStudioApp {
     // 100% 완료 상태가 화면에 잠깐 그려진 후 배너를 숨김
     await yieldToCompositor();
     this.hideLoadProgress();
+
+    if (this.folderGroups.length === 0) {
+      this.showToast(i18n.t('empty_no_clips'));
+      return;
+    }
 
     // 5. On mobile portrait, expand bottom sheet so user sees clips
     if (this.isMobilePortrait()) {
@@ -1805,7 +1828,8 @@ class CTDashcamStudioApp {
 
         // Master camera preloads 'auto', other cameras preload 'metadata' on iOS
         // On PC/Android (!isIOSDevice), all cameras preload 'auto' for Chromium lazy decoding wake-up
-        const isMaster = key === 'front' || key === camKeys[0];
+        const hasFront = Boolean(clip.cams.front);
+        const isMaster = hasFront ? key === 'front' : key === camKeys[0];
         video.preload = isIOSDevice ? (isMaster ? 'auto' : 'metadata') : 'auto';
 
         video.addEventListener('error', (e) => {
@@ -1877,7 +1901,8 @@ class CTDashcamStudioApp {
         });
       }
 
-      this.seekTo(0);
+      this.currentTimeSec = 0;
+      this.updateTimelineUI();
       this.updatePlayButton();
       // Render canvas immediately (zero-latency visual feedback for slot placeholders & HUD)
       this.renderFrame();
@@ -1986,6 +2011,7 @@ class CTDashcamStudioApp {
   }
 
   private togglePlay() {
+    if (this.isExporting) return;
     this.isPlaying = !this.isPlaying;
     const masterVideo = this.videoPool.front || Object.values(this.videoPool)[0];
 
@@ -2008,6 +2034,7 @@ class CTDashcamStudioApp {
   }
 
   private seekTo(targetSec: number) {
+    if (this.isExporting) return;
     this.currentTimeSec = Math.max(0, Math.min(this.durationSec, targetSec));
     const isIOSDevice = isIOS();
     const baseSpeed = this.options.playbackSpeed || 1.0;
@@ -2015,7 +2042,9 @@ class CTDashcamStudioApp {
     Object.values(this.videoPool).forEach((v) => {
       if (v) {
         try {
-          v.currentTime = Math.min(v.duration || seekTime, seekTime);
+          if (v.readyState >= 1) {
+            v.currentTime = Math.min(v.duration || seekTime, seekTime);
+          }
           v.playbackRate = baseSpeed;
         } catch {}
       }
@@ -2024,11 +2053,12 @@ class CTDashcamStudioApp {
   }
 
   private seekRelative(deltaSec: number) {
+    if (this.isExporting) return;
     this.seekTo(this.currentTimeSec + deltaSec);
   }
 
   private prevClip() {
-    if (!this.activeClip) return;
+    if (this.isExporting || !this.activeClip) return;
     const allClips = this.folderGroups.flatMap((g) => g.clips);
     const idx = allClips.findIndex((c) => c.id === this.activeClip!.id);
     if (idx > 0) {
@@ -2037,7 +2067,7 @@ class CTDashcamStudioApp {
   }
 
   private nextClip(auto = false) {
-    if (!this.activeClip) return;
+    if (this.isExporting || !this.activeClip) return;
     const allClips = this.folderGroups.flatMap((g) => g.clips);
     const idx = allClips.findIndex((c) => c.id === this.activeClip!.id);
     if (idx >= 0 && idx < allClips.length - 1) {
@@ -2057,6 +2087,19 @@ class CTDashcamStudioApp {
 
   private startRenderLoop() {
     const loop = () => {
+      if (this.isExporting) {
+        // Enforce pause during video export across all platforms
+        const videos = Object.values(this.videoPool);
+        for (let i = 0; i < videos.length; i++) {
+          const v = videos[i];
+          if (v && !v.paused) {
+            try { v.pause(); } catch {}
+          }
+        }
+        requestAnimationFrame(loop);
+        return;
+      }
+
       const masterVideo = this.videoPool.front || Object.values(this.videoPool)[0];
 
       // [Requirement 1] 마스터 비디오가 없거나 정지/종료 상태인 경우: 어떤 보조 비디오도 혼자 재생되지 못하도록 즉시 동기 pause()
@@ -2574,11 +2617,18 @@ class CTDashcamStudioApp {
       return;
     }
 
-    if (this.isPlaying) {
-      this.pauseAllVideos(true);
-    }
+    // Unconditionally stop playback and update play button for all platforms
+    this.pauseAllVideos(true);
+    this.isPlaying = false;
+    this.updatePlayButton();
 
     this.isExporting = true;
+    const btnPlay = document.getElementById('btn-play') as HTMLButtonElement | null;
+    if (btnPlay) {
+      btnPlay.setAttribute('disabled', 'true');
+      btnPlay.style.pointerEvents = 'none';
+      btnPlay.style.opacity = '0.5';
+    }
     if (btnExport) {
       btnExport.textContent = i18n.t('btn_export_cancel');
       btnExport.classList.add('cancelling');
@@ -2702,6 +2752,13 @@ class CTDashcamStudioApp {
       alert(`${i18n.t('status_error')}${errorMsg}${stackSnippet}`);
     } finally {
       this.isExporting = false;
+      const btnPlay = document.getElementById('btn-play') as HTMLButtonElement | null;
+      if (btnPlay) {
+        btnPlay.removeAttribute('disabled');
+        btnPlay.style.pointerEvents = '';
+        btnPlay.style.opacity = '';
+      }
+      this.updatePlayButton();
       window.removeEventListener('beforeunload', preventUnload);
       btnCancelExportModal?.removeEventListener('click', onModalCancel);
 

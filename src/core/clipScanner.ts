@@ -132,7 +132,7 @@ export interface ScannedFileItem {
   handle?: FileSystemFileHandle;
 }
 
-export const CAM_REGEX = /(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})-(front|back|left_repeater|right_repeater|left_pillar|right_pillar)(?: \(\d+\))?\.mp4$/i;
+export const CAM_REGEX = /(\d{4}-\d{2}-\d{2}[_-]\d{2}[-:]?\d{2}[-:]?\d{2})-(front|back|left_repeater|right_repeater|left_pillar|right_pillar)(?: \(\d+\))?\.mp4$/i;
 
 export function isTeslaCamVideo(filename: string): boolean {
   return CAM_REGEX.test(filename);
@@ -181,7 +181,7 @@ export function parseTimestampSec(timestampRaw: string): number {
   const parts = timestampRaw.split('_');
   if (parts.length === 2) {
     const [y, m, d] = parts[0].split('-').map(Number);
-    const [hh, mm, ss] = parts[1].split('-').map(Number);
+    const [hh, mm, ss] = parts[1].replace(/:/g, '-').split('-').map(Number);
     return Math.floor(new Date(y, m - 1, d, hh, mm, ss).getTime() / 1000);
   }
   return 0;
@@ -242,7 +242,7 @@ export async function groupFilesIntoClips(
 
     const match = relPath.match(CAM_REGEX);
     if (match) {
-      const timestampRaw = match[1];
+      const timestampRaw = match[1].replace(/^(\d{4}-\d{2}-\d{2})[-_](\d{2}[-:]?\d{2}[-:]?\d{2})$/, '$1_$2');
       const camKey = match[2].toLowerCase() as CameraKey;
 
       // Determine folder from relative path
@@ -389,13 +389,26 @@ export async function scanFileSystemDirectory(
   async function traverse(handle: FileSystemDirectoryHandle, currentPath: string) {
     scannedDirs++;
     const entries: any[] = [];
-    for await (const entry of (handle as any).values()) {
-      entries.push(entry);
+    try {
+      for await (const entry of (handle as any).values()) {
+        entries.push(entry);
+      }
+    } catch (err) {
+      console.warn(`[Scanner] Cannot read directory ${currentPath || handle.name}:`, err);
+      return;
     }
 
     // Filter candidate video files without calling getFile()!
     const fileEntries = entries.filter((e) => e.kind === 'file' && isTeslaCamVideo(e.name));
-    const dirEntries = entries.filter((e) => e.kind === 'directory');
+    // Exclude Windows / OS system and hidden folders
+    const dirEntries = entries.filter((e) =>
+      e.kind === 'directory' &&
+      !e.name.startsWith('$') &&
+      !e.name.startsWith('.') &&
+      e.name !== 'System Volume Information' &&
+      e.name !== 'found.000' &&
+      e.name !== 'Recovery'
+    );
 
     for (const entry of fileEntries) {
       const entryPath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
@@ -420,6 +433,7 @@ export async function scanFileSystemDirectory(
     }
   }
 
-  await traverse(dirHandle, dirHandle.name);
+  const rootPath = (dirHandle.name && !dirHandle.name.includes(':') && dirHandle.name !== '/') ? dirHandle.name : '';
+  await traverse(dirHandle, rootPath);
   return items;
 }

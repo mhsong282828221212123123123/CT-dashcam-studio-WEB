@@ -25,6 +25,9 @@ describe('clipScanner - timestamp and chunking', () => {
     const sec1 = parseTimestampSec('2026-08-17_12-37-37');
     const sec2 = parseTimestampSec('2026-08-17_12-38-37');
     expect(sec2 - sec1).toBe(60);
+
+    const secColon = parseTimestampSec('2026-08-17_12:37:37');
+    expect(secColon).toBe(sec1);
   });
 
   it('splitSessionInto10MinChunks preserves small sessions and merges leftover < 3', () => {
@@ -92,7 +95,7 @@ describe('clipScanner - groupFilesIntoClips & formatFolderGroup', () => {
       { name: '2026-08-17_12-00-00-front.mp4', relativePath: 'RecentClips/2026-08-17_12-00-00-front.mp4' },
       { name: '2026-08-17_12-01-00-front.mp4', relativePath: 'RecentClips/2026-08-17_12-01-00-front.mp4' },
       { name: '2026-08-17_12-02-00-front.mp4', relativePath: 'RecentClips/2026-08-17_12-02-00-front.mp4' },
-      { name: '2026-08-17_12-10-00-front.mp4', relativePath: 'RecentClips/2026-08-17_12-10-00-front.mp4' },
+      { name: '2026-08-17-12-10-00-front.mp4', relativePath: 'RecentClips/2026-08-17-12-10-00-front.mp4' },
       { name: '2026-08-17_12-11-00-front.mp4', relativePath: 'RecentClips/2026-08-17_12-11-00-front.mp4' },
     ];
 
