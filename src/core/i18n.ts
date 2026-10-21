@@ -235,6 +235,9 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     alert_no_range: '내보낼 영상 구간이 없습니다.',
     alert_pc_install: '브라우저 주소창 우측(⊕) 또는 메뉴(⋯) > 앱 > "CT Dashcam Studio 설치"를 선택하세요.',
     alert_ios_silent_abort: '선택한 폴더의 파일이 너무 많아 iOS에서 불러오기를 취소했습니다. 개별 하위 폴더를 선택하거나 [파일 선택] 기능을 이용해 주세요.',
+    alert_ios_max_duration: '아이폰(iOS)에서는 안정적인 내보내기를 위해 최대 출력 시간이 120초(2분)로 제한됩니다. 구간을 120초 이하로 설정해 주세요.',
+    toast_load_timeout: '파일 불러오기 시간이 2분을 초과하여 취소되었습니다. 외장 장치 연결 상태나 파일 개수를 확인해 주세요.',
+    pillar_cam_na: '4채널 영상에는 B필러 카메라가 없습니다',
   },
 
   en: {
@@ -457,6 +460,9 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     alert_no_range: 'No video range selected for export.',
     alert_pc_install: 'Please select "Install CT Dashcam Studio" in the browser address bar (⊕) or menu (⋯) > Apps.',
     alert_ios_silent_abort: 'The selected folder contains too many files, so iOS cancelled loading. Please select a subfolder or use the [Select Files] option.',
+    alert_ios_max_duration: 'On iPhone (iOS), the maximum export duration is limited to 120 seconds (2 minutes) for stability. Please limit the range to 120 seconds or less.',
+    toast_load_timeout: 'File loading took longer than 2 minutes and was cancelled. Please check your storage device connection or file count.',
+    pillar_cam_na: 'B-pillar cameras are not available in 4-channel clips',
   },
 
   ja: {
@@ -679,6 +685,9 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     alert_no_range: 'エクスポートする区間が選択されていません。',
     alert_pc_install: 'アドレスバー右側の(⊕)またはメニュー(⋯) > アプリ > 「CT Dashcam Studioをインストール」を選択してください。',
     alert_ios_silent_abort: '選択したフォルダーのファイルが多すぎるため、iOSで読み込みがキャンセルされました。個別フォルダーを選択するか、[ファイル選択]機能をご利用ください。',
+    alert_ios_max_duration: 'iPhone (iOS)では安定した書き出しのため、最大出力時間が120秒（2分）に制限されます。区間を120秒以下に設定してください。',
+    toast_load_timeout: 'ファイルの読み込みが2分を超えたためキャンセルされました。外部デバイスの接続状態やファイル数をご確認ください。',
+    pillar_cam_na: '4チャンネル映像にはBピラーカメラがありません',
   },
 
   'zh-CN': {
@@ -901,6 +910,9 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     alert_no_range: '未选择任何待导出的视频区间。',
     alert_pc_install: '请在浏览器地址栏右侧(⊕)或菜单(⋯) > 应用 > 选择“安装 CT Dashcam Studio”。',
     alert_ios_silent_abort: '所选文件夹中的文件过多，iOS 已取消加载。请选择子文件夹或使用【选择文件】功能。',
+    alert_ios_max_duration: '在iPhone (iOS)上，为确保导出稳定性，最大输出时长限制为120秒（2分钟）。请将区间设置为120秒以内。',
+    toast_load_timeout: '文件加载超过2分钟已自动取消。请检查外部存储设备连接或文件数量。',
+    pillar_cam_na: '4通道视频中没有B柱摄像头',
   },
 
   'zh-TW': {
@@ -1123,6 +1135,9 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     alert_no_range: '未選取任何待導出的影片區間。',
     alert_pc_install: '請在瀏覽器網址列右側(⊕)或選單(⋯) > 應用程式 > 選擇「安裝 CT Dashcam Studio」。',
     alert_ios_silent_abort: '所選資料夾中的檔案過多，iOS 已取消載入。請選擇子資料夾或使用【選取檔案】功能。',
+    alert_ios_max_duration: '在iPhone (iOS)上，為確保匯出穩定性，最大輸出時長限制為120秒（2分鐘）。請將區間設定為120秒以內。',
+    toast_load_timeout: '檔案載入超過2分鐘已自動取消。請檢查外部儲存裝置連線或檔案數量。',
+    pillar_cam_na: '4通道影片中沒有B柱攝影機',
   },
 };
 
@@ -1405,9 +1420,15 @@ export class I18nManager {
       btnResetRange.title = dict.tip_reset_range;
     }
 
-    const chkAutoNextLabel = document.querySelector('#chk-auto-next')?.parentElement;
-    if (chkAutoNextLabel) {
-      chkAutoNextLabel.innerHTML = `<input type="checkbox" id="chk-auto-next" /> ${dict.chk_auto_next}`;
+    const chkAutoNextText = document.getElementById('chk-auto-next-text');
+    if (chkAutoNextText) {
+      chkAutoNextText.textContent = dict.chk_auto_next;
+    } else {
+      const chkAutoNextLabel = document.querySelector('#chk-auto-next')?.parentElement;
+      if (chkAutoNextLabel) {
+        const isChecked = (document.getElementById('chk-auto-next') as HTMLInputElement)?.checked;
+        chkAutoNextLabel.innerHTML = `<input type="checkbox" id="chk-auto-next" ${isChecked ? 'checked' : ''} /> <span id="chk-auto-next-text">${dict.chk_auto_next}</span>`;
+      }
     }
 
     const lblSpeedTag = document.getElementById('lbl-speed-tag');

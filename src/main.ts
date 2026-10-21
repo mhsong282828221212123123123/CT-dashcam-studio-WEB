@@ -200,6 +200,25 @@ class CTDashcamStudioApp {
     }
   }
 
+  private loadWatchdogTimer: any = null;
+
+  startLoadWatchdog(durationMs = 120000) {
+    this.clearLoadWatchdog();
+    this.loadWatchdogTimer = setTimeout(() => {
+      console.warn('[App] File loading watchdog triggered: exceeded 2 minutes');
+      this.hideLoadProgress();
+      this.isSelectingClip = false;
+      this.showToast(i18n.t('toast_load_timeout') || '파일 불러오기 시간이 2분을 초과하여 취소되었습니다. 외장 장치 연결 상태나 파일 개수를 확인해 주세요.');
+    }, durationMs);
+  }
+
+  clearLoadWatchdog() {
+    if (this.loadWatchdogTimer) {
+      clearTimeout(this.loadWatchdogTimer);
+      this.loadWatchdogTimer = null;
+    }
+  }
+
   showLoadProgress(title: string, countText: string, pct: number, indeterminate = false) {
     const banner = document.getElementById('load-progress-banner');
     const titleEl = document.getElementById('load-progress-title');
@@ -221,6 +240,7 @@ class CTDashcamStudioApp {
   }
 
   hideLoadProgress() {
+    this.clearLoadWatchdog();
     const banner = document.getElementById('load-progress-banner');
     if (banner) {
       banner.style.display = 'none';
@@ -276,6 +296,11 @@ class CTDashcamStudioApp {
       const savedOrder = localStorage.getItem('ct_telemetry_order');
       if (savedOrder) {
         this.options.telemetryOrder = JSON.parse(savedOrder);
+      }
+      const savedAutoNext = localStorage.getItem('ct_auto_next');
+      const chkAutoNext = document.getElementById('chk-auto-next') as HTMLInputElement | null;
+      if (chkAutoNext && savedAutoNext !== null) {
+        chkAutoNext.checked = savedAutoNext === '1';
       }
     } catch {
       // fallback
@@ -713,6 +738,7 @@ class CTDashcamStudioApp {
     // Single Camera Option Buttons in Popup
     document.querySelectorAll('.btn-cam-option').forEach((btn) => {
       btn.addEventListener('click', () => {
+        if ((btn as HTMLButtonElement).disabled || btn.classList.contains('disabled')) return;
         document.querySelectorAll('.btn-cam-option').forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
         const camKey = btn.getAttribute('data-cam') as CameraKey;
@@ -720,6 +746,15 @@ class CTDashcamStudioApp {
         if (singlePopup) singlePopup.style.display = 'none';
         this.setLayoutMode('단일 카메라');
       });
+    });
+    this.updateSingleCamPopupOptions();
+
+    // Auto-next Continuous Playback Checkbox state persistence
+    const chkAutoNext = document.getElementById('chk-auto-next') as HTMLInputElement | null;
+    chkAutoNext?.addEventListener('change', () => {
+      try {
+        localStorage.setItem('ct_auto_next', chkAutoNext.checked ? '1' : '0');
+      } catch {}
     });
 
     // Close single camera popup on outside click
@@ -1250,7 +1285,12 @@ class CTDashcamStudioApp {
     const chkPip = document.getElementById('chk-pillar-pip') as HTMLInputElement;
     if (!chkPip) return;
     const hasPillars = Boolean(
-      this.activeClip && (this.activeClip.cams.left_pillar || this.activeClip.cams.right_pillar)
+      this.activeClip && (
+        this.activeClip.cams.left_pillar ||
+        this.activeClip.cams.right_pillar ||
+        this.activeClip.camHandles?.left_pillar ||
+        this.activeClip.camHandles?.right_pillar
+      )
     );
     const isMulticam = this.options.layout === '기본 (1:3 세로배치)' || this.options.layout === '2x2 분할 (전후/좌우)';
     const canEnable = hasPillars && isMulticam;
@@ -1262,6 +1302,43 @@ class CTDashcamStudioApp {
     } else {
       chkPip.checked = true;
       this.options.pillar_pip = true;
+    }
+
+    this.updateSingleCamPopupOptions();
+  }
+
+  private updateSingleCamPopupOptions() {
+    const hasPillars = Boolean(
+      this.activeClip && (
+        this.activeClip.cams.left_pillar ||
+        this.activeClip.cams.right_pillar ||
+        this.activeClip.camHandles?.left_pillar ||
+        this.activeClip.camHandles?.right_pillar
+      )
+    );
+
+    document.querySelectorAll('.btn-cam-option').forEach((btn) => {
+      const cam = btn.getAttribute('data-cam');
+      if (cam === 'left_pillar' || cam === 'right_pillar') {
+        const buttonEl = btn as HTMLButtonElement;
+        buttonEl.disabled = !hasPillars;
+        buttonEl.classList.toggle('disabled', !hasPillars);
+        if (!hasPillars) {
+          buttonEl.setAttribute('title', i18n.t('pillar_cam_na') || '4채널 영상에는 B필러 카메라가 없습니다');
+        } else {
+          buttonEl.removeAttribute('title');
+        }
+      }
+    });
+
+    if (!hasPillars && (this.options.single_cam === 'left_pillar' || this.options.single_cam === 'right_pillar')) {
+      this.options.single_cam = 'front';
+      document.querySelectorAll('.btn-cam-option').forEach((b) => {
+        b.classList.toggle('active', b.getAttribute('data-cam') === 'front');
+      });
+      if (this.options.layout === '단일 카메라') {
+        this.renderFrame();
+      }
     }
   }
 
@@ -1498,6 +1575,9 @@ class CTDashcamStudioApp {
 
       if (files.length === 0) return;
 
+      // 2분 초과 지연 방지 타임아웃 워치독 가동
+      this.startLoadWatchdog(120000);
+
       // 1) 즉시 진행도 배너 띄우기
       this.showLoadProgress(
         i18n.t('progress_grouping_clips'),
@@ -1530,6 +1610,8 @@ class CTDashcamStudioApp {
     (async () => {
       try {
         const dirHandle = await (window as any).showDirectoryPicker();
+        // 2분 초과 지연 방지 타임아웃 워치독 가동
+        this.startLoadWatchdog(120000);
         this.showLoadProgress(i18n.t('progress_searching_clips'), i18n.t('progress_searching_videos'), 0, true);
         const items = await scanFileSystemDirectory(dirHandle, (filesCount, dirsCount) => {
           this.showLoadProgress(i18n.t('progress_searching_clips'), i18n.t('progress_found_videos', [filesCount, dirsCount]), 0, true);
@@ -2253,8 +2335,13 @@ class CTDashcamStudioApp {
         return;
       }
       const durSec = (this.endPoint.absTimeMs - currAbsMs) / 1000.0;
-      if (durSec > 1800.0) {
-        alert(i18n.t('alert_max_duration', [(durSec / 60.0).toFixed(1)]));
+      const maxAllowedSec = isIOS() ? 120.0 : 1800.0;
+      if (durSec > maxAllowedSec) {
+        if (isIOS()) {
+          alert(i18n.t('alert_ios_max_duration') || '아이폰(iOS)에서는 안정적인 내보내기를 위해 최대 120초(2분)까지만 지정할 수 있습니다.');
+        } else {
+          alert(i18n.t('alert_max_duration', [(durSec / 60.0).toFixed(1)]));
+        }
         return;
       }
     }
@@ -2283,8 +2370,13 @@ class CTDashcamStudioApp {
         return;
       }
       const durSec = (currAbsMs - this.startPoint.absTimeMs) / 1000.0;
-      if (durSec > 1800.0) {
-        alert(i18n.t('alert_max_duration', [(durSec / 60.0).toFixed(1)]));
+      const maxAllowedSec = isIOS() ? 120.0 : 1800.0;
+      if (durSec > maxAllowedSec) {
+        if (isIOS()) {
+          alert(i18n.t('alert_ios_max_duration') || '아이폰(iOS)에서는 안정적인 내보내기를 위해 최대 120초(2분)까지만 지정할 수 있습니다.');
+        } else {
+          alert(i18n.t('alert_max_duration', [(durSec / 60.0).toFixed(1)]));
+        }
         return;
       }
     }
@@ -2614,6 +2706,13 @@ class CTDashcamStudioApp {
     const segments = this.buildTargetClipChain();
     if (segments.length === 0) {
       alert(i18n.t('alert_no_range'));
+      return;
+    }
+
+    // 아이폰(iOS) 최대 출력 시간 120초 제한
+    const totalDurationSec = segments.reduce((sum, seg) => sum + (seg.endSec - seg.startSec), 0);
+    if (isIOS() && totalDurationSec > 120.0) {
+      alert(i18n.t('alert_ios_max_duration') || '아이폰(iOS)에서는 안정적인 내보내기를 위해 최대 출력 시간이 120초(2분)로 제한됩니다. 구간을 120초 이하로 설정해 주세요.');
       return;
     }
 

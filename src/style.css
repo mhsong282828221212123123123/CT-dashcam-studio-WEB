@@ -840,6 +840,16 @@ body {
   font-weight: bold;
 }
 
+.btn-cam-option:disabled,
+.btn-cam-option.disabled {
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  border-color: #1a202c !important;
+  background: #0d1017 !important;
+  color: #555e70 !important;
+}
+
 /* =========================================================================
    3. 하단 타임라인 컨트롤 덱 (#timelineDeck)
    ========================================================================= */
@@ -1868,6 +1878,45 @@ kbd {
     display: flex;
   }
 
+  /* 모바일/아이폰 전용: 불러오기 진행도 배너를 화면 상단 고정 플로팅 모달로 표시 */
+  body:not(.view-desktop) .load-progress-banner,
+  body.view-mobile .load-progress-banner {
+    position: fixed !important;
+    top: max(56px, calc(env(safe-area-inset-top, 20px) + 50px)) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: min(92vw, 380px) !important;
+    z-index: 99998 !important;
+    background: rgba(16, 22, 34, 0.98) !important;
+    border: 1.5px solid var(--accent-blue, #1f6feb) !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.9), 0 0 20px rgba(31, 111, 235, 0.35) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    gap: 8px !important;
+    animation: toastSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  body:not(.view-desktop) .load-progress-banner .progress-banner-header,
+  body.view-mobile .load-progress-banner .progress-banner-header {
+    font-size: 13px !important;
+  }
+
+  body:not(.view-desktop) .load-progress-banner .progress-banner-title,
+  body.view-mobile .load-progress-banner .progress-banner-title {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #58a6ff !important;
+  }
+
+  body:not(.view-desktop) .load-progress-banner .progress-banner-bar,
+  body.view-mobile .load-progress-banner .progress-banner-bar {
+    height: 8px !important;
+    border-radius: 4px !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+  }
+
   .mobile-brand {
     display: flex;
     align-items: center;
@@ -2204,7 +2253,21 @@ kbd {
 
     body:not(.view-desktop) .speed-cluster .chk-item,
     body.view-mobile .speed-cluster .chk-item {
-      display: none !important; /* 공간 절약을 위해 세로 모드에서는 체크박스 숨김 */
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 3px !important;
+      font-size: 11px !important;
+      margin-left: 5px !important;
+      white-space: nowrap !important;
+      cursor: pointer !important;
+      color: #c9d1d9 !important;
+    }
+    body:not(.view-desktop) .speed-cluster .chk-item input[type="checkbox"],
+    body.view-mobile .speed-cluster .chk-item input[type="checkbox"] {
+      width: 14px !important;
+      height: 14px !important;
+      margin: 0 !important;
+      cursor: pointer !important;
     }
 
     body:not(.view-desktop) .filter-cluster,
@@ -2658,11 +2721,20 @@ kbd {
     body.view-mobile .filter-cluster,
     body:not(.view-desktop) #btn-hotkey-guide,
     body.view-mobile #btn-hotkey-guide,
-    body:not(.view-desktop) .speed-cluster .chk-item,
-    body.view-mobile .speed-cluster .chk-item,
     body:not(.view-desktop) .v-divider,
     body.view-mobile .v-divider {
       display: none !important;
+    }
+
+    body:not(.view-desktop) .speed-cluster .chk-item,
+    body.view-mobile .speed-cluster .chk-item {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 3px !important;
+      font-size: 11px !important;
+      margin-left: 8px !important;
+      white-space: nowrap !important;
+      color: #c9d1d9 !important;
     }
 
     body:not(.view-desktop) .mobile-top-bar,
