@@ -1291,7 +1291,7 @@ export class I18nManager {
         <option value="2.0">${dict.speed_20}</option>
         <option value="4.0">${dict.speed_40}</option>
       `;
-      speedSelect.value = currentVal;
+      speedSelect.value = (currentVal && currentVal !== '1') ? currentVal : '1.0';
     }
 
     // 10. FPS select options

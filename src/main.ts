@@ -951,7 +951,7 @@ class CTDashcamStudioApp {
     if (resSelect) resSelect.value = 'FHD (1920x1080) - 권장 표준';
     const speedSelect = document.getElementById('export-speed-select') as HTMLSelectElement | null;
     if (speedSelect) {
-      speedSelect.value = '1';
+      speedSelect.value = '1.0';
       this.options.exportSpeed = 1.0;
     }
     const fpsSelect = document.getElementById('export-fps-select') as HTMLSelectElement | null;
