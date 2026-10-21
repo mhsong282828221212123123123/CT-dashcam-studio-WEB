@@ -266,6 +266,10 @@ body {
   100% { transform: rotate(360deg); }
 }
 
+.floating-load-progress {
+  display: none;
+}
+
 /* 1-2. 오버레이 요소 섹션 (PC 데스크톱: 체크박스가 밑으로 밀려나지 않게 고정) */
 .sidebar-section[data-mobile-tab="overlays"] {
   flex-shrink: 0;
@@ -1898,8 +1902,7 @@ kbd {
   }
 
   /* 모바일/아이폰 전용: 불러오기 진행도 배너를 화면 상단 고정 플로팅 모달로 표시 */
-  body:not(.view-desktop) .load-progress-banner,
-  body.view-mobile .load-progress-banner {
+  .floating-load-progress {
     position: fixed !important;
     top: max(56px, calc(env(safe-area-inset-top, 20px) + 50px)) !important;
     left: 50% !important;
@@ -1913,24 +1916,25 @@ kbd {
     box-shadow: 0 10px 35px rgba(0, 0, 0, 0.9), 0 0 20px rgba(31, 111, 235, 0.35) !important;
     backdrop-filter: blur(14px) !important;
     -webkit-backdrop-filter: blur(14px) !important;
+    flex-direction: column !important;
     gap: 8px !important;
     animation: toastSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
   }
 
-  body:not(.view-desktop) .load-progress-banner .progress-banner-header,
-  body.view-mobile .load-progress-banner .progress-banner-header {
+  .floating-load-progress .progress-banner-header {
     font-size: 13px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
   }
 
-  body:not(.view-desktop) .load-progress-banner .progress-banner-title,
-  body.view-mobile .load-progress-banner .progress-banner-title {
+  .floating-load-progress .progress-banner-title {
     font-size: 13px !important;
     font-weight: 700 !important;
     color: #58a6ff !important;
   }
 
-  body:not(.view-desktop) .load-progress-banner .progress-banner-bar,
-  body.view-mobile .load-progress-banner .progress-banner-bar {
+  .floating-load-progress .progress-banner-bar {
     height: 8px !important;
     border-radius: 4px !important;
     background: rgba(255, 255, 255, 0.12) !important;

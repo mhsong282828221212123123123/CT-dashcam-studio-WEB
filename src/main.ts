@@ -220,22 +220,43 @@ class CTDashcamStudioApp {
   }
 
   showLoadProgress(title: string, countText: string, pct: number, indeterminate = false) {
+    // 1. 사이드바 인라인 진행도 배너 (PC 및 갤럭시 안드로이드 탐색기 상단)
     const banner = document.getElementById('load-progress-banner');
     const titleEl = document.getElementById('load-progress-title');
     const countEl = document.getElementById('load-progress-count');
     const fillEl = document.getElementById('load-progress-fill');
-    if (!banner || !titleEl || !countEl || !fillEl) return;
+    if (banner && titleEl && countEl && fillEl) {
+      banner.style.display = 'flex';
+      titleEl.textContent = title;
+      countEl.textContent = countText;
 
-    banner.style.display = 'flex';
-    titleEl.textContent = title;
-    countEl.textContent = countText;
+      if (indeterminate) {
+        fillEl.classList.add('indeterminate');
+        fillEl.style.width = '35%';
+      } else {
+        fillEl.classList.remove('indeterminate');
+        fillEl.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+      }
+    }
 
-    if (indeterminate) {
-      fillEl.classList.add('indeterminate');
-      fillEl.style.width = '35%';
-    } else {
-      fillEl.classList.remove('indeterminate');
-      fillEl.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+    // 2. 모바일 전용 플로팅 진행도 배너 (iOS 및 모바일 가로모드/시트 축소 시 상시 노출)
+    const floatingBanner = document.getElementById('floating-load-progress');
+    const floatingTitle = document.getElementById('floating-progress-title');
+    const floatingCount = document.getElementById('floating-progress-count');
+    const floatingFill = document.getElementById('floating-progress-fill');
+    if (floatingBanner && floatingTitle && floatingCount && floatingFill) {
+      const isMobile = this.isMobileDevice() || document.body.classList.contains('view-mobile') || window.innerWidth <= 850;
+      floatingBanner.style.display = isMobile ? 'flex' : 'none';
+      floatingTitle.textContent = title;
+      floatingCount.textContent = countText;
+
+      if (indeterminate) {
+        floatingFill.classList.add('indeterminate');
+        floatingFill.style.width = '35%';
+      } else {
+        floatingFill.classList.remove('indeterminate');
+        floatingFill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+      }
     }
   }
 
@@ -244,6 +265,10 @@ class CTDashcamStudioApp {
     const banner = document.getElementById('load-progress-banner');
     if (banner) {
       banner.style.display = 'none';
+    }
+    const floatingBanner = document.getElementById('floating-load-progress');
+    if (floatingBanner) {
+      floatingBanner.style.display = 'none';
     }
   }
 
@@ -1495,9 +1520,8 @@ class CTDashcamStudioApp {
 
   private canUseDirectoryPicker(): boolean {
     if (typeof window === 'undefined') return false;
-    const isIOSDevice = isIOS();
-    const isAndroidDevice = /android/i.test(navigator.userAgent || '');
-    if (isIOSDevice || isAndroidDevice) return false;
+    // iOS Safari는 showDirectoryPicker 미지원이거나 대용량 Silent Abort 발생하므로 네이티브 오버레이 사용
+    if (isIOS()) return false;
     return (
       'showDirectoryPicker' in window &&
       (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
@@ -1640,6 +1664,17 @@ class CTDashcamStudioApp {
 
     this.cleanupPreviousResources();
     this.loadGeneration++;
+
+    // 모바일 환경에서 탐색기 탭(clips)으로 자동 전환하여 인라인 진행도 배너가 항상 화면에 보이도록 보장
+    const isMobile = this.isMobileDevice() || document.body.classList.contains('view-mobile') || window.innerWidth <= 850;
+    if (isMobile) {
+      document.querySelectorAll('.mobile-tab-btn, .drawer-tab-btn').forEach((b) => {
+        b.classList.toggle('active', b.getAttribute('data-tab') === 'clips');
+      });
+      document.querySelectorAll('.mobile-tab-section').forEach((sec) => {
+        sec.classList.toggle('active', sec.getAttribute('data-mobile-tab') === 'clips');
+      });
+    }
 
     const totalCount = files.length;
     this.showLoadProgress(i18n.t('progress_grouping_clips'), i18n.t('progress_grouping_status', [0, totalCount, 0, 0]), 0, false);

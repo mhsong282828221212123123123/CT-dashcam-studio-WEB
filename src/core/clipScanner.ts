@@ -224,8 +224,8 @@ export async function groupFilesIntoClips(
   >();
 
   const total = files.length;
-  // iOS Safari 및 모바일 기기에서 UI 프리징 없이 실시간 진행도가 그려지도록 청크 크기 설정
-  const CHUNK_SIZE = 60;
+  // 소량(10~50개)부터 대용량까지 매끄러운 실시간 % 진행도 표시를 위한 가변 청크 크기
+  const CHUNK_SIZE = Math.max(5, Math.min(25, Math.floor(total / 10)));
 
   for (let i = 0; i < total; i++) {
     const item = files[i];
@@ -423,9 +423,8 @@ export async function scanFileSystemDirectory(
       onProgress(items.length, scannedDirs);
     }
 
-    if (scannedDirs % 5 === 0) {
-      await yieldToCompositor();
-    }
+    // 모바일 브라우저 및 안드로이드/iOS에서 실시간 파일 카운트 갱신이 화면에 그려지도록 프레임 양보
+    await yieldToCompositor();
 
     for (const dirEntry of dirEntries) {
       const dirPath = currentPath ? `${currentPath}/${dirEntry.name}` : dirEntry.name;
