@@ -1428,9 +1428,28 @@ body {
   box-shadow: 0 0 5px #ff9900;
 }
 
+.brand-logo-img {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  object-fit: contain;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px rgba(255, 30, 50, 0.45);
+}
+
 .footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
   color: var(--text-dim);
+}
+
+.footer-logo-img {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  box-shadow: 0 0 5px rgba(255, 30, 50, 0.35);
 }
 
 /* 단축키 모달 */
@@ -1920,7 +1939,7 @@ kbd {
   .mobile-brand {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
 
   .brand-bolt {
