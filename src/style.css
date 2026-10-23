@@ -1895,22 +1895,21 @@ kbd {
 @media (max-width: 850px), (pointer: coarse), ((orientation: landscape) and (max-height: 600px)) {
   html {
     height: 100%;
+    height: 100dvh;
     margin: 0;
     padding: 0;
     overflow: hidden;
   }
 
   body:not(.view-desktop) {
+    height: 100%;
+    height: 100dvh;
     margin: 0;
     padding: 0;
     overflow: hidden;
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     width: 100%;
-    height: 100%;
   }
 
   /* PC 버전 강제 모드가 아닐 때 기본적으로 모바일 UI 적용 */
@@ -1918,13 +1917,12 @@ kbd {
   body.view-mobile #app {
     display: flex;
     flex-direction: column;
+    height: 100%;
+    height: 100dvh;
     width: 100%;
     overflow: hidden;
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
   }
 
   body:not(.view-desktop) .mobile-top-bar,
@@ -2173,6 +2171,7 @@ kbd {
       flex-direction: column;
       flex: 1 1 0% !important;
       min-height: 0 !important;
+      height: 0;
       overflow: hidden;
     }
 
