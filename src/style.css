@@ -1893,14 +1893,36 @@ kbd {
    모바일 모드 활성화 상태 (미디어 쿼리 850px 이하, 가로모드 600px 이하, 또는 .view-mobile 적용 시)
    ------------------------------------------------------------------------- */
 @media (max-width: 850px), (pointer: coarse), ((orientation: landscape) and (max-height: 600px)) {
+  html {
+    height: 100%;
+    height: 100dvh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  body:not(.view-desktop) {
+    height: 100%;
+    height: 100dvh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+  }
+
   /* PC 버전 강제 모드가 아닐 때 기본적으로 모바일 UI 적용 */
   body:not(.view-desktop) #app,
   body.view-mobile #app {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100%;
     height: 100dvh;
+    width: 100%;
     overflow: hidden;
+    position: absolute;
+    inset: 0;
   }
 
   body:not(.view-desktop) .mobile-top-bar,
@@ -1908,12 +1930,16 @@ kbd {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 46px;
+    padding-top: env(safe-area-inset-top, 0px);
+    height: calc(44px + env(safe-area-inset-top, 0px));
+    min-height: calc(44px + env(safe-area-inset-top, 0px));
     background: #0d111a;
     border-bottom: 1px solid #1f2738;
-    padding: 0 12px;
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
     flex-shrink: 0;
     z-index: 60;
+    box-sizing: border-box;
   }
 
   body:not(.view-desktop) .mobile-adjust-box,
@@ -2143,8 +2169,9 @@ kbd {
     body.view-mobile .main-container {
       display: flex;
       flex-direction: column;
-      flex: 1;
-      min-height: 0;
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      height: 0;
       overflow: hidden;
     }
 
@@ -2168,7 +2195,7 @@ kbd {
       width: 100%;
       height: auto;
       aspect-ratio: 16 / 9;
-      max-height: 36vh;
+      max-height: 30vh;
       background: #000000;
       position: relative;
     }
@@ -2485,12 +2512,12 @@ kbd {
       display: none; /* 모바일에서는 하단 탭 바가 푸터 역할을 수행 */
     }
 
-    /* 2. 하단 탭 바 (모바일 세로 모드: 58px 버튼 높이 + iOS Safe Area 완벽 대응) */
+    /* 2. 하단 탭 바 (모바일 세로 모드: 52px 버튼 높이 + iOS Safe Area 완벽 대응) */
     body:not(.view-desktop) .mobile-tabs-nav,
     body.view-mobile .mobile-tabs-nav {
       display: flex;
-      height: calc(58px + env(safe-area-inset-bottom, 0px));
-      min-height: calc(58px + env(safe-area-inset-bottom, 0px));
+      height: calc(52px + env(safe-area-inset-bottom, 0px));
+      min-height: calc(52px + env(safe-area-inset-bottom, 0px));
       background: #0a0d14;
       border-top: 1px solid #1f2738;
       flex-shrink: 0;
@@ -2501,7 +2528,7 @@ kbd {
 
     .mobile-tab-btn {
       flex: 1;
-      height: 58px;
+      height: 52px;
       background: transparent;
       border: none;
       color: #8b97a8;
@@ -2509,9 +2536,9 @@ kbd {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 3px;
+      gap: 2px;
       cursor: pointer;
-      padding: 6px 0;
+      padding: 4px 0;
       transition: all 0.15s ease;
       box-sizing: border-box;
       position: relative;
@@ -2526,7 +2553,7 @@ kbd {
 
     .mobile-tab-btn .tab-icon,
     .mobile-tab-btn .mobile-tab-icon {
-      font-size: 19px;
+      font-size: 18px;
       line-height: 1;
       display: flex;
       align-items: center;
@@ -2546,16 +2573,18 @@ kbd {
     body:not(.view-desktop) .sidebar-panel,
     body.view-mobile .sidebar-panel {
       order: 2 !important;
-      flex: 1;
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
       width: 100% !important;
       min-width: 0 !important;
       max-width: 100% !important;
       background: #0d111a;
       border-right: none;
-      padding: 10px;
-      padding-bottom: 32px;
+      padding: 8px 10px;
+      padding-bottom: 8px;
       overflow-y: auto;
-      gap: 10px;
+      -webkit-overflow-scrolling: touch;
+      gap: 8px;
       box-sizing: border-box;
     }
 
@@ -2569,13 +2598,15 @@ kbd {
     body.view-mobile .mobile-tab-section.active {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      flex: 1 1 0%;
+      min-height: 0;
+      gap: 8px;
     }
 
     body:not(.view-desktop) .explorer-card,
     body.view-mobile .explorer-card {
-      min-height: 240px;
-      flex: 1;
+      min-height: 0 !important;
+      flex: 1 1 0%;
       display: flex;
       flex-direction: column;
     }
@@ -2631,7 +2662,7 @@ kbd {
       position: fixed !important;
       left: 0 !important;
       right: 0 !important;
-      bottom: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
+      bottom: calc(52px + env(safe-area-inset-bottom, 0px)) !important;
       height: 85dvh !important;
       max-height: 85dvh !important;
       z-index: 50 !important;
@@ -2962,7 +2993,11 @@ kbd {
       background: rgba(10, 14, 22, 0.88);
       backdrop-filter: blur(8px);
       z-index: 30;
-      height: 40px;
+      height: calc(38px + env(safe-area-inset-top, 0px));
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-left: max(16px, env(safe-area-inset-left, 0px));
+      padding-right: max(16px, env(safe-area-inset-right, 0px));
+      box-sizing: border-box;
     }
 
     body:not(.view-desktop) .mobile-tabs-nav,
