@@ -2659,6 +2659,23 @@ kbd {
       overflow: hidden !important;
     }
 
+    /* 바텀시트 확장 시 부모 컨테이너 오버플로우/합성레이어 트랩 해제 (iOS WebKit 팝업 전면 표출 보장) */
+    body:not(.view-desktop).explorer-expanded .main-container,
+    body.view-mobile:not(.view-desktop).explorer-expanded .main-container {
+      overflow: visible !important;
+    }
+
+    body:not(.view-desktop).explorer-expanded .sidebar-panel,
+    body.view-mobile:not(.view-desktop).explorer-expanded .sidebar-panel {
+      overflow: visible !important;
+      -webkit-overflow-scrolling: auto !important;
+    }
+
+    body:not(.view-desktop).explorer-expanded .sidebar-section[data-mobile-tab="clips"],
+    body.view-mobile:not(.view-desktop).explorer-expanded .sidebar-section[data-mobile-tab="clips"] {
+      overflow: visible !important;
+    }
+
     /* 바텀시트 확장: 상단으로 85dvh 늘어남 (플레이어 위를 덮고 탭바 위에 고정) */
     body:not(.view-desktop).explorer-expanded .sidebar-section[data-mobile-tab="clips"] .explorer-card,
     body.view-mobile:not(.view-desktop).explorer-expanded .sidebar-section[data-mobile-tab="clips"] .explorer-card {
