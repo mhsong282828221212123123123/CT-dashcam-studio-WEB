@@ -58,23 +58,119 @@ export class WebCodecsExporter {
 
   private seekVideoOnce(v: HTMLVideoElement, timeSec: number): Promise<void> {
     return new Promise<void>((resolve) => {
-      if (Math.abs(v.currentTime - timeSec) < 0.03) {
+      const targetSec = timeSec <= 0 ? 0.001 : timeSec;
+      if (Math.abs(v.currentTime - targetSec) < 0.02 && v.readyState >= 2) {
         resolve();
         return;
       }
+      let settled = false;
       let timer: any = null;
-      const onSeeked = () => {
+      const finish = () => {
+        if (settled) return;
+        settled = true;
         if (timer) clearTimeout(timer);
-        v.removeEventListener('seeked', onSeeked);
+        v.removeEventListener('seeked', onReady);
+        v.removeEventListener('loadeddata', onReady);
+        v.removeEventListener('canplay', onReady);
         resolve();
       };
-      timer = setTimeout(() => {
-        v.removeEventListener('seeked', onSeeked);
-        resolve();
-      }, 300);
-      v.addEventListener('seeked', onSeeked, { once: true });
-      v.currentTime = timeSec;
+      const onReady = () => {
+        if (v.readyState >= 2) {
+          finish();
+        }
+      };
+      timer = setTimeout(finish, 800);
+      v.addEventListener('seeked', onReady);
+      v.addEventListener('loadeddata', onReady);
+      v.addEventListener('canplay', onReady);
+      try {
+        v.currentTime = targetSec;
+      } catch {
+        finish();
+      }
     });
+  }
+
+  private async warmupSegmentVideos(
+    segVideos: Partial<Record<CameraKey, HTMLVideoElement>>,
+    startSec: number,
+    isIOS: boolean
+  ): Promise<void> {
+    const videos = Object.values(segVideos).filter((v): v is HTMLVideoElement => Boolean(v));
+    // 1. Wait for metadata on all active segment videos
+    await Promise.all(
+      videos.map(
+        (v) =>
+          new Promise<void>((resolve) => {
+            if (v.readyState >= 1) {
+              resolve();
+              return;
+            }
+            let settled = false;
+            const done = () => {
+              if (settled) return;
+              settled = true;
+              v.removeEventListener('loadedmetadata', done);
+              v.removeEventListener('error', done);
+              resolve();
+            };
+            const t = setTimeout(done, 1500);
+            v.addEventListener('loadedmetadata', () => {
+              clearTimeout(t);
+              done();
+            }, { once: true });
+            v.addEventListener('error', () => {
+              clearTimeout(t);
+              done();
+            }, { once: true });
+          })
+      )
+    );
+
+    // 2. Force initial seek & wait until first frame pixel data is actually decoded (readyState >= 2)
+    const initTargetSec = (!isIOS && startSec <= 0) ? 0.001 : startSec;
+    await Promise.all(
+      videos.map(
+        (v) =>
+          new Promise<void>((resolve) => {
+            let settled = false;
+            let timer: any = null;
+            const finish = () => {
+              if (settled) return;
+              settled = true;
+              if (timer) clearTimeout(timer);
+              v.removeEventListener('seeked', checkReady);
+              v.removeEventListener('loadeddata', checkReady);
+              v.removeEventListener('canplay', checkReady);
+              resolve();
+            };
+            const checkReady = () => {
+              if (v.readyState >= 2 && v.videoWidth > 0) {
+                finish();
+              }
+            };
+
+            timer = setTimeout(finish, 1500);
+            v.addEventListener('seeked', checkReady);
+            v.addEventListener('loadeddata', checkReady);
+            v.addEventListener('canplay', checkReady);
+
+            try {
+              const clampedTarget = v.duration > 0 ? Math.min(v.duration, initTargetSec) : initTargetSec;
+              // If startSec is 0 on iOS and currentTime is already 0, nudge to 0.001 if frame not decoded yet
+              if (Math.abs(v.currentTime - clampedTarget) < 0.0005 && v.readyState < 2) {
+                v.currentTime = 0.001;
+              } else if (Math.abs(v.currentTime - clampedTarget) >= 0.0005) {
+                v.currentTime = clampedTarget;
+              } else if (v.readyState >= 2 && v.videoWidth > 0) {
+                finish();
+              }
+            } catch {
+              finish();
+            }
+          })
+      )
+    );
   }
 
   /**
@@ -188,8 +284,8 @@ export class WebCodecsExporter {
       }
       lastFrameWallTime = performance.now();
 
-      // 세그먼트 시작점 이전 프레임 무시
-      if (mediaTime < segment.startSec - 0.03) {
+      // 세그먼트 시작점 이전 프레임 또는 디코딩 미완료 프레임 무시 (블랙스크린 방지)
+      if (mediaTime < segment.startSec - 0.03 || masterVideo.readyState < 2 || masterVideo.videoWidth === 0) {
         continue;
       }
 
@@ -506,19 +602,14 @@ export class WebCodecsExporter {
             if (isMobile && hiddenContainer) {
               hiddenContainer.appendChild(v);
             }
+            try {
+              v.load();
+            } catch {}
             segVideos[k] = v;
           }
 
-        // Wait for video metadata
-        await Promise.all(
-          Object.values(segVideos).map(
-            (v) =>
-              new Promise<void>((resolve) => {
-                if (!v || v.readyState >= 1) resolve();
-                else v.onloadedmetadata = () => resolve();
-              })
-          )
-        );
+        // Wait for video metadata AND ensure first frame at segment.startSec is decoded (prevents initial black screen)
+        await this.warmupSegmentVideos(segVideos, segment.startSec, isIOS);
 
         // Fetch SEI decoder
         const decoder = await config.getClipDecoder(segment.clip);
@@ -547,13 +638,14 @@ export class WebCodecsExporter {
           let currentSourceSec = segment.startSec;
 
           while (currentSourceSec <= segment.endSec && !this.isCancelled) {
-            // Sync all camera videos to currentSourceSec
+            // Sync all camera videos to currentSourceSec and ensure frame data is decoded
             await Promise.all(
               videoKeys.map((k) => {
                 const v = segVideos[k];
                 if (!v) return Promise.resolve();
                 return new Promise<void>((resolve) => {
-                  if (Math.abs(v.currentTime - currentSourceSec) < 0.0001) {
+                  const targetSec = (!isIOS && currentSourceSec <= 0) ? 0.001 : currentSourceSec;
+                  if (Math.abs(v.currentTime - targetSec) < 0.002 && v.readyState >= 2 && v.videoWidth > 0) {
                     resolve();
                     return;
                   }
@@ -566,13 +658,25 @@ export class WebCodecsExporter {
                     settled = true;
                     if (timeoutId) clearTimeout(timeoutId);
                     v.removeEventListener('seeked', onSeeked);
+                    v.removeEventListener('loadeddata', onSeeked);
+                    v.removeEventListener('canplay', onSeeked);
                     resolve();
                   };
 
-                  const onSeeked = () => finish();
+                  const onSeeked = () => {
+                    if (v.readyState >= 2) {
+                      finish();
+                    }
+                  };
                   timeoutId = setTimeout(finish, isMobile ? 800 : 400);
-                  v.addEventListener('seeked', onSeeked, { once: true });
-                  v.currentTime = currentSourceSec;
+                  v.addEventListener('seeked', onSeeked);
+                  v.addEventListener('loadeddata', onSeeked);
+                  v.addEventListener('canplay', onSeeked);
+                  try {
+                    v.currentTime = v.duration > 0 ? Math.min(v.duration, targetSec) : targetSec;
+                  } catch {
+                    finish();
+                  }
                 });
               })
             );

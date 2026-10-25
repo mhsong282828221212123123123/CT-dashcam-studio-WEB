@@ -107,6 +107,9 @@ class CTDashcamStudioApp {
   private seiWorker: Worker | null = null;
   private currentClipGeneration = 0;
   private loadSeqId = 0;
+  private lastSyncCheckMs = 0;
+  private lastRenderedTimeSec = -1;
+  private lastRenderWallMs = 0;
 
   // Mobile portrait bottom sheet state
   private isExplorerExpanded = false;
@@ -2174,12 +2177,15 @@ class CTDashcamStudioApp {
           const isMaster = key === masterKey;
           v.preload = isIOSDevice ? (isMaster ? 'auto' : 'metadata') : 'auto';
 
-          // loadeddata 이후 원래 설정된 배속(최대 4.0x)을 다시 적용
+          // loadeddata 이후 원래 설정된 배속(최대 4.0x)을 다시 적용 및 정지 상태 시 첫 프레임 즉시 렌더
           v.onloadeddata = () => {
             if (loadSeqId !== this.loadSeqId) return;
             try {
               v.playbackRate = configuredSpeed;
             } catch {}
+            if (!this.isPlaying && this.activeClip?.id === clip.id) {
+              this.renderFrame();
+            }
           };
 
           if (!isIOSDevice) {
@@ -2472,43 +2478,55 @@ class CTDashcamStudioApp {
         if (isMasterFinished) {
           this.handleMasterEnded();
         } else {
-          // Sync other cameras to master video time
-          const masterTime = masterVideo.currentTime;
-          const isMobileEnv = this.isMobile();
-          const maxSpeedLimit = isMobileEnv ? 4.0 : 16.0;
-          const targetSpeed = this.getEffectivePlaybackSpeed();
-          const activeKeys = Object.keys(this.activeClip?.cams || {}) as CameraKey[];
+          // Sync other cameras to master video time (throttled to avoid per-frame decoder stalls & resampler jitter)
+          const nowMs = performance.now();
+          if (nowMs - this.lastSyncCheckMs >= 250) {
+            this.lastSyncCheckMs = nowMs;
+            const masterTime = masterVideo.currentTime;
+            const isMobileEnv = this.isMobile();
+            const maxSpeedLimit = isMobileEnv ? 4.0 : 16.0;
+            const targetSpeed = this.getEffectivePlaybackSpeed();
+            const hardSeekThreshold = Math.max(0.4, 0.25 * targetSpeed);
+            const activeKeys = Object.keys(this.activeClip?.cams || {}) as CameraKey[];
 
-          for (let i = 0; i < activeKeys.length; i++) {
-            const k = activeKeys[i];
-            const v = this.videoPool[k];
-            if (!v || v === masterVideo) continue;
+            for (let i = 0; i < activeKeys.length; i++) {
+              const k = activeKeys[i];
+              const v = this.videoPool[k];
+              if (!v || v === masterVideo) continue;
 
-            // [Requirement 2] 만약 보조 비디오가 마스터보다 먼저 끝(v.ended)에 도달한 경우 마지막 프레임 유지
-            if (v.ended) {
-              continue;
-            }
-
-            // [Requirement 2] 보조 카메라가 마스터 비디오보다 앞서 가지 못하도록 제한
-            const diff = v.currentTime - masterTime;
-
-            if (Math.abs(diff) > 0.08) {
-              try {
-                v.currentTime = Math.min(v.duration || masterTime, masterTime);
-              } catch {}
-              v.playbackRate = targetSpeed;
-            } else if (Math.abs(diff) > 0.03) {
-              if (diff > 0) {
-                // 보조 비디오가 앞서 있음 -> 감속
-                v.playbackRate = Math.max(0.5, targetSpeed * 0.9);
-              } else {
-                // 보조 비디오가 뒤쳐짐 -> 가속 (모바일 환경에서는 4.0x를 절대 초과하지 않도록 클램핑)
-                const accelerated = targetSpeed * 1.1;
-                v.playbackRate = Math.min(maxSpeedLimit, accelerated);
+              // [Requirement 2] 만약 보조 비디오가 마스터보다 먼저 끝(v.ended)에 도달했거나 시크 중이면 개입 생략
+              if (v.ended || v.seeking || v.readyState < 2) {
+                continue;
               }
-            } else {
-              if (v.playbackRate !== targetSpeed) {
-                v.playbackRate = targetSpeed;
+
+              // [Requirement 2] 보조 카메라와 마스터 비디오 간 시간 오차 제어
+              const diff = v.currentTime - masterTime;
+
+              if (Math.abs(diff) > hardSeekThreshold) {
+                try {
+                  v.currentTime = Math.min(v.duration || masterTime, masterTime);
+                } catch {}
+                if (Math.abs(v.playbackRate - targetSpeed) > 0.01) {
+                  v.playbackRate = targetSpeed;
+                }
+              } else if (Math.abs(diff) > 0.06) {
+                if (diff > 0) {
+                  // 보조 비디오가 앞서 있음 -> 미세 감속
+                  const slowRate = Math.max(0.5, Number((targetSpeed * 0.94).toFixed(2)));
+                  if (Math.abs(v.playbackRate - slowRate) > 0.01) {
+                    v.playbackRate = slowRate;
+                  }
+                } else {
+                  // 보조 비디오가 뒤쳐짐 -> 미세 가속 (모바일 환경에서는 4.0x를 절대 초과하지 않도록 클램핑)
+                  const fastRate = Math.min(maxSpeedLimit, Number((targetSpeed * 1.06).toFixed(2)));
+                  if (Math.abs(v.playbackRate - fastRate) > 0.01) {
+                    v.playbackRate = fastRate;
+                  }
+                }
+              } else {
+                if (Math.abs(v.playbackRate - targetSpeed) > 0.01) {
+                  v.playbackRate = targetSpeed;
+                }
               }
             }
           }
@@ -2516,13 +2534,22 @@ class CTDashcamStudioApp {
         }
       }
 
-      this.renderFrame();
+      const nowRenderMs = performance.now();
+      const shouldRender = this.isPlaying
+        ? (Math.abs(this.currentTimeSec - this.lastRenderedTimeSec) >= 0.001 || nowRenderMs - this.lastRenderWallMs >= 40)
+        : (Boolean(this.options.draggingCol) || nowRenderMs - this.lastRenderWallMs >= 120);
+
+      if (shouldRender) {
+        this.renderFrame();
+      }
       requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
   }
 
   private renderFrame() {
+    this.lastRenderedTimeSec = this.currentTimeSec;
+    this.lastRenderWallMs = performance.now();
     const currentFrameIdx = Math.round(this.currentTimeSec * this.fps);
     const decoder = this.activeClip ? this.clipDecoders.get(this.activeClip.id) : null;
     const telemetry = decoder ? decoder.getFrameTelemetry(currentFrameIdx) : {
