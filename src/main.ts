@@ -176,7 +176,12 @@ class CTDashcamStudioApp {
       video.setAttribute('playsinline', '');
       video.setAttribute('webkit-playsinline', '');
       video.preload = 'auto';
-      video.style.display = 'none';
+      // 중요: display: 'none'을 사용하면 PC Chrome/Edge에서 백그라운드 미디어로 분류되어
+      // GPU VideoFrameCompositor가 비활성화되고 drawImage 시 메인 스레드 Readback 버벅임이 발생함
+      video.style.width = '1px';
+      video.style.height = '1px';
+      video.style.opacity = '0.01';
+      video.style.pointerEvents = 'none';
 
       // One-time frame ready listener for paused canvas repainting
       const onFrameReady = () => {
@@ -2127,7 +2132,9 @@ class CTDashcamStudioApp {
       const masterKey: CameraKey = clip.cams.front ? 'front' : (activeCamKeys[0] || 'front');
 
       // Requirement 2:
-      // 1) 비디오 전환 전 모든 비디오의 playbackRate = 1.0 일시 초기화 및 디코더 강제 반환 / Blob URL 즉시 해제
+      // 1) 비디오 전환 전 모든 비디오 정지 및 이전 Blob URL 해제
+      //    - 안드로이드(MediaCodec 제한): 먼저 src 해제 + load()로 하드웨어 디코더를 명시 반환 후 50ms 대기
+      //    - PC/iOS: 동일 틱에서 이중 v.load() 호출 시 미디어 파이프라인 경합이 발생하므로 새 src 할당 시 1회만 load() 수행
       for (const key of this.allCameraKeys) {
         const v = this.videoPool[key];
         if (!v) continue;
@@ -2135,12 +2142,14 @@ class CTDashcamStudioApp {
         try {
           v.playbackRate = 1.0;
           v.pause();
-          v.removeAttribute('src');
-          v.load();
           v.onloadedmetadata = null;
           v.onloadeddata = null;
           v.onended = null;
           v.onpause = null;
+          if (isAndroidDevice || !clip.cams[key]) {
+            v.removeAttribute('src');
+            v.load();
+          }
         } catch {}
 
         const oldUrl = this.activeSegmentBlobUrls.get(key);
@@ -2161,7 +2170,7 @@ class CTDashcamStudioApp {
 
       const configuredSpeed = this.getEffectivePlaybackSpeed();
 
-      // 3) 새로운 세그먼트의 blob: URL을 생성하여 v.src에 할당
+      // 3) 새로운 세그먼트의 blob: URL을 생성하여 v.src에 할당 (단일 v.load() 호출)
       for (const key of this.allCameraKeys) {
         const v = this.videoPool[key];
         if (!v) continue;
@@ -2188,21 +2197,30 @@ class CTDashcamStudioApp {
             }
           };
 
-          if (!isIOSDevice) {
-            // Android/PC: loadedmetadata 1회성 프로퍼티 콜백으로 마이크로 시크 (이벤트 누적 원천 차단)
-            v.onloadedmetadata = () => {
-              if (loadSeqId !== this.loadSeqId) return;
-              if (!this.isPlaying && v.currentTime < 0.002) {
-                try {
-                  const master = this.videoPool[masterKey];
-                  const seekTarget = (master && master.currentTime > 0) ? master.currentTime : 0.001;
-                  v.currentTime = seekTarget;
-                } catch {}
-              }
-            };
-          } else {
-            v.onloadedmetadata = null;
-          }
+          v.onloadedmetadata = () => {
+            if (loadSeqId !== this.loadSeqId) return;
+            try {
+              v.playbackRate = configuredSpeed;
+            } catch {}
+
+            if (isMaster && v.duration && !isNaN(v.duration) && v.duration > 0) {
+              this.durationSec = v.duration;
+              this.updateTimelineUI();
+              this.updateRangeUI();
+            }
+
+            if (!isIOSDevice && !this.isPlaying && v.currentTime < 0.002) {
+              try {
+                const master = this.videoPool[masterKey];
+                const seekTarget = (master && master.currentTime > 0) ? master.currentTime : 0.001;
+                v.currentTime = seekTarget;
+              } catch {}
+            }
+
+            if (!this.isPlaying && this.activeClip?.id === clip.id) {
+              this.renderFrame();
+            }
+          };
 
           try {
             v.load();
@@ -2213,24 +2231,9 @@ class CTDashcamStudioApp {
         }
       }
 
-      // Non-blocking duration setup from master video (프로퍼티 할당으로 중복 리스너 누적 방지)
+      // Non-blocking event & duration setup from master video
       const masterVideo = this.videoPool[masterKey];
       if (masterVideo) {
-        masterVideo.onloadedmetadata = () => {
-          if (loadSeqId !== this.loadSeqId) return;
-          try {
-            masterVideo.playbackRate = configuredSpeed;
-          } catch {}
-          if (masterVideo.duration && !isNaN(masterVideo.duration) && masterVideo.duration > 0) {
-            this.durationSec = masterVideo.duration;
-            this.updateTimelineUI();
-            this.updateRangeUI();
-            if (!this.isPlaying && this.activeClip?.id === clip.id) {
-              this.renderFrame();
-            }
-          }
-        };
-
         masterVideo.onended = () => {
           this.handleMasterEnded();
         };
@@ -2535,9 +2538,7 @@ class CTDashcamStudioApp {
       }
 
       const nowRenderMs = performance.now();
-      const shouldRender = this.isPlaying
-        ? (Math.abs(this.currentTimeSec - this.lastRenderedTimeSec) >= 0.001 || nowRenderMs - this.lastRenderWallMs >= 40)
-        : (Boolean(this.options.draggingCol) || nowRenderMs - this.lastRenderWallMs >= 120);
+      const shouldRender = this.isPlaying || Boolean(this.options.draggingCol) || (nowRenderMs - this.lastRenderWallMs >= 120);
 
       if (shouldRender) {
         this.renderFrame();
