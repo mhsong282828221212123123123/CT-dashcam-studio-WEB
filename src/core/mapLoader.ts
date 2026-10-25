@@ -151,23 +151,6 @@ export class OpenStreetMapTileLoader {
 
     ctx.restore();
 
-    // Watermark badge
-    ctx.fillStyle = "rgba(22, 18, 15, 0.85)";
-    ctx.strokeStyle = "rgba(95, 82, 70, 0.8)";
-    ctx.lineWidth = 1;
-    const badgeW = 120;
-    const badgeH = 20;
-    const bx = dx + 8;
-    const by = dy + dh - badgeH - 8;
-    ctx.fillRect(bx, by, badgeW, badgeH);
-    ctx.strokeRect(bx, by, badgeW, badgeH);
-
-    ctx.fillStyle = "#f0e8dc";
-    ctx.font = "10px sans-serif";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText("Map: OpenStreetMap", bx + 6, by + badgeH / 2);
-
     ctx.restore();
   }
 }

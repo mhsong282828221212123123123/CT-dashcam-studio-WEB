@@ -639,6 +639,13 @@ export class OverlayRenderer {
         ctx.fillStyle = '#ffffff';
         ctx.font = `bold ${Math.round(33 * scale)}px monospace`;
         ctx.fillText(timeStr, tPosX, hudY + Math.round(94 * scale));
+
+        // OpenStreetMap credit (time 밑 빈공간에 배경 박스 없이 옅은 회색으로 은은하게 텍스트만 배치)
+        if (options.map) {
+          ctx.fillStyle = 'rgba(165, 172, 182, 0.55)';
+          ctx.font = `${Math.round(11 * scale)}px sans-serif`;
+          ctx.fillText('Map: OpenStreetMap', tPosX, hudY + Math.round(145 * scale));
+        }
         ctx.restore();
       }
 
