@@ -94,15 +94,17 @@ export class WebCodecsExporter {
   private async warmupSegmentVideos(
     segVideos: Partial<Record<CameraKey, HTMLVideoElement>>,
     startSec: number,
-    isIOS: boolean
+    _isIOS: boolean
   ): Promise<void> {
     const videos = Object.values(segVideos).filter((v): v is HTMLVideoElement => Boolean(v));
+    if (videos.length === 0) return;
+
     // 1. Wait for metadata on all active segment videos
     await Promise.all(
       videos.map(
         (v) =>
           new Promise<void>((resolve) => {
-            if (v.readyState >= 1) {
+            if (v.readyState >= 1 && v.videoWidth > 0) {
               resolve();
               return;
             }
@@ -114,7 +116,7 @@ export class WebCodecsExporter {
               v.removeEventListener('error', done);
               resolve();
             };
-            const t = setTimeout(done, 1500);
+            const t = setTimeout(done, 2500);
             v.addEventListener('loadedmetadata', () => {
               clearTimeout(t);
               done();
@@ -127,49 +129,148 @@ export class WebCodecsExporter {
       )
     );
 
-    // 2. Force initial seek & wait until first frame pixel data is actually decoded (readyState >= 2)
-    const initTargetSec = (!isIOS && startSec <= 0) ? 0.001 : startSec;
+    // Helper: Verify on an offscreen 16x16 probe canvas that ctx.drawImage(v) actually paints decoded video pixels
+    const probeCanvas = document.createElement('canvas');
+    probeCanvas.width = 16;
+    probeCanvas.height = 16;
+    const probeCtx = probeCanvas.getContext('2d', { willReadFrequently: true });
+
+    const isVideoPaintingValidFrame = (v: HTMLVideoElement): boolean => {
+      if (v.readyState < 2 || v.videoWidth === 0 || v.videoHeight === 0 || !probeCtx) {
+        return false;
+      }
+      try {
+        probeCtx.clearRect(0, 0, 16, 16);
+        probeCtx.drawImage(v, 0, 0, 16, 16);
+        const data = probeCtx.getImageData(0, 0, 16, 16).data;
+        // If drawImage failed to copy any texture, alpha (data[3]) remains 0
+        if (data[3] === 0) return false;
+        // Check that the texture is not an uninitialized all-black [0,0,0,255] CVPixelBuffer
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i] > 2 || data[i + 1] > 2 || data[i + 2] > 2) {
+            return true;
+          }
+        }
+        return false;
+      } catch {
+        return false;
+      }
+    };
+
+    const waitSeeked = (v: HTMLVideoElement, targetTime: number, timeoutMs = 800): Promise<void> => {
+      return new Promise<void>((resolve) => {
+        let settled = false;
+        let timer: any = null;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          if (timer) clearTimeout(timer);
+          v.removeEventListener('seeked', onSeeked);
+          resolve();
+        };
+        const onSeeked = () => {
+          if (typeof (v as any).requestVideoFrameCallback === 'function') {
+            const rvfcTimer = setTimeout(finish, 60);
+            (v as any).requestVideoFrameCallback(() => {
+              clearTimeout(rvfcTimer);
+              finish();
+            });
+          } else {
+            finish();
+          }
+        };
+        timer = setTimeout(finish, timeoutMs);
+        v.addEventListener('seeked', onSeeked, { once: true });
+        try {
+          const clamped = v.duration > 0 ? Math.min(v.duration, targetTime) : targetTime;
+          v.currentTime = clamped;
+        } catch {
+          finish();
+        }
+      });
+    };
+
+    // 2. Prime hardware decoder (play -> decode 1st frame -> pause -> seek to startSec -> verify pixels on probeCanvas)
+    const initTargetSec = startSec <= 0 ? 0.01 : startSec;
+
     await Promise.all(
-      videos.map(
-        (v) =>
-          new Promise<void>((resolve) => {
-            let settled = false;
-            let timer: any = null;
-            const finish = () => {
-              if (settled) return;
-              settled = true;
-              if (timer) clearTimeout(timer);
-              v.removeEventListener('seeked', checkReady);
-              v.removeEventListener('loadeddata', checkReady);
-              v.removeEventListener('canplay', checkReady);
+      videos.map(async (v) => {
+        try {
+          v.muted = true;
+          v.playsInline = true;
+          v.playbackRate = 1.0;
+
+          // Step A: Play briefly to force iOS WebKit AVPlayerItemVideoOutput / VideoToolbox allocation
+          if (startSec > 0.05) {
+            try {
+              v.currentTime = Math.max(0, startSec - 0.04);
+            } catch {}
+          }
+
+          await new Promise<void>((resolve) => {
+            let done = false;
+            const finishPrime = () => {
+              if (done) return;
+              done = true;
+              v.removeEventListener('playing', onPlaying);
+              v.removeEventListener('timeupdate', finishPrime);
               resolve();
             };
-            const checkReady = () => {
-              if (v.readyState >= 2 && v.videoWidth > 0) {
-                finish();
+            const onPlaying = () => {
+              if (typeof (v as any).requestVideoFrameCallback === 'function') {
+                const t = setTimeout(finishPrime, 120);
+                (v as any).requestVideoFrameCallback(() => {
+                  clearTimeout(t);
+                  finishPrime();
+                });
+              } else {
+                setTimeout(finishPrime, 90);
               }
             };
+            const timeout = setTimeout(finishPrime, 450);
+            v.addEventListener('playing', onPlaying, { once: true });
+            v.addEventListener('timeupdate', () => {
+              clearTimeout(timeout);
+              finishPrime();
+            }, { once: true });
+            v.play().catch(() => {
+              clearTimeout(timeout);
+              finishPrime();
+            });
+          });
 
-            timer = setTimeout(finish, 1500);
-            v.addEventListener('seeked', checkReady);
-            v.addEventListener('loadeddata', checkReady);
-            v.addEventListener('canplay', checkReady);
+          try {
+            v.pause();
+          } catch {}
 
-            try {
-              const clampedTarget = v.duration > 0 ? Math.min(v.duration, initTargetSec) : initTargetSec;
-              // If startSec is 0 on iOS and currentTime is already 0, nudge to 0.001 if frame not decoded yet
-              if (Math.abs(v.currentTime - clampedTarget) < 0.0005 && v.readyState < 2) {
-                v.currentTime = 0.001;
-              } else if (Math.abs(v.currentTime - clampedTarget) >= 0.0005) {
-                v.currentTime = clampedTarget;
-              } else if (v.readyState >= 2 && v.videoWidth > 0) {
-                finish();
+          // Step B: Seek to exact target startSec
+          await waitSeeked(v, initTargetSec, 900);
+
+          // Step C: Verify that ctx.drawImage(v) actually paints decoded non-black pixels before starting export
+          const deadline = performance.now() + 1800;
+          let attempt = 0;
+          while (!isVideoPaintingValidFrame(v) && performance.now() < deadline && !this.isCancelled) {
+            attempt++;
+            if (attempt % 2 === 1) {
+              // Nudge currentTime by 1 frame (+0.035s) and back to force AVFoundation frame decode
+              const nudgeSec = initTargetSec + 0.035 * attempt;
+              await waitSeeked(v, nudgeSec, 350);
+              if (isVideoPaintingValidFrame(v)) {
+                await waitSeeked(v, initTargetSec, 350);
+                break;
               }
-            } catch {
-              finish();
+            } else {
+              // Brief play-pause pulse to wake decoder output
+              try {
+                await v.play();
+                await new Promise((r) => setTimeout(r, 60));
+                v.pause();
+              } catch {}
+              await waitSeeked(v, initTargetSec, 350);
             }
-          })
-      )
+          }
+        } catch {}
+      })
     );
   }
 
@@ -598,8 +699,14 @@ export class WebCodecsExporter {
             v.src = url;
             v.muted = true;
             v.playsInline = true;
+            v.setAttribute('playsinline', '');
+            v.setAttribute('webkit-playsinline', '');
             v.preload = 'auto';
-            if (isMobile && hiddenContainer) {
+            v.style.width = '1px';
+            v.style.height = '1px';
+            v.style.opacity = '0.01';
+            v.style.pointerEvents = 'none';
+            if (hiddenContainer) {
               hiddenContainer.appendChild(v);
             }
             try {
@@ -608,7 +715,7 @@ export class WebCodecsExporter {
             segVideos[k] = v;
           }
 
-        // Wait for video metadata AND ensure first frame at segment.startSec is decoded (prevents initial black screen)
+        // Preload, prime hardware decoders, seek to segment.startSec, and verify actual canvas pixel output before encoding
         await this.warmupSegmentVideos(segVideos, segment.startSec, isIOS);
 
         // Fetch SEI decoder
@@ -636,50 +743,56 @@ export class WebCodecsExporter {
         } else {
           // PC & iOS: Fast Step-Seek Mode (Apple VideoToolbox / NVENC at maximum hardware throughput)
           let currentSourceSec = segment.startSec;
+          let isFirstSegmentFrame = true;
 
           while (currentSourceSec <= segment.endSec && !this.isCancelled) {
-            // Sync all camera videos to currentSourceSec and ensure frame data is decoded
-            await Promise.all(
-              videoKeys.map((k) => {
-                const v = segVideos[k];
-                if (!v) return Promise.resolve();
-                return new Promise<void>((resolve) => {
-                  const targetSec = (!isIOS && currentSourceSec <= 0) ? 0.001 : currentSourceSec;
-                  if (Math.abs(v.currentTime - targetSec) < 0.002 && v.readyState >= 2 && v.videoWidth > 0) {
-                    resolve();
-                    return;
-                  }
+            if (isFirstSegmentFrame) {
+              // Frame #0 is already pre-seeked and pixel-verified by warmupSegmentVideos
+              isFirstSegmentFrame = false;
+            } else {
+              // Sync all camera videos to currentSourceSec and ensure frame data is decoded
+              await Promise.all(
+                videoKeys.map((k) => {
+                  const v = segVideos[k];
+                  if (!v) return Promise.resolve();
+                  return new Promise<void>((resolve) => {
+                    const targetSec = currentSourceSec <= 0 ? 0.01 : currentSourceSec;
+                    if (Math.abs(v.currentTime - targetSec) < 0.002 && v.readyState >= 2 && v.videoWidth > 0) {
+                      resolve();
+                      return;
+                    }
 
-                  let settled = false;
-                  let timeoutId: any = null;
+                    let settled = false;
+                    let timeoutId: any = null;
 
-                  const finish = () => {
-                    if (settled) return;
-                    settled = true;
-                    if (timeoutId) clearTimeout(timeoutId);
-                    v.removeEventListener('seeked', onSeeked);
-                    v.removeEventListener('loadeddata', onSeeked);
-                    v.removeEventListener('canplay', onSeeked);
-                    resolve();
-                  };
+                    const finish = () => {
+                      if (settled) return;
+                      settled = true;
+                      if (timeoutId) clearTimeout(timeoutId);
+                      v.removeEventListener('seeked', onSeeked);
+                      v.removeEventListener('loadeddata', onSeeked);
+                      v.removeEventListener('canplay', onSeeked);
+                      resolve();
+                    };
 
-                  const onSeeked = () => {
-                    if (v.readyState >= 2) {
+                    const onSeeked = () => {
+                      if (v.readyState >= 2) {
+                        finish();
+                      }
+                    };
+                    timeoutId = setTimeout(finish, isMobile ? 800 : 400);
+                    v.addEventListener('seeked', onSeeked);
+                    v.addEventListener('loadeddata', onSeeked);
+                    v.addEventListener('canplay', onSeeked);
+                    try {
+                      v.currentTime = v.duration > 0 ? Math.min(v.duration, targetSec) : targetSec;
+                    } catch {
                       finish();
                     }
-                  };
-                  timeoutId = setTimeout(finish, isMobile ? 800 : 400);
-                  v.addEventListener('seeked', onSeeked);
-                  v.addEventListener('loadeddata', onSeeked);
-                  v.addEventListener('canplay', onSeeked);
-                  try {
-                    v.currentTime = v.duration > 0 ? Math.min(v.duration, targetSec) : targetSec;
-                  } catch {
-                    finish();
-                  }
-                });
-              })
-            );
+                  });
+                })
+              );
+            }
 
             const currentFrameIdx = Math.round(currentSourceSec * config.sourceFps);
             const telemetry: TelemetryData = decoder

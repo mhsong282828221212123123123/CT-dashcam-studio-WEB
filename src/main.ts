@@ -3023,6 +3023,26 @@ class CTDashcamStudioApp {
     this.isPlaying = false;
     this.updatePlayButton();
 
+    // Save current preview state and temporarily release preview hardware decoders during export
+    // so iOS VideoToolbox / Android MediaCodec have 100% decoder capacity dedicated to export videos
+    const savedPreviewClip = this.activeClip;
+    const savedPreviewTimeSec = this.currentTimeSec;
+    for (const key of this.allCameraKeys) {
+      const v = this.videoPool[key];
+      if (v) {
+        try {
+          v.pause();
+          v.onloadedmetadata = null;
+          v.onloadeddata = null;
+          v.onended = null;
+          v.onpause = null;
+          v.removeAttribute('src');
+          v.load();
+        } catch {}
+      }
+    }
+    this.clearActiveSegmentBlobUrls();
+
     this.isExporting = true;
     const btnPlay = document.getElementById('btn-play') as HTMLButtonElement | null;
     if (btnPlay) {
@@ -3162,6 +3182,15 @@ class CTDashcamStudioApp {
       this.updatePlayButton();
       window.removeEventListener('beforeunload', preventUnload);
       btnCancelExportModal?.removeEventListener('click', onModalCancel);
+
+      // Restore preview video pool to the saved clip and timestamp
+      if (savedPreviewClip && this.activeClip?.id === savedPreviewClip.id) {
+        this.selectClip(savedPreviewClip).then(() => {
+          if (savedPreviewTimeSec > 0) {
+            this.seekTo(savedPreviewTimeSec);
+          }
+        }).catch(() => {});
+      }
 
       if (wakeLockSentinel) {
         wakeLockSentinel.release().catch(() => {});
