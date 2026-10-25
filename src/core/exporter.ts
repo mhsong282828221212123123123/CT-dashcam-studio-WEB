@@ -272,7 +272,8 @@ export class WebCodecsExporter {
         setLastOutputTimestampMicros(timestampMicros);
 
         const durationMicros = Math.round(1_000_000 / config.targetFps);
-        const isKeyFrame = count === 0 || count % Math.round(config.targetFps * 2) === 0;
+        const keyIntervalFrames = Math.max(1, Math.round(config.targetFps * 4));
+        const isKeyFrame = count === 0 || count % keyIntervalFrames === 0;
 
         const frame = new VideoFrame(exportCanvas, {
           timestamp: timestampMicros,
@@ -337,11 +338,13 @@ export class WebCodecsExporter {
     const resConfig = RESOLUTIONS[config.resolutionName] || RESOLUTIONS["FHD (1920x1080) - 권장 표준"];
     const [targetW, targetH] = resConfig.size;
 
-    // Bitrate selection: Full original high bitrates on PC (35/50 Mbps), capped on mobile to avoid decoder strain
+    // Bitrate selection: matched to Python libx264 CRF 21~26 real-world compression ratios with FPS ratio scaling
     const baseBitrate = resConfig.bitrate_mbps;
+    const fpsRatio = Math.pow(Math.max(1, config.targetFps) / 30.0, 0.45);
+    const scaledBitrate = baseBitrate * fpsRatio;
     const effectiveBitrateMbps = isMobile
-      ? Math.min(baseBitrate, targetW >= 2560 ? 28.0 : targetW >= 1920 ? 16.0 : 8.0)
-      : baseBitrate;
+      ? Math.min(scaledBitrate, targetW >= 2560 ? 16.0 : targetW >= 1920 ? 10.0 : 5.5)
+      : scaledBitrate;
     const bitrateBps = Math.round(effectiveBitrateMbps * 1_000_000);
 
     // Render canvas setup
@@ -387,6 +390,7 @@ export class WebCodecsExporter {
         width: targetW,
         height: targetH,
         bitrate: bitrateBps,
+        bitrateMode: 'variable',
         framerate: config.targetFps,
         avc: { format: 'avc' },
       };
@@ -432,6 +436,10 @@ export class WebCodecsExporter {
       if (typeof VideoEncoder.isConfigSupported === 'function') {
         try {
           let check = await VideoEncoder.isConfigSupported(encoderConfig);
+          if (!check.supported && encoderConfig.bitrateMode) {
+            delete encoderConfig.bitrateMode;
+            check = await VideoEncoder.isConfigSupported(encoderConfig);
+          }
           if (!check.supported && encoderConfig.latencyMode) {
             delete encoderConfig.latencyMode;
             check = await VideoEncoder.isConfigSupported(encoderConfig);
@@ -451,6 +459,7 @@ export class WebCodecsExporter {
         } catch (err) {
           console.warn('[Exporter] VideoEncoder.isConfigSupported check fallback:', err);
           delete encoderConfig.latencyMode;
+          delete encoderConfig.bitrateMode;
         }
       }
 
@@ -606,7 +615,8 @@ export class WebCodecsExporter {
               duration: Math.round(1_000_000 / config.targetFps),
             });
 
-            const keyFrame = outputFrameCount === 0 || outputFrameCount % Math.round(config.targetFps * 2) === 0;
+            const keyIntervalFrames = Math.max(1, Math.round(config.targetFps * 4));
+            const keyFrame = outputFrameCount === 0 || outputFrameCount % keyIntervalFrames === 0;
             videoEncoder.encode(videoFrame, { keyFrame });
             videoFrame.close();
 
