@@ -2637,10 +2637,10 @@ class CTDashcamStudioApp {
         return;
       }
       const durSec = (this.endPoint.absTimeMs - currAbsMs) / 1000.0;
-      const maxAllowedSec = isIOS() ? 120.0 : 1800.0;
+      const maxAllowedSec = isIOS() ? 180.0 : 1800.0;
       if (durSec > maxAllowedSec) {
         if (isIOS()) {
-          alert(i18n.t('alert_ios_max_duration') || '아이폰(iOS)에서는 안정적인 내보내기를 위해 최대 120초(2분)까지만 지정할 수 있습니다.');
+          alert(i18n.t('alert_ios_max_duration') || '아이폰(iOS)에서는 안정적인 내보내기를 위해 최대 180초(3분)까지만 지정할 수 있습니다.');
         } else {
           alert(i18n.t('alert_max_duration', [(durSec / 60.0).toFixed(1)]));
         }
@@ -2672,10 +2672,10 @@ class CTDashcamStudioApp {
         return;
       }
       const durSec = (currAbsMs - this.startPoint.absTimeMs) / 1000.0;
-      const maxAllowedSec = isIOS() ? 120.0 : 1800.0;
+      const maxAllowedSec = isIOS() ? 180.0 : 1800.0;
       if (durSec > maxAllowedSec) {
         if (isIOS()) {
-          alert(i18n.t('alert_ios_max_duration') || '아이폰(iOS)에서는 안정적인 내보내기를 위해 최대 120초(2분)까지만 지정할 수 있습니다.');
+          alert(i18n.t('alert_ios_max_duration') || '아이폰(iOS)에서는 안정적인 내보내기를 위해 최대 180초(3분)까지만 지정할 수 있습니다.');
         } else {
           alert(i18n.t('alert_max_duration', [(durSec / 60.0).toFixed(1)]));
         }
@@ -3011,10 +3011,10 @@ class CTDashcamStudioApp {
       return;
     }
 
-    // 아이폰(iOS) 최대 출력 시간 120초 제한
+    // 아이폰(iOS) 최대 출력 시간 180초 제한
     const totalDurationSec = segments.reduce((sum, seg) => sum + (seg.endSec - seg.startSec), 0);
-    if (isIOS() && totalDurationSec > 120.0) {
-      alert(i18n.t('alert_ios_max_duration') || '아이폰(iOS)에서는 안정적인 내보내기를 위해 최대 출력 시간이 120초(2분)로 제한됩니다. 구간을 120초 이하로 설정해 주세요.');
+    if (isIOS() && totalDurationSec > 180.0) {
+      alert(i18n.t('alert_ios_max_duration') || '아이폰(iOS)에서는 안정적인 내보내기를 위해 최대 출력 시간이 180초(3분)로 제한됩니다. 구간을 180초 이하로 설정해 주세요.');
       return;
     }
 
