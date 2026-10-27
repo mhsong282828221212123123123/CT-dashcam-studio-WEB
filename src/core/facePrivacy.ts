@@ -1,10 +1,9 @@
 // Face mosaic (blur_face) port of core/privacy_filter.py (YuNet detector + BoxTracker + mosaic).
 //
-// Experimental: this module is only reachable through a dynamic import() guarded by the build-time
-// flag `__FACE_BLUR__` (vite.config.ts `define`; dev deployment only), so it never ships in production.
+// Lazily loaded: this module is loaded on demand when the face blur option is enabled.
 //
 // Model: src/assets/models/face_detection_yunet_dynamic.onnx (imported with ?url so it is only
-// emitted when this module is part of the build, i.e. never in production)
+// emitted when this module is bundled)
 //   Derived from the original OpenCV `face_detection_yunet.onnx` by making the input H/W dynamic
 //   (the original is fixed 1x3x640x640 and ONNX Runtime rejects any other size, while OpenCV feeds it
 //   320xN). Verified to reproduce cv2.FaceDetectorYN boxes/scores exactly at 320x256.

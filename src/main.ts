@@ -61,7 +61,7 @@ class CTDashcamStudioApp {
   private fps = 36.0;
   private options: RenderOptions = { ...DEFAULT_RENDER_OPTIONS };
 
-  // Experimental face mosaic (dev builds only: __FACE_BLUR__)
+  // Face mosaic (FacePrivacyProcessor; lazy loaded on demand)
   private faceBlurOn = false;
   private facePrivacy: FacePrivacyProcessor | null = null;
   private facePrivacyLoading: Promise<FacePrivacyProcessor> | null = null;
@@ -2448,9 +2448,8 @@ class CTDashcamStudioApp {
   }
 
   /**
-   * Experimental face mosaic option. It only exists in dev builds (VITE_FACE_BLUR=1); in the
-   * production build the whole branch, including the dynamic import of the ONNX runtime, is
-   * removed at build time so production behaviour and bundle size are unchanged.
+   * Face mosaic option (YuNet detector + tracker + mosaic).
+   * The ONNX runtime and YuNet model assets are dynamically loaded only when checked.
    */
   private setupFaceBlurOption() {
     if (!__FACE_BLUR__) return;
@@ -2492,7 +2491,7 @@ class CTDashcamStudioApp {
     this.faceBlurOn = false;
   }
 
-  /** Lazily loads ONNX Runtime + the YuNet model on first use (dev builds only). */
+  /** Lazily loads ONNX Runtime + the YuNet model on first use. */
   private ensureFacePrivacy(): Promise<FacePrivacyProcessor> {
     if (!__FACE_BLUR__) {
       return Promise.reject(new Error('face mosaic is not enabled in this build'));
@@ -2657,7 +2656,7 @@ class CTDashcamStudioApp {
       }
     }
 
-    // Face mosaic (dev builds only): swap raw videos for mosaic-processed snapshots
+    // Face mosaic: swap raw videos for mosaic-processed snapshots
     let renderSources: Partial<Record<CameraKey, CanvasImageSource>> = activeFrames;
     if (__FACE_BLUR__ && this.faceBlurOn && this.facePrivacy) {
       renderSources = this.facePrivacy.processPreview(activeFrames);
@@ -3098,7 +3097,7 @@ class CTDashcamStudioApp {
       }
     }
 
-    // Face mosaic (dev builds only): make sure the model is ready BEFORE the UI is locked, and never
+    // Face mosaic: make sure the model is ready BEFORE the UI is locked, and never
     // fall through to an export without the mosaic when the user asked for it.
     let faceProcessor: FacePrivacyProcessor | undefined;
     if (__FACE_BLUR__ && this.faceBlurOn) {

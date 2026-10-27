@@ -2,9 +2,8 @@ import { defineConfig, loadEnv, type Plugin } from 'vite';
 import basicSsl from '@vitejs/plugin-basic-ssl';
 
 /**
- * Production builds must not even load the experimental face mosaic module: Rollup resolves
- * dynamic imports (and Vite emits `?url` assets such as the 15MB ONNX runtime wasm) even from
- * dead branches. When the flag is off, main.ts's dynamic import is redirected to an empty stub.
+ * When face mosaic is disabled (VITE_FACE_BLUR=0), main.ts's dynamic import of
+ * `facePrivacy` is redirected to an empty stub to avoid bundling ONNX runtime assets.
  */
 function faceBlurStub(enabled: boolean): Plugin {
   const STUB_ID = '\0face-privacy-stub';
@@ -26,11 +25,10 @@ function faceBlurStub(enabled: boolean): Plugin {
 export default defineConfig(({ mode }) => {
   const isHttps = process.env.HTTPS === 'true' || mode === 'https';
   const basePath = process.env.VITE_BASE_PATH || '/CT-dashcam-studio-WEB/';
-  // Experimental face mosaic: compile-time flag. Enabled only for the /dev/ deployment build
-  // (VITE_FACE_BLUR=1 in CI) and for `npm run dev` (.env.development). Production builds get a
-  // literal `false`, so the feature and the ONNX runtime assets are removed from the bundle.
+  // Face mosaic: enabled by default for all builds (production and dev).
+  // Can be explicitly disabled with VITE_FACE_BLUR=0 if needed.
   const env = loadEnv(mode, process.cwd(), 'VITE_');
-  const faceBlur = env.VITE_FACE_BLUR === '1';
+  const faceBlur = env.VITE_FACE_BLUR !== '0';
   return {
     base: basePath,
     plugins: [...(isHttps ? [basicSsl()] : []), faceBlurStub(faceBlur)],

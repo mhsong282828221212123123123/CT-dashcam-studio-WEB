@@ -39,7 +39,7 @@ jobs:
       - name: Build Test/Dev site (Subpath /dev/)
         run: |
           mkdir -p site_out/dev
-          VITE_FACE_BLUR='1' VITE_BASE_PATH='/CT-dashcam-studio-WEB/dev/' npm run build
+          VITE_BASE_PATH='/CT-dashcam-studio-WEB/dev/' npm run build
           cp -r dist/* site_out/dev/
 
       - name: Upload artifact for GitHub Pages
