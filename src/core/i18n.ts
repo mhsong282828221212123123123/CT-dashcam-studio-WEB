@@ -77,6 +77,9 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     chk_pillar_pip: '필러 카메라 (PIP)',
     chk_turn_signal: '방향지시등 (점멸 깜빡이)',
     chk_map: 'GPS 미니맵 (OSM)',
+    chk_face_blur: '얼굴 모자이크 (실험)',
+    toast_face_blur_loading: '얼굴 모자이크 모델을 불러오는 중입니다...',
+    alert_face_blur_failed: '얼굴 모자이크 기능을 불러오지 못했습니다.\n개인정보 보호를 위해 모자이크 없이 내보내지 않고 작업을 중단합니다.\n({0})',
 
     // 6. Export Options
     label_resolution: '출력 해상도:',
@@ -304,6 +307,9 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     chk_pillar_pip: 'Pillar Camera (PIP)',
     chk_turn_signal: 'Turn Signals',
     chk_map: 'GPS Minimap (OSM)',
+    chk_face_blur: 'Face Mosaic (Beta)',
+    toast_face_blur_loading: 'Loading the face mosaic model...',
+    alert_face_blur_failed: 'Failed to load the face mosaic feature.\nTo protect privacy, the export is cancelled instead of saving without the mosaic.\n({0})',
 
     // 6. Export Options
     label_resolution: 'Resolution:',
@@ -531,6 +537,9 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     chk_pillar_pip: 'ピラーカメラ (PIP)',
     chk_turn_signal: '方向指示器 (ウインカー)',
     chk_map: 'GPSミニマップ (OSM)',
+    chk_face_blur: '顔モザイク (ベータ)',
+    toast_face_blur_loading: '顔モザイクのモデルを読み込んでいます...',
+    alert_face_blur_failed: '顔モザイク機能を読み込めませんでした。\nプライバシー保護のため、モザイクなしでは書き出さず処理を中止します。\n({0})',
 
     // 6. Export Options
     label_resolution: '出力解像度:',
@@ -758,6 +767,9 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     chk_pillar_pip: 'B柱摄像头画中画 (PIP)',
     chk_turn_signal: '转向指示灯 (闪烁)',
     chk_map: 'GPS 实时小地图 (OSM)',
+    chk_face_blur: '人脸马赛克 (测试)',
+    toast_face_blur_loading: '正在加载人脸马赛克模型...',
+    alert_face_blur_failed: '无法加载人脸马赛克功能。\n为保护隐私，将中止导出，而不是在没有马赛克的情况下保存。\n({0})',
 
     // 6. Export Options
     label_resolution: '输出分辨率:',
@@ -985,6 +997,9 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     chk_pillar_pip: 'B柱攝影機子母畫面 (PIP)',
     chk_turn_signal: '方向燈 (閃爍)',
     chk_map: 'GPS 即時小地圖 (OSM)',
+    chk_face_blur: '人臉馬賽克 (測試)',
+    toast_face_blur_loading: '正在載入人臉馬賽克模型...',
+    alert_face_blur_failed: '無法載入人臉馬賽克功能。\n為保護隱私，將中止匯出，而不是在沒有馬賽克的情況下儲存。\n({0})',
 
     // 6. Export Options
     label_resolution: '輸出解析度:',
@@ -1274,6 +1289,7 @@ export class I18nManager {
       { id: 'chk-pillar-pip', icon: '🪟', text: dict.chk_pillar_pip },
       { id: 'chk-turn-signal', icon: '💡', text: dict.chk_turn_signal },
       { id: 'chk-map', icon: '🗺️', text: dict.chk_map },
+      { id: 'chk-face-blur', icon: '🙂', text: dict.chk_face_blur },
     ];
 
     chkDefs.forEach(({ id, icon, text }) => {

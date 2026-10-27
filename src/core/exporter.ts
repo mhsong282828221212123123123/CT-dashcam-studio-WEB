@@ -4,6 +4,7 @@ import { OverlayRenderer, RenderOptions } from './renderer';
 import { RealTeslaSEIDecoder, TelemetryData } from './seiDecoder';
 import { RESOLUTIONS, CameraKey } from './constants';
 import { ClipItem, ensureClipFiles } from './clipScanner';
+import type { ExportFrameProcessor } from './facePrivacy';
 
 // Background-safe event loop yield helper that prevents Chromium 1000ms timer throttling in hidden tabs
 function fastYield(): Promise<void> {
@@ -36,6 +37,8 @@ export interface MultiClipExportConfig {
   resolutionName: keyof typeof RESOLUTIONS;
   options: RenderOptions;
   onProgress: (percent: number, currentSegmentIdx: number, totalSegments: number) => void;
+  /** Optional per-frame processor (experimental face mosaic). Awaited for every output frame. */
+  frameProcessor?: ExportFrameProcessor;
 }
 
 export class WebCodecsExporter {
@@ -438,9 +441,13 @@ export class WebCodecsExporter {
 
         const timestampText = `${segment.baseTimeStr} (+${mediaTime.toFixed(1)}s)`;
 
+        const renderFrames = config.frameProcessor
+          ? await config.frameProcessor.processExport(segVideos)
+          : segVideos;
+
         OverlayRenderer.render(
           exportCanvas,
-          segVideos,
+          renderFrames,
           telemetry,
           timestampText,
           mediaTime,
@@ -718,6 +725,8 @@ export class WebCodecsExporter {
         // Preload, prime hardware decoders, seek to segment.startSec, and verify actual canvas pixel output before encoding
         await this.warmupSegmentVideos(segVideos, segment.startSec, isIOS);
 
+        // New clip: drop any tracker state carried over from the previous segment
+        config.frameProcessor?.reset();
         // Fetch SEI decoder
         const decoder = await config.getClipDecoder(segment.clip);
         const videoKeys = Object.keys(segVideos) as CameraKey[];
@@ -814,9 +823,12 @@ export class WebCodecsExporter {
             const timestampText = `${segment.baseTimeStr} (+${currentSourceSec.toFixed(1)}s)`;
 
             // Render overlay onto offscreen export canvas
+            const renderFrames = config.frameProcessor
+              ? await config.frameProcessor.processExport(segVideos)
+              : segVideos;
             OverlayRenderer.render(
               exportCanvas,
-              segVideos,
+              renderFrames,
               telemetry,
               timestampText,
               currentSourceSec,

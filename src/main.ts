@@ -18,6 +18,7 @@ import { detectDeviceCapabilities, CapabilityPolicy, getDeviceTierReason } from 
 import { WebCodecsExporter, ExportClipSegment } from './core/exporter';
 import { RESOLUTIONS, CameraKey } from './core/constants';
 import { i18n, SupportedLang, isIOSOrAndroid, isIOS, isAndroid } from './core/i18n';
+import type { FacePrivacyProcessor } from './core/facePrivacy';
 
 export interface RangePoint {
   clipId: string;
@@ -60,6 +61,10 @@ class CTDashcamStudioApp {
   private fps = 36.0;
   private options: RenderOptions = { ...DEFAULT_RENDER_OPTIONS };
 
+  // Experimental face mosaic (dev builds only: __FACE_BLUR__)
+  private faceBlurOn = false;
+  private facePrivacy: FacePrivacyProcessor | null = null;
+  private facePrivacyLoading: Promise<FacePrivacyProcessor> | null = null;
   // Video elements fixed pool & active segment Blob URLs tracking
   private readonly allCameraKeys: CameraKey[] = ['front', 'back', 'left_repeater', 'right_repeater', 'left_pillar', 'right_pillar'];
   private videoPool: Partial<Record<CameraKey, HTMLVideoElement>> = {};
@@ -860,6 +865,8 @@ class CTDashcamStudioApp {
       }
     });
 
+    this.setupFaceBlurOption();
+
     this.updatePillarPipState();
 
     // 3. Layout Segmented Buttons
@@ -1142,6 +1149,7 @@ class CTDashcamStudioApp {
         (this.options as any)[key] = chk.checked;
       }
     });
+    this.resetFaceBlurOption();
     this.updatePillarPipState();
 
     // 5. 내보내기 설정 셀렉트박스 초기화
@@ -2119,6 +2127,7 @@ class CTDashcamStudioApp {
 
       // Requirement 4: 클립 전환 시 SEI 파싱 메모리 및 이전 클립 캐시 즉시 정리
       this.clipDecoders.clear();
+      if (__FACE_BLUR__) this.facePrivacy?.reset();
       if (this.seiWorker) {
         try {
           this.seiWorker.terminate();
@@ -2438,6 +2447,76 @@ class CTDashcamStudioApp {
     });
   }
 
+  /**
+   * Experimental face mosaic option. It only exists in dev builds (VITE_FACE_BLUR=1); in the
+   * production build the whole branch, including the dynamic import of the ONNX runtime, is
+   * removed at build time so production behaviour and bundle size are unchanged.
+   */
+  private setupFaceBlurOption() {
+    if (!__FACE_BLUR__) return;
+    if (document.getElementById('chk-face-blur')) return;
+    const grid = document.getElementById('chk-map')?.closest('.grid-2col');
+    if (!grid) return;
+
+    const label = document.createElement('label');
+    label.className = 'chk-item';
+    label.innerHTML =
+      `<input type="checkbox" id="chk-face-blur" />` +
+      `<span class="chk-label"><span class="chk-icon">🙂</span> ${i18n.t('chk_face_blur')}</span>`;
+    grid.appendChild(label);
+
+    const chk = label.querySelector('input') as HTMLInputElement;
+    chk.addEventListener('change', async () => {
+      if (!chk.checked) {
+        this.faceBlurOn = false;
+        return;
+      }
+      chk.disabled = true;
+      try {
+        await this.ensureFacePrivacy();
+        this.faceBlurOn = true;
+      } catch (e) {
+        chk.checked = false;
+        this.faceBlurOn = false;
+        alert(i18n.t('alert_face_blur_failed', [String((e as any)?.message || e)]));
+      } finally {
+        chk.disabled = false;
+      }
+    });
+  }
+
+  private resetFaceBlurOption() {
+    if (!__FACE_BLUR__) return;
+    const chk = document.getElementById('chk-face-blur') as HTMLInputElement | null;
+    if (chk) chk.checked = false;
+    this.faceBlurOn = false;
+  }
+
+  /** Lazily loads ONNX Runtime + the YuNet model on first use (dev builds only). */
+  private ensureFacePrivacy(): Promise<FacePrivacyProcessor> {
+    if (!__FACE_BLUR__) {
+      return Promise.reject(new Error('face mosaic is not enabled in this build'));
+    }
+    if (this.facePrivacy) return Promise.resolve(this.facePrivacy);
+    if (!this.facePrivacyLoading) {
+      this.showToast(i18n.t('toast_face_blur_loading'), 4000);
+      this.facePrivacyLoading = import('./core/facePrivacy')
+        .then(async (m) => {
+          const detector = await m.FaceDetector.create();
+          // dev knob for experiments: ?faceInterval=N (detect every Nth frame; default 4 like python)
+          const n = parseInt(new URLSearchParams(window.location.search).get('faceInterval') || '', 10);
+          const processor = new m.FacePrivacyProcessor(detector, n >= 1 ? n : undefined);
+          this.facePrivacy = processor;
+          return processor;
+        })
+        .catch((e) => {
+          this.facePrivacyLoading = null;
+          throw e;
+        });
+    }
+    return this.facePrivacyLoading;
+  }
+
   private startRenderLoop() {
     const loop = () => {
       if (this.isExporting) {
@@ -2578,9 +2657,15 @@ class CTDashcamStudioApp {
       }
     }
 
+    // Face mosaic (dev builds only): swap raw videos for mosaic-processed snapshots
+    let renderSources: Partial<Record<CameraKey, CanvasImageSource>> = activeFrames;
+    if (__FACE_BLUR__ && this.faceBlurOn && this.facePrivacy) {
+      renderSources = this.facePrivacy.processPreview(activeFrames);
+    }
+
     OverlayRenderer.render(
       this.canvas,
-      activeFrames,
+      renderSources,
       telemetry,
       baseDateStr,
       this.currentTimeSec,
@@ -3013,6 +3098,18 @@ class CTDashcamStudioApp {
       }
     }
 
+    // Face mosaic (dev builds only): make sure the model is ready BEFORE the UI is locked, and never
+    // fall through to an export without the mosaic when the user asked for it.
+    let faceProcessor: FacePrivacyProcessor | undefined;
+    if (__FACE_BLUR__ && this.faceBlurOn) {
+      try {
+        faceProcessor = await this.ensureFacePrivacy();
+      } catch (e) {
+        alert(i18n.t('alert_face_blur_failed', [String((e as any)?.message || e)]));
+        return;
+      }
+    }
+
     // Unconditionally stop playback and update play button for all platforms
     this.pauseAllVideos(true);
     this.isPlaying = false;
@@ -3119,6 +3216,7 @@ class CTDashcamStudioApp {
         exportSpeed,
         resolutionName: resSelect.value as any,
         options: this.options,
+        frameProcessor: faceProcessor,
         onProgress: (pct, curSeg, totalSeg) => {
           if (statusLabel) {
             statusLabel.textContent = i18n.t('status_encoding', [pct, curSeg, totalSeg]);
