@@ -1168,17 +1168,83 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 };
 
+export const LOCALIZED_SEO: Record<SupportedLang, { title: string; desc: string; ogTitle: string; ogDesc: string }> = {
+  ko: {
+    title: 'CT Dashcam Studio - 테슬라 블랙박스 영상 분석 및 편집기',
+    desc: '테슬라 블랙박스(TeslaCam) 영상을 재생하거나 편집할 수 있는 무료웹 도구입니다.',
+    ogTitle: 'CT Dashcam Studio',
+    ogDesc: '웹기반 테슬라 블랙박스 뷰어/편집기',
+  },
+  en: {
+    title: 'CT Dashcam Studio - Tesla Dashcam Viewer & Editor',
+    desc: 'Free web tool to view, sync, and edit Tesla Dashcam (TeslaCam) videos with telemetry overlays.',
+    ogTitle: 'CT Dashcam Studio',
+    ogDesc: 'Web-based Tesla Dashcam Viewer & Editor',
+  },
+  ja: {
+    title: 'CT Dashcam Studio - テスラ ドライブレコーダー ビューアー＆エディター',
+    desc: 'テスラのドライブレコーダー(TeslaCam)映像を同期再生・編集できる無料Webツールです。',
+    ogTitle: 'CT Dashcam Studio',
+    ogDesc: 'Webベースのテスラ ドライブレコーダー 뷰어/エディター',
+  },
+  'zh-CN': {
+    title: 'CT Dashcam Studio - 特斯拉行车记录仪播放与编辑工具',
+    desc: '免费网页版特斯拉行车记录仪(TeslaCam)多镜头同步播放与视频导出编辑工具。',
+    ogTitle: 'CT Dashcam Studio',
+    ogDesc: '基于网页的特斯拉行车记录仪播放与编辑工具',
+  },
+  'zh-TW': {
+    title: 'CT Dashcam Studio - 特斯拉行車記錄器播放與編輯工具',
+    desc: '免費網頁版特斯拉行車記錄器(TeslaCam)多鏡頭同步播放與影片匯出編輯工具。',
+    ogTitle: 'CT Dashcam Studio',
+    ogDesc: '基於網頁的特斯拉行車記錄器播放與編輯工具',
+  },
+};
+
 export class I18nManager {
   private currentLang: SupportedLang = 'ko';
   private listeners: Array<(lang: SupportedLang) => void> = [];
 
   constructor() {
+    this.currentLang = this.detectInitialLang();
+  }
+
+  private detectInitialLang(): SupportedLang {
+    // 1. URL Query Parameter (?lang=en, ?lang=ja, ?lang=zh-CN, etc.)
+    if (typeof window !== 'undefined' && window.location) {
+      const params = new URLSearchParams(window.location.search);
+      const urlLang = params.get('lang');
+      if (urlLang) {
+        const normalized = this.normalizeLang(urlLang);
+        if (normalized) return normalized;
+      }
+    }
+
+    // 2. Saved preference in localStorage
     if (typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem('ct_language') as SupportedLang;
       if (saved && TRANSLATIONS[saved]) {
-        this.currentLang = saved;
+        return saved;
       }
     }
+
+    // 3. Browser language auto-detection (navigator.language)
+    if (typeof navigator !== 'undefined' && navigator.language) {
+      const navLang = this.normalizeLang(navigator.language);
+      if (navLang) return navLang;
+    }
+
+    return 'ko';
+  }
+
+  public normalizeLang(input: string): SupportedLang | null {
+    const lower = input.toLowerCase();
+    if (lower.startsWith('ko')) return 'ko';
+    if (lower.startsWith('ja')) return 'ja';
+    if (lower === 'zh-tw' || lower === 'zh-hk' || lower.includes('hant')) return 'zh-TW';
+    if (lower.startsWith('zh')) return 'zh-CN';
+    if (lower.startsWith('en')) return 'en';
+    return null;
   }
 
   public getLang(): SupportedLang {
@@ -1220,6 +1286,19 @@ export class I18nManager {
   public applyDOM(): void {
     const lang = this.currentLang;
     const dict = TRANSLATIONS[lang] || TRANSLATIONS['ko'];
+
+    // Update document HTML lang attribute and SEO meta tags
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = lang;
+      const seo = LOCALIZED_SEO[lang] || LOCALIZED_SEO['ko'];
+      document.title = seo.title;
+      const descEl = document.querySelector('meta[name="description"]');
+      if (descEl) descEl.setAttribute('content', seo.desc);
+      const ogTitleEl = document.querySelector('meta[property="og:title"]');
+      if (ogTitleEl) ogTitleEl.setAttribute('content', seo.ogTitle);
+      const ogDescEl = document.querySelector('meta[property="og:description"]');
+      if (ogDescEl) ogDescEl.setAttribute('content', seo.ogDesc);
+    }
 
     // 1. Folder button & Explorer header
     const btnOpenFolder = document.getElementById('btn-open-folder-text') || document.getElementById('btn-open-folder');

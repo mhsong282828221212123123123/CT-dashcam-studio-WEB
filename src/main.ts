@@ -2105,13 +2105,8 @@ class CTDashcamStudioApp {
       // Abort if a newer clip selection request arrived during file resolution
       if (loadSeqId !== this.loadSeqId) return;
 
-      const hasPillars = Boolean(
-        clip.cams.left_pillar ||
-        clip.cams.right_pillar ||
-        clip.camHandles?.left_pillar ||
-        clip.camHandles?.right_pillar
-      );
-      this.fps = hasPillars ? 24.0 : 36.0;
+      // Base FPS unified to 36.0 for both HW3 and HW4 (1x default 36 FPS)
+      this.fps = 36.0;
       this.isPlaying = false;
       this.currentTimeSec = 0;
 
@@ -2964,10 +2959,8 @@ class CTDashcamStudioApp {
     const speedSelect = document.getElementById('export-speed-select') as HTMLSelectElement;
     if (!fpsSelect) return;
 
-    const hasPillars = Boolean(
-      this.activeClip?.cams.left_pillar || this.activeClip?.cams.right_pillar
-    );
-    const baseFps = hasPillars ? 24.0 : 36.0;
+    // Base FPS unified to 36.0 for both HW3 and HW4 (1x default 36 FPS)
+    const baseFps = 36.0;
     const exportSpeed = parseFloat(speedSelect?.value || '1.0');
     const maxFps = Math.min(120, Math.round(baseFps * exportSpeed));
 
