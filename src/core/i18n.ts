@@ -1228,12 +1228,7 @@ export class I18nManager {
       }
     }
 
-    // 3. Browser language auto-detection (navigator.language)
-    if (typeof navigator !== 'undefined' && navigator.language) {
-      const navLang = this.normalizeLang(navigator.language);
-      if (navLang) return navLang;
-    }
-
+    // Default is always Korean (no navigator.language auto-detection, so crawlers always see Korean)
     return 'ko';
   }
 
