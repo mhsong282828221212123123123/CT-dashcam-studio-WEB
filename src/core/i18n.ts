@@ -1170,7 +1170,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
 
 export const LOCALIZED_SEO: Record<SupportedLang, { title: string; desc: string; ogTitle: string; ogDesc: string }> = {
   ko: {
-    title: 'CT Dashcam Studio - 테슬라 블랙박스 영상 분석 및 편집기',
+    title: 'CT Dashcam Studio - 앱 설치 필요 없는 테슬라 블랙박스 뷰어',
     desc: '테슬라 블랙박스(TeslaCam) 영상을 재생하거나 편집할 수 있는 무료웹 도구입니다.',
     ogTitle: 'CT Dashcam Studio',
     ogDesc: '웹기반 테슬라 블랙박스 뷰어/편집기',
