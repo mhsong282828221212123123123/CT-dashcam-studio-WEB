@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB/sitemap.xml
