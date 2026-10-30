@@ -851,7 +851,7 @@ class CTDashcamStudioApp {
     // 2. Overlay Checkboxes
     const chkKeys: (keyof RenderOptions)[] = [
       'timestamp', 'steering', 'speed', 'pedal',
-      'fsd', 'pillar_pip', 'turn_signal', 'map'
+      'fsd', 'pillar_pip', 'turn_signal', 'map', 'qr'
     ];
 
     chkKeys.forEach((key) => {
@@ -1139,7 +1139,7 @@ class CTDashcamStudioApp {
     // 4. 오버레이 체크박스 초기화
     const chkKeys: (keyof RenderOptions)[] = [
       'timestamp', 'steering', 'speed', 'pedal',
-      'fsd', 'pillar_pip', 'turn_signal', 'map'
+      'fsd', 'pillar_pip', 'turn_signal', 'map', 'qr'
     ];
     chkKeys.forEach((key) => {
       const elId = key === 'pillar_pip' ? 'chk-pillar-pip' : `chk-${key.replace('_', '-')}`;

@@ -39,11 +39,20 @@ describe('Brand QR Code', () => {
     expect(rects[0]).toEqual({ x: 100, y: 200, w: 140, h: 140 });
   });
 
-  it('reserves space in computeTelemetryLayout for unmovable QR code', () => {
+  it('reserves space in computeTelemetryLayout for QR code when enabled', () => {
     const layout = OverlayRenderer.computeTelemetryLayout(DEFAULT_RENDER_OPTIONS, 1920, 1080);
     expect(layout.qrPx).toBe(140);
     expect(layout.qrPadR).toBe(16);
     // Verify that colsAvailW leaves room for the QR code zone
     expect(layout.availW - (layout.qrPx + layout.qrPadR + 18)).toBeGreaterThan(0);
+  });
+
+  it('does not reserve QR space when options.qr is false', () => {
+    const layoutEnabled = OverlayRenderer.computeTelemetryLayout({ ...DEFAULT_RENDER_OPTIONS, qr: true }, 1920, 1080);
+    const layoutDisabled = OverlayRenderer.computeTelemetryLayout({ ...DEFAULT_RENDER_OPTIONS, qr: false }, 1920, 1080);
+    expect(layoutDisabled.qrPx).toBe(0);
+    expect(layoutDisabled.qrPadR).toBe(0);
+    // Telemetry columns get more available width when QR is disabled
+    expect(layoutDisabled.colsAvailW).toBeGreaterThan(layoutEnabled.colsAvailW);
   });
 });
