@@ -1777,8 +1777,24 @@ class CTDashcamStudioApp {
   }
 
   private bindPickerLifecycle(input: HTMLInputElement, type: 'folder' | 'files') {
+    // Presentation only: let native picker activation finish before adding the backdrop.
+    let waitingToastTimer: ReturnType<typeof setTimeout> | undefined;
+    const clearWaitingToast = () => {
+      if (waitingToastTimer !== undefined) clearTimeout(waitingToastTimer);
+      waitingToastTimer = undefined;
+    };
+    input.addEventListener('click', () => {
+      clearWaitingToast();
+      waitingToastTimer = setTimeout(() => {
+        waitingToastTimer = undefined;
+        if (input.isConnected) {
+          this.showLoadProgress('progress_waiting_files', 'progress_waiting_files_detail', 0, true);
+        }
+      }, 0);
+    });
     // User selected files / folder
     input.addEventListener('change', async () => {
+      clearWaitingToast();
       const files = Array.from(input.files || []);
 
       // Immediately recreate fresh input element for next pick without modifying value during click
@@ -1788,7 +1804,10 @@ class CTDashcamStudioApp {
         this.mountFileOverlayInput(true);
       }
 
-      if (files.length === 0) return;
+      if (files.length === 0) {
+        this.hideLoadProgress();
+        return;
+      }
 
       // 2분 초과 지연 방지 타임아웃 워치독 가동
       this.startLoadWatchdog(120000);
@@ -1818,6 +1837,7 @@ class CTDashcamStudioApp {
     });
 
     input.addEventListener('cancel', () => {
+      clearWaitingToast();
       this.hideLoadProgress();
     });
   }
