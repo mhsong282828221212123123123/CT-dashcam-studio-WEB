@@ -12,6 +12,8 @@ function environment(languages: string[] = [], saved: string | null = null, sear
 // Minimal DOM fixture exercises actual applyDOM calls without a browser dependency.
 function documentFixture() {
   const label = { dataset: { i18n: 'label_resolution' }, textContent: '' };
+  const progressTitle = { dataset: { i18n: 'progress_waiting_files' }, textContent: '' };
+  const progressCount = { dataset: { i18n: 'progress_waiting_files_detail', i18nParams: '[]' }, textContent: '' };
   const language = { value: '', setAttribute: vi.fn() };
   const folder = { textContent: '' };
   const document = {
@@ -19,10 +21,10 @@ function documentFixture() {
     body: { classList: { contains: () => false } },
     getElementById: (id: string) => id === 'select-language' ? language : id === 'btn-open-folder-text' ? folder : null,
     querySelector: () => null,
-    querySelectorAll: (selector: string) => selector === '[data-i18n]' ? [label] : [],
+    querySelectorAll: (selector: string) => selector === '[data-i18n]' ? [label, progressTitle, progressCount] : [],
   };
   vi.stubGlobal('document', document);
-  return { document, label, language, folder };
+  return { document, label, language, folder, progressTitle, progressCount };
 }
 
 afterEach(() => { vi.unstubAllGlobals(); });
@@ -143,6 +145,35 @@ describe('translation review and fallback', () => {
       expect(fixture.document.documentElement.lang).toBe(lang);
       expect(fixture.language.value).toBe(lang);
       expect(fixture.language.setAttribute).toHaveBeenLastCalledWith('aria-label', TRANSLATIONS[lang].label_lang.replace(/\s*[:：]\s*$/, ''));
+    }
+  });
+});
+
+describe('visible file loading toast language changes', () => {
+  it('updates waiting title and detail together across all eight languages', () => {
+    environment(['ko-KR']);
+    const fixture = documentFixture();
+    const manager = new I18nManager();
+    manager.applyDOM();
+    expect(fixture.progressTitle.textContent).toBe(TRANSLATIONS.ko.progress_waiting_files);
+    for (const lang of ['en', 'ja', 'zh-CN', 'zh-TW', 'de', 'fr', 'es', 'ko'] as SupportedLang[]) {
+      manager.setLang(lang);
+      expect(fixture.progressTitle.textContent).toBe(TRANSLATIONS[lang].progress_waiting_files);
+      expect(fixture.progressCount.textContent).toBe(TRANSLATIONS[lang].progress_waiting_files_detail);
+    }
+  });
+  it('preserves processed file counts and percentages when translating an active scan', () => {
+    environment(['ko-KR']);
+    const fixture = documentFixture();
+    const manager = new I18nManager();
+    fixture.progressTitle.dataset.i18n = 'progress_grouping_clips';
+    fixture.progressCount.dataset.i18n = 'progress_grouping_status';
+    fixture.progressCount.dataset.i18nParams = '[25,100,25,4]';
+    for (const lang of Object.keys(TRANSLATIONS) as SupportedLang[]) {
+      manager.setLang(lang);
+      expect(fixture.progressTitle.textContent).toBe(TRANSLATIONS[lang].progress_grouping_clips);
+      expect(fixture.progressCount.textContent).toBe(manager.t('progress_grouping_status', [25,100,25,4]));
+      expect(fixture.progressCount.textContent).not.toMatch(/\{\d+\}/);
     }
   });
 });

@@ -1553,7 +1553,15 @@ export class I18nManager {
     const formLabels = document.querySelectorAll<HTMLElement>('[data-i18n]');
     formLabels.forEach((label) => {
       const key = label.dataset.i18n;
-      if (key) label.textContent = dict[key] || key;
+      if (!key) return;
+      let params: (string | number)[] | undefined;
+      if (label.dataset.i18nParams) {
+        try {
+          const parsed = JSON.parse(label.dataset.i18nParams);
+          if (Array.isArray(parsed)) params = parsed;
+        } catch { /* Keep rendering the translated label if optional parameters are invalid. */ }
+      }
+      label.textContent = this.t(key, params);
     });
 
     // 7. Resolution select options

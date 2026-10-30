@@ -334,7 +334,7 @@ class CTDashcamStudioApp {
     }
   }
 
-  showLoadProgress(title: string, countText: string, pct: number, indeterminate = false) {
+  showLoadProgress(titleKey: string, countKey: string, pct: number, indeterminate = false, params: (string | number)[] = []) {
     const backdrop = document.getElementById('load-progress-backdrop');
     if (backdrop) backdrop.style.display = 'flex';
     const note = document.getElementById('floating-progress-ios-note');
@@ -345,8 +345,12 @@ class CTDashcamStudioApp {
     const floatingFill = document.getElementById('floating-progress-fill');
     if (floatingBanner && floatingTitle && floatingCount && floatingFill) {
       floatingBanner.style.display = 'flex';
-      floatingTitle.textContent = title;
-      floatingCount.textContent = countText;
+      // Retain translation keys and counts so applyDOM can refresh a visible toast.
+      floatingTitle.dataset.i18n = titleKey;
+      floatingTitle.textContent = i18n.t(titleKey);
+      floatingCount.dataset.i18n = countKey;
+      floatingCount.dataset.i18nParams = JSON.stringify(params);
+      floatingCount.textContent = i18n.t(countKey, params);
 
       if (indeterminate) {
         floatingFill.classList.add('indeterminate');
@@ -1793,11 +1797,11 @@ class CTDashcamStudioApp {
         this.fileLoadController = new AbortController();
         this.cancelNativeFilePick = picker.cancel;
         // The native iOS picker exposes no enumeration/transfer progress before change.
-        this.showLoadProgress(i18n.t('progress_waiting_files'), i18n.t('progress_waiting_files_detail'), 0, true);
+        this.showLoadProgress('progress_waiting_files', 'progress_waiting_files_detail', 0, true);
       },
       received: (count) => {
         this.startLoadWatchdog(120000);
-        this.showLoadProgress(i18n.t('progress_grouping_clips'), i18n.t('progress_files_received', [count]), 0, true);
+        this.showLoadProgress('progress_grouping_clips', 'progress_files_received', 0, true, [count]);
       },
       recreate: () => {
         if (type === 'folder') this.mountFolderOverlayInput(true);
@@ -1825,11 +1829,11 @@ class CTDashcamStudioApp {
         }
         // 2분 초과 지연 방지 타임아웃 워치독 가동
         this.startLoadWatchdog(120000);
-        this.showLoadProgress(i18n.t('progress_searching_clips'), i18n.t('progress_searching_videos'), 0, true);
+        this.showLoadProgress('progress_searching_clips', 'progress_searching_videos', 0, true);
         const items = await scanFileSystemDirectory(
           dirHandle,
           (filesCount, dirsCount) => {
-            this.showLoadProgress(i18n.t('progress_searching_clips'), i18n.t('progress_found_videos', [filesCount, dirsCount]), 0, true);
+            this.showLoadProgress('progress_searching_clips', 'progress_found_videos', 0, true, [filesCount, dirsCount]);
           },
           () => this.notifyEncryptedClipsDetected(),
           controller.signal
@@ -1878,7 +1882,7 @@ class CTDashcamStudioApp {
     }
 
     const totalCount = files.length;
-    this.showLoadProgress(i18n.t('progress_grouping_clips'), i18n.t('progress_grouping_status', [0, totalCount, 0, 0]), 0, false);
+    this.showLoadProgress('progress_grouping_clips', 'progress_grouping_status', 0, false, [0, totalCount, 0, 0]);
     // 모바일(iOS 등)에서 0% 상태 진행도 배너가 화면에 페인트되도록 1프레임 양보
     await yieldToCompositor();
 
@@ -1889,10 +1893,11 @@ class CTDashcamStudioApp {
       (done, total, clipCount) => {
         const pct = Math.round((done / total) * 100);
         this.showLoadProgress(
-          i18n.t('progress_grouping_clips'),
-          i18n.t('progress_grouping_status', [done, total, pct, clipCount]),
+          'progress_grouping_clips',
+          'progress_grouping_status',
           pct,
-          false
+          false,
+          [done, total, pct, clipCount]
         );
       },
       () => this.notifyEncryptedClipsDetected(),
