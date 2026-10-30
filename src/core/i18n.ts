@@ -37,7 +37,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     chk_qr: "QR 코드 🥺",
     preview_empty_description: "TeslaCam 폴더를 열고 클립을 선택하면 영상을 확인할 수 있습니다.",
     label_theme: "테마",
-    preview_empty_title: "미리볼 클립을 선택하세요",
+    preview_empty_title: "미리 볼 클립을 선택하세요",
     progress_files_received: "파일 목록 수신 완료 ({0}개), 분류 중...",
     alert_open_folder_failed: "폴더를 열 수 없습니다: {0}",
     error_export_cancelled: "비디오 내보내기가 취소되었습니다.",
