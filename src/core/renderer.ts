@@ -281,9 +281,9 @@ export class OverlayRenderer {
     const availW = outW - offsetX;
 
     // Unmovable Brand QR Code space reservation (Bottom-Right corner)
-    const qrPx = Math.round(122 * scale);
+    const qrPx = Math.round(140 * scale);
     const qrPadR = Math.round(16 * scale);
-    const qrZoneW = qrPx + qrPadR + Math.round(24 * scale);
+    const qrZoneW = qrPx + qrPadR + Math.round(18 * scale);
     const colsAvailW = Math.max(Math.round(200 * scale), availW - qrZoneW);
 
     const rawOrder = options.telemetryOrder || DEFAULT_TELEMETRY_ORDER;
@@ -873,7 +873,7 @@ export class OverlayRenderer {
 
       // 7. Unmovable Brand QR Code (Bottom-Right of HUD)
       const qrX1 = outW - qrPadR - qrPx;
-      const qrY1 = hdrY;
+      const qrY1 = hudY + Math.round(10 * scale);
       drawQRCode(ctx, qrX1, qrY1, qrPx);
 
       // Watermark text below QR code
@@ -882,7 +882,7 @@ export class OverlayRenderer {
       ctx.font = `600 ${Math.max(9, Math.round(11 * scale))}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('CT Dashcam Studio', qrX1 + qrPx / 2, outH - Math.round(14 * scale));
+      ctx.fillText('CT Dashcam Studio', qrX1 + qrPx / 2, outH - Math.round(10 * scale));
       ctx.restore();
     }
 

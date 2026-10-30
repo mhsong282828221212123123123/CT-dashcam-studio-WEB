@@ -7,16 +7,16 @@ describe('Brand QR Code', () => {
     expect(QR_CODE_URL).toBe('https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB');
   });
 
-  it('has a valid 37x37 matrix format with finder patterns', () => {
-    expect(QR_MATRIX.length).toBe(37);
+  it('has a valid 39x39 matrix format with finder patterns', () => {
+    expect(QR_MATRIX.length).toBe(39);
     for (const row of QR_MATRIX) {
-      expect(row.length).toBe(37);
+      expect(row.length).toBe(39);
       expect(/^[01]+$/.test(row)).toBe(true);
     }
-    // Top-left finder pattern check (starts at row 2, col 2 with border 2)
-    expect(QR_MATRIX[2].slice(2, 9)).toBe('1111111');
-    expect(QR_MATRIX[3].slice(2, 9)).toBe('1000001');
-    expect(QR_MATRIX[4].slice(2, 9)).toBe('1011101');
+    // Top-left finder pattern check (starts at row 3, col 3 with border 3)
+    expect(QR_MATRIX[3].slice(3, 10)).toBe('1111111');
+    expect(QR_MATRIX[4].slice(3, 10)).toBe('1000001');
+    expect(QR_MATRIX[5].slice(3, 10)).toBe('1011101');
   });
 
   it('draws without crashing on a 2D canvas context', () => {
@@ -33,17 +33,17 @@ describe('Brand QR Code', () => {
       lineWidth: 1,
     } as unknown as CanvasRenderingContext2D;
 
-    drawQRCode(mockCtx, 100, 200, 122);
+    drawQRCode(mockCtx, 100, 200, 140);
     expect(rects.length).toBeGreaterThan(100);
     // First rect is background
-    expect(rects[0]).toEqual({ x: 100, y: 200, w: 122, h: 122 });
+    expect(rects[0]).toEqual({ x: 100, y: 200, w: 140, h: 140 });
   });
 
   it('reserves space in computeTelemetryLayout for unmovable QR code', () => {
     const layout = OverlayRenderer.computeTelemetryLayout(DEFAULT_RENDER_OPTIONS, 1920, 1080);
-    expect(layout.qrPx).toBe(122);
+    expect(layout.qrPx).toBe(140);
     expect(layout.qrPadR).toBe(16);
     // Verify that colsAvailW leaves room for the QR code zone
-    expect(layout.availW - (layout.qrPx + layout.qrPadR + 24)).toBeGreaterThan(0);
+    expect(layout.availW - (layout.qrPx + layout.qrPadR + 18)).toBeGreaterThan(0);
   });
 });
