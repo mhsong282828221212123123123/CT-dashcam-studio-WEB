@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="graphite">
   <head>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-E05V74Q9Q7"></script>
@@ -25,39 +25,45 @@
     <meta property="og:description" content="웹기반 테슬라 블랙박스 뷰어/편집기" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB/" />
-    <meta property="og:image" content="https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB/icon-512.png" />
+    <meta property="og:image" content="https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB/ct-icon-v2-512.png" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="CT Dashcam Studio" />
     <meta name="twitter:description" content="웹기반 테슬라 블랙박스 뷰어/편집기" />
-    <meta name="twitter:image" content="https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB/icon-512.png" />
+    <meta name="twitter:image" content="https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB/ct-icon-v2-512.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
-    <link rel="alternate icon" href="./favicon.ico" />
-    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="./ct-icon-v2.svg" />
+    <link rel="alternate icon" href="./ct-favicon-v2.ico" />
+    <link rel="apple-touch-icon" href="./ct-icon-v2-180.png" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="CT Dash" />
     <meta name="theme-color" content="#0a0d14" />
+    <script>
+      try {
+        document.documentElement.dataset.theme = localStorage.getItem('ct_theme') === 'classic' ? 'classic' : 'graphite';
+      } catch {}
+    </script>
     <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/themes.css" />
   </head>
   <body>
     <div id="app" class="app-root">
       <!-- 모바일 전용 상단 헤더 바 -->
       <header id="mobile-header" class="mobile-top-bar">
         <div class="mobile-brand">
-          <img src="./apple-touch-icon.png" alt="CT Dash" class="brand-logo-img" />
+          <img src="./ct-icon-v2-180.png" alt="CT Dash" class="brand-logo-img" />
           <span class="brand-title">CT Dash Studio <span class="brand-tag">WEB</span></span>
         </div>
         <div class="mobile-header-actions">
           <div id="mobile-tier-badge" class="tier-pill-mobile">측정 중...</div>
           <button id="btn-add-to-home" class="btn btn-add-home" title="홈 화면 바로가기 추가">
-            📲 바로가기
+             바로가기
           </button>
           <button id="btn-toggle-view-mode" class="btn btn-view-mode" title="PC 버전으로 보기">
-            🖥️ PC버전
+             PC버전
           </button>
         </div>
       </header>
@@ -71,8 +77,8 @@
       <div id="floating-load-progress" class="floating-load-progress" style="display: none;">
         <div class="progress-banner-header">
           <div class="progress-banner-title-box">
-            <span class="progress-spinner">⏳</span>
-            <span id="floating-progress-title" class="progress-banner-title">📂 폴더 스캔 중...</span>
+            <span class="progress-spinner"></span>
+            <span id="floating-progress-title" class="progress-banner-title"> 폴더 스캔 중...</span>
           </div>
           <span id="floating-progress-count" class="progress-banner-count">0 / 0개 (0%)</span>
         </div>
@@ -88,17 +94,17 @@
           <div class="mobile-drawer-header">
             <div class="drawer-header-top">
               <div class="drawer-title-box">
-                <img src="./apple-touch-icon.png" alt="CT Dash" class="brand-logo-img" />
+                <img src="./ct-icon-v2-180.png" alt="CT Dash" class="brand-logo-img" />
                 <span class="drawer-title">TeslaCam Studio</span>
               </div>
               <button id="btn-close-drawer" class="btn-drawer-close" title="닫기 (왼쪽으로 쓸어넘겨서 닫기 가능)">
-                ✕ 닫기
+                 닫기
               </button>
             </div>
             <div class="drawer-tabs-nav">
-              <button class="drawer-tab-btn active" data-tab="clips">🎬 클립</button>
-              <button class="drawer-tab-btn" data-tab="overlays">🎛️ 오버레이</button>
-              <button class="drawer-tab-btn" data-tab="export">⚙️ 추출</button>
+              <button class="drawer-tab-btn active" data-tab="clips"> 클립</button>
+              <button class="drawer-tab-btn" data-tab="overlays"> 오버레이</button>
+              <button class="drawer-tab-btn" data-tab="export"> 추출</button>
             </div>
           </div>
 
@@ -106,10 +112,10 @@
           <div class="sidebar-section mobile-tab-section active" data-mobile-tab="clips">
             <div class="folder-load-actions">
               <div id="btn-open-folder" class="btn btn-folder-load" role="button" tabindex="0">
-                <span id="btn-open-folder-text">📁 TeslaCam 폴더 지정</span>
+                <span id="btn-open-folder-text"> TeslaCam 폴더 지정</span>
               </div>
               <div id="btn-open-files" class="btn btn-files-load" role="button" tabindex="0" title="대용량 RecentClips 또는 하위 파일 직접 다중 선택 (iOS 안정 로드)">
-                <span id="btn-open-files-text">📄 파일 선택 (대용량/RecentClips)</span>
+                <span id="btn-open-files-text"> 파일 선택 (대용량/RecentClips)</span>
               </div>
             </div>
 
@@ -117,8 +123,8 @@
             <div id="load-progress-banner" class="load-progress-banner" style="display: none;">
               <div class="progress-banner-header">
                 <div class="progress-banner-title-box">
-                  <span class="progress-spinner">⏳</span>
-                  <span id="load-progress-title" class="progress-banner-title">📂 폴더 스캔 중...</span>
+                  <span class="progress-spinner"></span>
+                  <span id="load-progress-title" class="progress-banner-title"> 폴더 스캔 중...</span>
                 </div>
                 <span id="load-progress-count" class="progress-banner-count">0 / 0개 (0%)</span>
               </div>
@@ -150,39 +156,39 @@
               <div class="grid-2col">
                 <label class="chk-item">
                   <input type="checkbox" id="chk-timestamp" checked />
-                  <span class="chk-label"><span class="chk-icon">⏱️</span> 실제 시간 (Timestamp)</span>
+                  <span class="chk-label">실제 시간 (Timestamp)</span>
                 </label>
                 <label class="chk-item">
                   <input type="checkbox" id="chk-steering" checked />
-                  <span class="chk-label"><span class="chk-icon">🔄</span> 스티어링 핸들 각도</span>
+                  <span class="chk-label">스티어링 핸들 각도</span>
                 </label>
                 <label class="chk-item">
                   <input type="checkbox" id="chk-speed" checked />
-                  <span class="chk-label"><span class="chk-icon">⚡</span> 실제 속도 (km/h)</span>
+                  <span class="chk-label">실제 속도 (km/h)</span>
                 </label>
                 <label class="chk-item">
                   <input type="checkbox" id="chk-pedal" checked />
-                  <span class="chk-label"><span class="chk-icon">🦶</span> 가속 / 브레이크 페달</span>
+                  <span class="chk-label">가속 / 브레이크 페달</span>
                 </label>
                 <label class="chk-item">
                   <input type="checkbox" id="chk-fsd" checked />
-                  <span class="chk-label"><span class="chk-icon">🤖</span> FSD / 자율주행 모드</span>
+                  <span class="chk-label">FSD / 자율주행 모드</span>
                 </label>
                 <label class="chk-item">
                   <input type="checkbox" id="chk-pillar-pip" checked />
-                  <span class="chk-label"><span class="chk-icon">🪟</span> 필러 카메라 (PIP)</span>
+                  <span class="chk-label">필러 카메라 (PIP)</span>
                 </label>
                 <label class="chk-item">
                   <input type="checkbox" id="chk-turn-signal" checked />
-                  <span class="chk-label"><span class="chk-icon">💡</span> 방향지시등 (점멸 깜빡이)</span>
+                  <span class="chk-label">방향지시등 (점멸 깜빡이)</span>
                 </label>
                 <label class="chk-item">
                   <input type="checkbox" id="chk-map" checked />
-                  <span class="chk-label"><span class="chk-icon">🗺️</span> GPS 미니맵 (OSM)</span>
+                  <span class="chk-label">GPS 미니맵 (OSM)</span>
                 </label>
                 <label class="chk-item">
                   <input type="checkbox" id="chk-qr" checked />
-                  <span class="chk-label"><span class="chk-icon">📱</span> QR 코드 (스튜디오 링크)</span>
+                  <span class="chk-label">QR 코드 🥺</span>
                 </label>
               </div>
             </div>
@@ -190,12 +196,12 @@
             <div class="group-box mobile-adjust-box">
               <div class="group-title">화면 밝기 및 대비 보정</div>
               <div class="adjust-row">
-                <span id="lbl-brightness-sub-tag" class="slider-label clickable">☀ 화면 밝기</span>
+                <span id="lbl-brightness-sub-tag" class="slider-label clickable"> 화면 밝기</span>
                 <input type="range" id="slider-brightness-sub" min="-80" max="80" value="0" class="range-slider" />
                 <span id="lbl-brightness-sub-val" class="adjust-val">0</span>
               </div>
               <div class="adjust-row">
-                <span id="lbl-contrast-sub-tag" class="slider-label clickable">◐ 화면 대비</span>
+                <span id="lbl-contrast-sub-tag" class="slider-label clickable"> 화면 대비</span>
                 <input type="range" id="slider-contrast-sub" min="50" max="200" value="100" class="range-slider" />
                 <span id="lbl-contrast-sub-val" class="adjust-val">100%</span>
               </div>
@@ -212,7 +218,7 @@
             <div class="group-box export-group">
               <div class="group-title">내보내기 설정</div>
               <div class="form-grid">
-                <span class="form-label">출력 해상도:</span>
+                <span class="form-label" data-i18n="label_resolution">출력 해상도:</span>
                 <select id="export-resolution" class="select-box col-span-3">
                   <option value="QHD (2560x1440) - 최고화질">QHD (2560x1440) - 최고화질</option>
                   <option value="FHD (1920x1080) - 권장 표준" selected>FHD (1920x1080) - 권장 표준</option>
@@ -220,14 +226,14 @@
                   <option value="Compact (960x540) - 모바일용">Compact (960x540) - 모바일용</option>
                 </select>
 
-                <span class="form-label">화면 레이아웃:</span>
+                <span class="form-label" data-i18n="label_layout">화면 레이아웃:</span>
                 <div class="layout-btn-group col-span-3">
-                  <button type="button" class="btn btn-layout active" data-layout="기본 (1:3 세로배치)">🔲 1:3</button>
-                  <button type="button" class="btn btn-layout" data-layout="2x2 분할 (전후/좌우)">⊞ 2x2</button>
-                  <button type="button" class="btn btn-layout" id="btn-layout-single" data-layout="단일 카메라">⏹ 단일</button>
+                  <button type="button" class="btn btn-layout active" data-layout="기본 (1:3 세로배치)"> 1:3</button>
+                  <button type="button" class="btn btn-layout" data-layout="2x2 분할 (전후/좌우)"> 2x2</button>
+                  <button type="button" class="btn btn-layout" id="btn-layout-single" data-layout="단일 카메라"> 단일</button>
                 </div>
 
-                <span class="form-label">저장 배속:</span>
+                <span class="form-label" data-i18n="label_speed">저장 배속:</span>
                 <select id="export-speed-select" class="select-box">
                   <option value="0.5">0.5x (슬로우)</option>
                   <option value="1.0" selected>1.0x (표준)</option>
@@ -236,7 +242,7 @@
                   <option value="4.0">4.0x (4배속)</option>
                 </select>
 
-                <span class="form-label text-right">출력 FPS:</span>
+                <span class="form-label text-right" data-i18n="label_fps">출력 FPS:</span>
                 <select id="export-fps-select" class="select-box">
                   <option value="36" selected>36 FPS (원본 최적)</option>
                   <option value="30">30 FPS (표준)</option>
@@ -247,20 +253,11 @@
 
               <div class="est-size-row">
                 <span id="lbl-est-size" class="est-size-text">예상 크기: 약 0 MB</span>
-                <div class="lang-select-box">
-                  <label for="select-language" class="lang-label">언어 (language) :</label>
-                  <select id="select-language" class="select-box select-lang" aria-label="언어 (language)">
-                    <option value="ko" selected>한국어</option>
-                    <option value="en">English</option>
-                    <option value="ja">日本語</option>
-                    <option value="zh-CN">简体中文</option>
-                    <option value="zh-TW">繁體中文</option>
-                  </select>
-                </div>
+
               </div>
 
               <div id="webcodecs-warning" class="warning-banner" style="display: none;">
-                ⚠️ HTTP 연결 환경에서는 브라우저 보안 제약으로 WebCodecs 내보내기가 제한될 수 있습니다 (HTTPS 연결 권장).
+                 HTTP 연결 환경에서는 브라우저 보안 제약으로 WebCodecs 내보내기가 제한될 수 있습니다 (HTTPS 연결 권장).
               </div>
 
               <button id="btn-export" class="btn btn-export-main">
@@ -272,21 +269,47 @@
                 <div id="export-pbar-fill" class="export-pbar-fill"></div>
               </div>
               <div id="export-status-label" class="export-status-text" style="display: none;">대기 중...</div>
+              <div class="workspace-preferences">
+                <div class="lang-select-box">
+                  <label for="select-language" class="lang-label">언어 (language) :</label>
+                  <select id="select-language" class="select-box select-lang" aria-label="언어 (language)">
+                    <option value="ko" selected>한국어</option>
+                    <option value="en">English</option>
+                    <option value="ja">日本語</option>
+                    <option value="zh-CN">简体中文</option>
+                    <option value="zh-TW">繁體中文</option>
+                    <option value="de">Deutsch</option>
+                    <option value="fr">Français</option>
+                    <option value="es">Español</option>
+                  </select>
+                </div>
+                <div class="theme-select-box">
+                  <label for="select-theme" data-i18n="label_theme">테마</label>
+                  <select id="select-theme" class="select-box select-theme">
+                    <option value="graphite" data-i18n="theme_graphite">뉴트럴 다크</option>
+                    <option value="classic" data-i18n="theme_classic">클래식 블루</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         </aside>
 
         <!-- 2. 우측 메인 영역 (대형 비디오 뷰 + 하단 타임라인 컨트롤 덱) -->
         <main class="main-viewport">
-          <div class="canvas-container">
+          <div class="canvas-container is-empty">
+            <div class="player-empty-state">
+              <p class="empty-eyebrow">TESLACAM</p>
+              <h1 data-i18n="preview_empty_title">미리볼 클립을 선택하세요</h1>
+              <p data-i18n="preview_empty_description">TeslaCam 폴더를 열고 클립을 선택하면 영상을 확인할 수 있습니다.</p>
+            </div>
             <canvas id="player-canvas" width="1920" height="1080"></canvas>
             <div id="drop-overlay" class="drop-overlay" style="display: none;">
-              <span>📁 TeslaCam 폴더를 여기에 드롭하세요</span>
+              <span> TeslaCam 폴더를 여기에 드롭하세요</span>
             </div>
 
             <!-- SEI 주행 데이터 백그라운드 분석 진행도 배지 (비차단 플로팅 배지) -->
             <div id="sei-progress-badge" class="sei-progress-badge" style="display: none;">
-              <span class="sei-badge-icon">📊</span>
               <span id="sei-progress-text" class="sei-badge-text">주행 데이터 분석 중... 0%</span>
             </div>
           </div>
@@ -332,7 +355,7 @@
 
               <!-- (중) 배속 & 연속재생 클러스터 -->
               <div class="speed-cluster">
-                <span id="lbl-speed-tag" class="slider-label clickable" title="더블클릭 시 1.0x 복원">⚡ 배속</span>
+                <span id="lbl-speed-tag" class="slider-label clickable" title="더블클릭 시 1.0x 복원"> 배속</span>
                 <input type="range" id="slider-preview-speed" min="1" max="10" value="2" class="range-slider" />
                 <span id="lbl-preview-speed-val" class="speed-value-badge clickable" title="더블클릭 시 1.0x 복원">1.0x</span>
                 <label class="chk-item chk-auto-next-label">
@@ -344,12 +367,12 @@
 
               <!-- (우) 화면 밝기/대비 보정 & 단축키 -->
               <div class="filter-cluster">
-                <span id="lbl-brightness-tag" class="slider-label clickable" title="더블클릭 시 0 복원">☀ 밝기</span>
+                <span id="lbl-brightness-tag" class="slider-label clickable" title="더블클릭 시 0 복원"> 밝기</span>
                 <input type="range" id="slider-brightness" min="-80" max="80" value="0" class="range-slider" />
-                <span id="lbl-contrast-tag" class="slider-label clickable" style="margin-left: 8px;" title="더블클릭 시 100% 복원">◐ 대비</span>
+                <span id="lbl-contrast-tag" class="slider-label clickable" style="margin-left: 8px;" title="더블클릭 시 100% 복원"> 대비</span>
                 <input type="range" id="slider-contrast" min="50" max="200" value="100" class="range-slider" />
                 <button id="btn-hotkey-guide" class="btn btn-transport-sub" style="margin-left: 12px;" title="단축키 안내 (F1)">
-                  ⌨ 단축키
+                   단축키
                 </button>
               </div>
             </div>
@@ -366,25 +389,25 @@
                     <span id="tooltip-current-tier" class="tooltip-badge">High Tier</span>
                   </div>
                   <div class="tooltip-section">
-                    <div class="section-title">📊 현재 기기 측정 및 산정 사유</div>
+                    <div class="section-title" data-i18n="tier_section_reason">현재 기기 측정 및 산정 사유</div>
                     <div id="tooltip-reason" class="tooltip-reason-text">하드웨어 성능을 측정 중입니다...</div>
                   </div>
                   <div class="tooltip-section">
-                    <div class="section-title">🏷️ 티어 종류 및 사양 기준</div>
+                    <div class="section-title" data-i18n="tier_section_types">티어 종류 및 사양 기준</div>
                     <ul class="tier-types-list">
-                      <li><span class="tier-dot high"></span><div><strong>High Tier:</strong> 8코어+ / RAM 6GB+ / WebGPU 가속 ➔ 4채널 동시 고화질 동기 재생 및 초고속 내보내기</div></li>
-                      <li><span class="tier-dot mid"></span><div><strong>Medium Tier:</strong> 4~6코어 / RAM 4GB+ ➔ 1:3 분할 재생 및 HD 비디오 내보내기 표준 지원</div></li>
-                      <li><span class="tier-dot low"></span><div><strong>Low Tier:</strong> 2코어 이하 / RAM 2GB 이하 ➔ 단일 카메라 모드 중심 경량 재생 최적화</div></li>
+                      <li><span class="tier-dot high"></span><div><strong>High Tier:</strong> 8코어+ / RAM 6GB+ / WebGPU 가속  4채널 동시 고화질 동기 재생 및 초고속 내보내기</div></li>
+                      <li><span class="tier-dot mid"></span><div><strong>Medium Tier:</strong> 4~6코어 / RAM 4GB+  1:3 분할 재생 및 HD 비디오 내보내기 표준 지원</div></li>
+                      <li><span class="tier-dot low"></span><div><strong>Low Tier:</strong> 2코어 이하 / RAM 2GB 이하  단일 카메라 모드 중심 경량 재생 최적화</div></li>
                     </ul>
                   </div>
                 </div>
               </div>
               <button id="btn-pc-install" class="btn-pc-install" title="바탕화면에 웹앱 설치 (아이콘 생성)">
-                <span class="btn-pc-install-icon">📥</span> 앱 설치
+                앱 설치
               </button>
             </div>
             <div class="footer-brand">
-              <img src="./apple-touch-icon.png" alt="CT Dash" class="brand-logo-img footer-logo-img" />
+              <img src="./ct-icon-v2-180.png" alt="CT Dash" class="brand-logo-img footer-logo-img" />
               <span>CT Dash Studio WEB</span>
             </div>
           </footer>
@@ -394,27 +417,24 @@
       <!-- 모바일 하단 탭 바 (모바일 세로 모드에서 플레이어와 패널 전환 네비게이션) -->
       <nav id="mobile-tabs-nav" class="mobile-tabs-nav">
         <button class="mobile-tab-btn active" data-tab="clips">
-          <span class="tab-icon">🎬</span>
           <span class="tab-label">클립 탐색</span>
         </button>
         <button class="mobile-tab-btn" data-tab="overlays">
-          <span class="tab-icon">🎛️</span>
           <span class="tab-label">오버레이</span>
         </button>
         <button class="mobile-tab-btn" data-tab="export">
-          <span class="tab-icon">⚙️</span>
           <span class="tab-label">설정·추출</span>
         </button>
       </nav>
 
       <!-- PC 모드 전환 플로팅 버튼 (모바일 기기에서 PC 버전으로 볼 때 우측 하단 복귀용) -->
       <button id="btn-floating-view-mode" class="btn-floating-mode">
-        📱 모바일 모드로 전환
+         모바일 모드로 전환
       </button>
 
       <!-- 가로 모드 클립 탐색기 드로어 토글 버튼 -->
       <button id="btn-landscape-drawer" class="btn-floating-drawer">
-        🎬 클립 목록
+         클립 목록
       </button>
 
       <!-- 단축키 안내 모달 다이얼로그 -->
@@ -457,15 +477,15 @@
           </div>
           <div class="modal-body">
             <div class="tooltip-section">
-              <div class="section-title">📊 현재 기기 측정 및 산정 사유</div>
+              <div class="section-title" data-i18n="tier_section_reason">현재 기기 측정 및 산정 사유</div>
               <div id="modal-tier-reason" class="tooltip-reason-text">하드웨어 성능을 측정 중입니다...</div>
             </div>
             <div class="tooltip-section" style="margin-top: 12px;">
-              <div class="section-title">🏷️ 티어 종류 및 사양 기준</div>
+              <div class="section-title" data-i18n="tier_section_types">티어 종류 및 사양 기준</div>
               <ul class="tier-types-list">
-                <li><span class="tier-dot high"></span><div><strong>High Tier:</strong> 8코어+ / RAM 6GB+ / WebGPU 가속 ➔ 4채널 동시 고화질 동기 재생 및 초고속 내보내기</div></li>
-                <li><span class="tier-dot mid"></span><div><strong>Medium Tier:</strong> 4~6코어 / RAM 4GB+ ➔ 1:3 분할 재생 및 HD 비디오 내보내기 표준 지원</div></li>
-                <li><span class="tier-dot low"></span><div><strong>Low Tier:</strong> 2코어 이하 / RAM 2GB 이하 ➔ 단일 카메라 모드 중심 경량 재생 최적화</div></li>
+                <li><span class="tier-dot high"></span><div><strong>High Tier:</strong> 8코어+ / RAM 6GB+ / WebGPU 가속  4채널 동시 고화질 동기 재생 및 초고속 내보내기</div></li>
+                <li><span class="tier-dot mid"></span><div><strong>Medium Tier:</strong> 4~6코어 / RAM 4GB+  1:3 분할 재생 및 HD 비디오 내보내기 표준 지원</div></li>
+                <li><span class="tier-dot low"></span><div><strong>Low Tier:</strong> 2코어 이하 / RAM 2GB 이하  단일 카메라 모드 중심 경량 재생 최적화</div></li>
               </ul>
             </div>
           </div>
@@ -480,14 +500,14 @@
         <div class="modal-card install-guide-card">
           <div class="modal-header">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 16px;">📲</span>
+              <span style="font-size: 16px;"></span>
               <h3 style="margin: 0; font-size: 13.5px; font-weight: 700; color: #f0f6fc;">홈 화면 바로가기 추가</h3>
             </div>
             <button id="btn-close-install-modal" class="btn-close" aria-label="닫기">×</button>
           </div>
           <div class="modal-body install-modal-body">
             <div class="install-app-preview">
-              <img src="./apple-touch-icon.png" alt="CT Dash" class="install-preview-icon" />
+              <img src="./ct-icon-v2-180.png" alt="CT Dash" class="install-preview-icon" />
               <div class="install-preview-text">
                 <div class="install-app-name">CT Dashcam Studio</div>
                 <div class="install-app-sub">앱처럼 전체화면으로 즉시 실행</div>
@@ -496,30 +516,30 @@
 
             <!-- PC 데스크톱 전용 가이드 (Edge / Chrome / Windows) -->
             <div id="guide-desktop" class="platform-guide" style="display: none;">
-              <div class="platform-title">🖥️ PC 데스크톱 (Windows / Edge / Chrome)</div>
+              <div class="platform-title"> PC 데스크톱 (Windows / Edge / Chrome)</div>
               <ol class="guide-steps">
-                <li>브라우저 상단 주소창 우측 끝의 <strong>앱 설치( ⊕ 또는 💻 )</strong> 아이콘을 클릭하거나,</li>
-                <li>브라우저 메뉴(<strong>⋯</strong> 또는 <strong>⋮</strong>) ➔ <strong>'앱'</strong> ➔ <strong>'CT Dashcam Studio 설치'</strong>를 선택하세요.</li>
+                <li>브라우저 상단 주소창 우측 끝의 <strong>앱 설치( ⊕ 또는  )</strong> 아이콘을 클릭하거나,</li>
+                <li>브라우저 메뉴(<strong>⋯</strong> 또는 <strong>⋮</strong>)  <strong>'앱'</strong>  <strong>'CT Dashcam Studio 설치'</strong>를 선택하세요.</li>
                 <li>설치 팝업에서 <strong>'바탕 화면 바로 가기 만들기'</strong>를 체크하면 바탕화면에 앱 아이콘이 바로 생성됩니다!</li>
               </ol>
             </div>
 
             <!-- 안드로이드 전용 가이드 (Chrome / Samsung Internet) -->
             <div id="guide-android" class="platform-guide">
-              <div class="platform-title">🤖 안드로이드 (Galaxy / Chrome / 삼성 인터넷)</div>
+              <div class="platform-title"> 안드로이드 (Galaxy / Chrome / 삼성 인터넷)</div>
               <ol class="guide-steps">
-                <li>아래 <strong>[⚡ 즉시 바로가기 추가]</strong> 버튼을 누르거나,</li>
+                <li>아래 <strong>[ 즉시 바로가기 추가]</strong> 버튼을 누르거나,</li>
                 <li>브라우저 상단/하단 더보기(<strong>⋮</strong> 또는 <strong>≡</strong>) 메뉴 탭</li>
                 <li><strong>'현재 페이지 추가'</strong> 또는 <strong>'홈 화면에 추가'</strong>를 선택하세요.</li>
               </ol>
-              <button id="btn-trigger-pwa-install" class="btn btn-pwa-action" style="display: none;">⚡ 즉시 바로가기 추가</button>
+              <button id="btn-trigger-pwa-install" class="btn btn-pwa-action" style="display: none;"> 즉시 바로가기 추가</button>
             </div>
 
             <!-- iOS 전용 가이드 (iPhone / iPad Safari) -->
             <div id="guide-ios" class="platform-guide">
-              <div class="platform-title">🍎 아이폰 / iPad (Safari)</div>
+              <div class="platform-title"> 아이폰 / iPad (Safari)</div>
               <ol class="guide-steps">
-                <li>사파리 하단 중앙의 <strong>공유 버튼( <span style="font-size: 14px;">📤</span> )</strong> 탭</li>
+                <li>사파리 하단 중앙의 <strong>공유 버튼( <span style="font-size: 14px;"></span> )</strong> 탭</li>
                 <li>메뉴를 아래로 스크롤하여 <strong>'홈 화면에 추가 (+)'</strong> 탭</li>
                 <li>우측 상단 <strong>'추가'</strong>를 누르면 홈 화면에 바로가기 생성!</li>
               </ol>
@@ -527,7 +547,7 @@
 
             <!-- 링크 복사 버튼 -->
             <div class="install-footer-actions">
-              <button id="btn-copy-page-url" class="btn btn-copy-link">🔗 페이지 링크 복사</button>
+              <button id="btn-copy-page-url" class="btn btn-copy-link"> 페이지 링크 복사</button>
               <span id="copy-status-msg" class="copy-feedback"></span>
             </div>
           </div>
@@ -542,7 +562,7 @@
         <div class="modal-card export-progress-card">
           <div class="export-modal-header">
             <div class="export-modal-title-group">
-              <span class="export-spinner-icon">⚡</span>
+              <span class="export-spinner-icon"></span>
               <h3 class="export-modal-title">비디오 내보내기 진행 중</h3>
             </div>
             <span id="export-modal-file-seg" class="export-seg-badge">파일 1/1</span>
@@ -562,7 +582,7 @@
 
             <!-- 모바일/백그라운드 경고 배너 -->
             <div class="export-warning-callout">
-              <div class="warning-callout-icon">⚠️</div>
+
               <div class="warning-callout-content">
                 <strong>화면을 켠 채로 유지해 주세요!</strong>
                 <p>화면을 끄거나 다른 앱으로 전환하면 브라우저 정책으로 인해 영상 인코딩이 일시 중지되거나 취소될 수 있습니다.</p>
@@ -572,7 +592,7 @@
 
           <div class="export-modal-footer">
             <button id="btn-cancel-export-modal" class="btn btn-export-cancel">
-              ⏹ 내보내기 취소
+               내보내기 취소
             </button>
           </div>
         </div>

@@ -1,6 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import * as qrCode from '../src/core/qrCode';
 import { QR_CODE_URL, QR_MATRIX, drawQRCode } from '../src/core/qrCode';
 import { OverlayRenderer, DEFAULT_RENDER_OPTIONS } from '../src/core/renderer';
+import { DEFAULT_TELEMETRY } from '../src/core/seiDecoder';
+
+afterEach(() => vi.restoreAllMocks());
 
 describe('Brand QR Code', () => {
   it('has the correct target URL', () => {
@@ -39,7 +43,7 @@ describe('Brand QR Code', () => {
     expect(rects[0]).toEqual({ x: 100, y: 200, w: 140, h: 140 });
   });
 
-  it('reserves space in computeTelemetryLayout for QR code when enabled', () => {
+  it('reserves space in computeTelemetryLayout for unmovable QR code', () => {
     const layout = OverlayRenderer.computeTelemetryLayout(DEFAULT_RENDER_OPTIONS, 1920, 1080);
     expect(layout.qrPx).toBe(140);
     expect(layout.qrPadR).toBe(16);
@@ -47,12 +51,29 @@ describe('Brand QR Code', () => {
     expect(layout.availW - (layout.qrPx + layout.qrPadR + 18)).toBeGreaterThan(0);
   });
 
-  it('does not reserve QR space when options.qr is false', () => {
-    const layoutEnabled = OverlayRenderer.computeTelemetryLayout({ ...DEFAULT_RENDER_OPTIONS, qr: true }, 1920, 1080);
-    const layoutDisabled = OverlayRenderer.computeTelemetryLayout({ ...DEFAULT_RENDER_OPTIONS, qr: false }, 1920, 1080);
-    expect(layoutDisabled.qrPx).toBe(0);
-    expect(layoutDisabled.qrPadR).toBe(0);
-    // Telemetry columns get more available width when QR is disabled
-    expect(layoutDisabled.colsAvailW).toBeGreaterThan(layoutEnabled.colsAvailW);
+  it('reclaims QR space for the telemetry columns when disabled', () => {
+    const on = OverlayRenderer.computeTelemetryLayout(DEFAULT_RENDER_OPTIONS);
+    const off = OverlayRenderer.computeTelemetryLayout({ ...DEFAULT_RENDER_OPTIONS, qr: false });
+    expect(off.frontH).toBe(on.frontH);
+    expect(off.colBoxMap.fsd[0]).toBeGreaterThan(on.colBoxMap.fsd[0]);
   });
+
+  it.each([[true, true], [true, false], [false, true], [false, false]])(
+    'renders QR and caption only when enabled (HUD=%s, QR=%s)', (hud, enabled) => {
+      const drawQR = vi.spyOn(qrCode, 'drawQRCode').mockImplementation(() => {});
+      const fillText = vi.fn();
+      const context = new Proxy<Record<string, any>>({
+        fillText,
+        measureText: () => ({ width: 20 }),
+        createLinearGradient: () => ({ addColorStop: () => {} }),
+      }, { get: (target, key: string) => key in target ? target[key] : () => {} });
+      const canvas = { width: 1920, height: 1080, getContext: () => context } as unknown as HTMLCanvasElement;
+      OverlayRenderer.render(canvas, {}, DEFAULT_TELEMETRY, '00:00:00', 0, 0, 36, {
+        ...DEFAULT_RENDER_OPTIONS, map: false, steering: false, speed: false,
+        pedal: false, fsd: false, turn_signal: false, timestamp: hud, qr: enabled,
+      });
+      expect(drawQR).toHaveBeenCalledTimes(enabled ? 1 : 0);
+      expect(fillText.mock.calls.some(([text]) => text === 'CT Dashcam Studio')).toBe(enabled);
+    }
+  );
 });

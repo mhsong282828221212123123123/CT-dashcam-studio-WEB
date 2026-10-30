@@ -15,7 +15,7 @@ export interface RenderOptions {
   steering: boolean;
   pedal: boolean;
   timestamp: boolean;
-  qr?: boolean;
+  qr: boolean;
   brightness: number; // -100 ~ 100, default 0
   contrast: number; // 0.5 ~ 2.0, default 1.0
   playbackSpeed: number;
@@ -282,11 +282,10 @@ export class OverlayRenderer {
     const offsetX = mapW;
     const availW = outW - offsetX;
 
-    // Brand QR Code space reservation (Bottom-Right corner)
-    const hasQr = options.qr !== false;
-    const qrPx = hasQr ? Math.round(140 * scale) : 0;
-    const qrPadR = hasQr ? Math.round(16 * scale) : 0;
-    const qrZoneW = hasQr ? (qrPx + qrPadR + Math.round(18 * scale)) : Math.round(24 * scale);
+    // Only reserve the QR area while the overlay is enabled.
+    const qrPx = Math.round(140 * scale);
+    const qrPadR = Math.round(16 * scale);
+    const qrZoneW = options.qr ? qrPx + qrPadR + Math.round(18 * scale) : 0;
     const colsAvailW = Math.max(Math.round(200 * scale), availW - qrZoneW);
 
     const rawOrder = options.telemetryOrder || DEFAULT_TELEMETRY_ORDER;
@@ -365,7 +364,6 @@ export class OverlayRenderer {
       bottomH,
       qrPx,
       qrPadR,
-      colsAvailW,
     };
   }
 
@@ -875,8 +873,8 @@ export class OverlayRenderer {
         ctx.restore();
       }
 
-      // 7. Brand QR Code (Bottom-Right of HUD)
-      if (options.qr !== false) {
+      // 7. Optional brand QR code (Bottom-Right of HUD).
+      if (options.qr) {
         const qrX1 = outW - qrPadR - qrPx;
         const qrY1 = hudY + Math.round(10 * scale);
         drawQRCode(ctx, qrX1, qrY1, qrPx);
@@ -892,8 +890,8 @@ export class OverlayRenderer {
       }
     }
 
-    // Brand QR Code when Bottom HUD is turned off
-    if (!hasBottomHud && options.qr !== false) {
+    // Unmovable Brand QR Code when Bottom HUD is turned off
+    if (!hasBottomHud && options.qr) {
       const qx1 = outW - qrPadR - qrPx;
       const qy1 = outH - Math.round(28 * scale) - qrPx;
 

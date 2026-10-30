@@ -17,6 +17,7 @@ import { OverlayRenderer, RenderOptions, DEFAULT_RENDER_OPTIONS, DEFAULT_TELEMET
 import { detectDeviceCapabilities, CapabilityPolicy, getDeviceTierReason } from './core/capability';
 import { WebCodecsExporter, ExportClipSegment } from './core/exporter';
 import { RESOLUTIONS, CameraKey } from './core/constants';
+import { initializeTheme } from './core/theme';
 import { i18n, SupportedLang, isIOSOrAndroid, isIOS, isAndroid } from './core/i18n';
 import type { FacePrivacyProcessor } from './core/facePrivacy';
 
@@ -124,6 +125,7 @@ class CTDashcamStudioApp {
     this.videoContainer = document.getElementById('hidden-video-container') as HTMLElement;
     this.initVideoPool();
 
+    initializeTheme();
     this.loadSavedSettings();
     i18n.applyDOM();
     this.initViewMode();
@@ -132,6 +134,7 @@ class CTDashcamStudioApp {
     this.setupEventListeners();
     this.initPWAInstall();
     this.updateFpsOptions();
+    this.updateRangeUI();
     this.setupShortcuts();
     this.setupCanvasInteractions();
     this.initSeiWorker();
@@ -391,7 +394,9 @@ class CTDashcamStudioApp {
       toast.className = 'app-toast';
       document.body.appendChild(toast);
     }
-    toast.innerHTML = `<span class="toast-icon">⚠️</span><span class="toast-message">${message}</span><button class="toast-close" type="button" aria-label="닫기">✕</button>`;
+    toast.innerHTML = `<span class="toast-message"></span><button class="toast-close" type="button">×</button>`;
+    toast.querySelector('.toast-message')!.textContent = message;
+    toast.querySelector('.toast-close')!.setAttribute('aria-label', i18n.t('btn_close').replace(/^\s*/, ''));
     toast.querySelector('.toast-close')?.addEventListener('click', () => {
       if (toast) toast.style.display = 'none';
     });
@@ -861,6 +866,26 @@ class CTDashcamStudioApp {
         chk.checked = Boolean(this.options[key]);
         chk.addEventListener('change', () => {
           (this.options as any)[key] = chk.checked;
+          if (key === 'qr') {
+            const emotion = chk.closest('.chk-item')?.querySelector<HTMLElement>('.qr-emotion');
+            if (!emotion) return;
+            emotion.getAnimations().forEach((animation) => animation.cancel());
+            emotion.textContent = chk.checked ? '🥺' : '😭';
+            if (!chk.checked) {
+              const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+              const animation = emotion.animate(
+                reducedMotion
+                  ? [{ opacity: 1 }, { opacity: 1 }]
+                  : [
+                      { transform: 'scale(1)' },
+                      { transform: 'scale(3)', offset: 0.35 },
+                      { transform: 'scale(1)' },
+                    ],
+                { duration: 1000, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' }
+              );
+              animation.onfinish = () => { emotion.textContent = '🥺'; };
+            }
+          }
         });
       }
     });
@@ -1678,6 +1703,7 @@ class CTDashcamStudioApp {
 
     // 4. 이전 클립의 File 참조 및 SEI 디코더 캐시 메모리 완전 해제
     this.activeClip = null;
+    this.canvas.closest('.canvas-container')?.classList.add('is-empty');
     this.clipDecoders.clear();
     this.clipMap.clear();
 
@@ -1810,7 +1836,7 @@ class CTDashcamStudioApp {
       // 1) 즉시 진행도 배너 띄우기
       this.showLoadProgress(
         i18n.t('progress_grouping_clips'),
-        `파일 목록 수신 완료 (${files.length}개), 분류 중...`,
+        i18n.t('progress_files_received', [files.length]),
         0,
         true
       );
@@ -1865,7 +1891,7 @@ class CTDashcamStudioApp {
           return;
         }
         console.warn('showDirectoryPicker failed, falling back to input:', e);
-        this.showToast(`폴더를 열 수 없습니다: ${e.message || e}`);
+        this.showToast(i18n.t('alert_open_folder_failed', [String(e.message || e)]));
         this.mountFolderOverlayInput();
       }
     })();
@@ -2022,7 +2048,7 @@ class CTDashcamStudioApp {
 
       htmlParts.push(
         `<div class="${classes}" id="clip-item-${clip.safeId}" data-clip-id="${clip.id}">` +
-          `<span>🎬 ${clip.timestampStr}</span>` +
+          `<span> ${clip.timestampStr}</span>` +
           `<span class="clip-type-tag">${tagText}</span>` +
         `</div>`
       );
@@ -2076,7 +2102,7 @@ class CTDashcamStudioApp {
       const titleText = folderInfo.displayTitle.includes('(')
         ? folderInfo.displayTitle
         : `${folderInfo.displayTitle} (${group.clips.length})`;
-      folderHeader.innerHTML = `<span class="folder-arrow">${isFolderOpen ? '▼' : '▶'}</span> <span class="folder-icon">📁</span> <span class="folder-name">${titleText}</span>`;
+      folderHeader.innerHTML = `<span class="folder-arrow">${isFolderOpen ? '▼' : '▶'}</span> <span class="folder-name">${titleText}</span>`;
 
       const clipsContainer = document.createElement('div');
       clipsContainer.className = 'folder-clips';
@@ -2100,6 +2126,7 @@ class CTDashcamStudioApp {
     this.currentClipGeneration = loadSeqId;
     try {
       this.activeClip = clip;
+      this.canvas.closest('.canvas-container')?.classList.remove('is-empty');
       // Resolve files for this clip lazily
       await ensureClipFiles(clip);
       // Abort if a newer clip selection request arrived during file resolution
@@ -2456,7 +2483,7 @@ class CTDashcamStudioApp {
     label.className = 'chk-item';
     label.innerHTML =
       `<input type="checkbox" id="chk-face-blur" />` +
-      `<span class="chk-label"><span class="chk-icon">🙂</span> ${i18n.t('chk_face_blur')}</span>`;
+      `<span class="chk-label">${i18n.t('chk_face_blur')}</span>`;
     grid.appendChild(label);
 
     const chk = label.querySelector('input') as HTMLInputElement;

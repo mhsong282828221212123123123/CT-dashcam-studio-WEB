@@ -5,6 +5,7 @@ import { RealTeslaSEIDecoder, TelemetryData } from './seiDecoder';
 import { RESOLUTIONS, CameraKey } from './constants';
 import { ClipItem, ensureClipFiles } from './clipScanner';
 import type { ExportFrameProcessor } from './facePrivacy';
+import { i18n } from './i18n';
 
 // Background-safe event loop yield helper that prevents Chromium 1000ms timer throttling in hidden tabs
 function fastYield(): Promise<void> {
@@ -882,11 +883,11 @@ export class WebCodecsExporter {
     }
 
       if (this.isCancelled) {
-        throw new Error("비디오 내보내기가 취소되었습니다.");
+        throw new Error(i18n.t('error_export_cancelled'));
       }
 
       if (outputFrameCount === 0) {
-        throw new Error("인코딩된 비디오 프레임이 없습니다. (0 frames captured)");
+        throw new Error(i18n.t('error_no_frames'));
       }
 
       config.onProgress(100, config.segments.length, config.segments.length);
@@ -894,11 +895,11 @@ export class WebCodecsExporter {
       await videoEncoder.flush();
 
       if (encoderError) {
-        throw new Error(`VideoEncoder 오류: ${encoderError.message || encoderError}`);
+        throw new Error(i18n.t('error_encoder', [String(encoderError.message || encoderError)]));
       }
 
       if (receivedChunkCount === 0) {
-        throw new Error("인코딩된 비디오 청크가 없습니다. (0 video chunks received)");
+        throw new Error(i18n.t('error_no_chunks'));
       }
 
       // 2. muxer.finalize() 직전 내부 트랙 강제 패치 (최후의 안전장치)
@@ -967,7 +968,7 @@ export class WebCodecsExporter {
 
       const { buffer } = muxer.target;
       if (!buffer || buffer.byteLength === 0) {
-        throw new Error("생성된 비디오 파일 데이터가 비어 있습니다. (0 byte output)");
+        throw new Error(i18n.t('error_empty_output'));
       }
       return new Blob([buffer], { type: 'video/mp4' });
     } finally {

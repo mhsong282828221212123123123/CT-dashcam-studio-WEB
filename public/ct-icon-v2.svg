@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>CT — Companion Cube and Turret</title>
+  <rect width="64" height="64" fill="#171817"/>
+  <path fill="#e5e4df" d="M16 10h32l6 6v32l-6 6H16l-6-6V16z"/>
+  <path fill="#171817" d="M30.5 10h3v5h-3zM30.5 49h3v5h-3zM10 30.5h5v3h-5zM49 30.5h5v3h-5z"/>
+  <rect x="24" y="19" width="16" height="26" rx="8" fill="#171817"/>
+  <circle cx="32" cy="32" r="6" fill="#9c3034"/>
+  <circle cx="32" cy="32" r="4.2" fill="#ef5357"/>
+  <circle cx="30.6" cy="30.6" r="1.2" fill="#ffd1c7"/>
+  <path fill="#bd7c8b" d="M47 49c-1-1-3.5-2.6-3.5-4.2 0-1.9 2.4-2.2 3.5-.8 1.1-1.4 3.5-1.1 3.5.8 0 1.6-2.5 3.2-3.5 4.2z"/>
+</svg>
