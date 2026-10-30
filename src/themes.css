@@ -416,3 +416,33 @@ html[data-theme] body.view-mobile .form-label { color: var(--text-muted) !import
 html[data-theme] .select-box:disabled, html[data-theme] button:disabled { opacity: .45; }
 html[data-theme] :is(.brand-title, .drawer-title) { color: var(--text-main); }
 html[data-theme] :is(.btn-drawer-close, .btn-sheet-close, .export-status-text) { color: var(--text-muted); }
+
+/* Installed-app entrance. Uses the stored theme resolved before the first paint. */
+#app-launch-screen { display: none; }
+html[data-app-launch="true"] #app-launch-screen,
+html[data-app-launch="leaving"] #app-launch-screen {
+  display: grid; position: fixed; inset: 0; z-index: 100000;
+  place-items: center; overflow: hidden; background: var(--bg-app);
+  opacity: 1; transition: opacity 300ms ease;
+}
+.app-launch-icon {
+  width: clamp(96px, 15vw, 128px); height: auto; border-radius: 23%;
+  animation: ct-launch-icon 700ms cubic-bezier(.2,.75,.25,1) both;
+}
+.app-launch-name {
+  position: absolute; bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+  left: 20px; right: 20px; text-align: center; color: var(--text-main);
+  font-family: var(--font-base); font-size: clamp(15px, 2.5vw, 18px);
+  font-weight: 500; letter-spacing: .025em;
+  animation: ct-launch-name 650ms 350ms ease both;
+}
+html[data-app-launch="true"] #app { visibility: hidden; }
+html[data-app-launch="leaving"] #app { animation: ct-launch-main 300ms ease both; }
+html[data-app-launch="leaving"] #app-launch-screen { opacity: 0; pointer-events: none; }
+@keyframes ct-launch-icon { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+@keyframes ct-launch-name { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ct-launch-main { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .app-launch-icon, .app-launch-name, html[data-app-launch="leaving"] #app { animation: none; }
+  html[data-app-launch] #app-launch-screen { transition: none; }
+}

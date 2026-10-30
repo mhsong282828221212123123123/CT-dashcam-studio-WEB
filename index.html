@@ -48,10 +48,40 @@
           ['graphite', 'midnight', 'forest', 'burgundy', 'amber', 'paper'].includes(savedTheme) ? savedTheme : 'graphite';
       } catch {}
     </script>
+    <script>
+      (() => {
+        const root = document.documentElement;
+        const appWindow = navigator.standalone === true ||
+          ['standalone', 'minimal-ui', 'window-controls-overlay'].some(mode =>
+            window.matchMedia('(display-mode: ' + mode + ')').matches);
+        if (!appWindow) return;
+        const colors = { graphite: '#171817', midnight: '#14191f', forest: '#141b18', burgundy: '#1d1518', amber: '#1c1912', paper: '#f1f1ed' };
+        root.style.backgroundColor = colors[root.dataset.theme] || colors.graphite;
+        root.dataset.appLaunch = 'true';
+        window.__ctLaunchStart = performance.now();
+        // An import/init failure must never leave an opaque screen blocking the page.
+        window.__ctLaunchTimeout = setTimeout(() => {
+          root.dataset.appLaunch = 'false';
+          document.getElementById('app')?.removeAttribute('inert');
+          document.getElementById('app-launch-screen')?.remove();
+        }, 8000);
+      })();
+    </script>
     <link rel="stylesheet" href="/src/style.css" />
     <link rel="stylesheet" href="/src/themes.css" />
   </head>
   <body>
+    <div id="app-launch-screen" aria-hidden="true">
+      <img class="app-launch-icon" src="./ct-icon-v2-512.png" alt="" width="128" height="128" fetchpriority="high" />
+      <div class="app-launch-name">CT Dashcam Studio</div>
+    </div>
+    <script>
+      if (document.documentElement.dataset.appLaunch === 'true') {
+        document.addEventListener('DOMContentLoaded', () => {
+          if (document.documentElement.dataset.appLaunch === 'true') document.getElementById('app')?.setAttribute('inert', '');
+        }, { once: true });
+      }
+    </script>
     <div id="app" class="app-root">
       <!-- 모바일 전용 상단 헤더 바 -->
       <header id="mobile-header" class="mobile-top-bar">

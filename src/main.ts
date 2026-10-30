@@ -1,3 +1,4 @@
+import { isAppWindow, completeAppLaunch } from './core/appLaunch';
 // Main Application Entrypoint for CT Dashcam Studio Web
 import { RealTeslaSEIDecoder, BlobFileHandle, TelemetryData } from './core/seiDecoder';
 import {
@@ -3353,25 +3354,20 @@ class CTDashcamStudioApp {
       });
     }
 
-    // Helper to completely hide the PC install button once the app is installed
+    // Hide the install entry in the installed window or after a successful install.
     const hidePcInstallBtn = () => {
       if (btnPcInstall) {
         btnPcInstall.style.display = 'none';
         btnPcInstall.classList.add('installed');
       }
-      try {
-        localStorage.setItem('pwa_installed', 'true');
-      } catch {}
     };
 
-    // If already installed or running as standalone web app, permanently hide the button
-    const isAlreadyInstalled =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (navigator as any).standalone === true ||
-      localStorage.getItem('pwa_installed') === 'true';
-
-    if (isAlreadyInstalled) {
-      hidePcInstallBtn();
+    // A historical installation flag cannot tell whether an app is still installed.
+    // Keep the browser entry available; hide it only inside the installed app window.
+    if (isAppWindow()) hidePcInstallBtn();
+    else if (btnPcInstall) {
+      btnPcInstall.style.removeProperty('display');
+      btnPcInstall.classList.remove('installed');
     }
 
     // Capture beforeinstallprompt for Android / Chrome / Edge / Samsung Internet
@@ -3510,4 +3506,5 @@ class CTDashcamStudioApp {
 // Initialize on DOM load
 window.addEventListener('DOMContentLoaded', () => {
   (window as any).app = new CTDashcamStudioApp();
+  requestAnimationFrame(() => requestAnimationFrame(completeAppLaunch));
 });

@@ -24,6 +24,7 @@ export function initializeTheme(): void {
   const select = document.getElementById('select-theme') as HTMLSelectElement | null;
   const apply = (value: Theme) => {
     document.documentElement.dataset.theme = value;
+    document.documentElement.style.backgroundColor = THEME_COLORS[value];
     if (select) select.value = value;
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[value]);
   };

@@ -13,7 +13,7 @@ it.each(Object.keys(THEME_COLORS))('restores and persists %s with matching brows
   const setItem = vi.fn();
   const meta = { setAttribute: vi.fn() };
   const select = { value: '', addEventListener: vi.fn() };
-  const root = { dataset: { theme: '' } };
+  const root = { dataset: { theme: '' }, style: { backgroundColor: '' } };
   vi.stubGlobal('localStorage', { getItem: () => theme, setItem });
   vi.stubGlobal('document', {
     documentElement: root,
@@ -27,6 +27,7 @@ it.each(Object.keys(THEME_COLORS))('restores and persists %s with matching brows
   const handler = select.addEventListener.mock.calls[0][1];
   handler();
   expect(root.dataset.theme).toBe(select.value);
+  expect(root.style.backgroundColor).toBe(THEME_COLORS[select.value as keyof typeof THEME_COLORS]);
   expect(setItem).toHaveBeenCalledWith('ct_theme', select.value);
   expect(meta.setAttribute).toHaveBeenLastCalledWith('content', THEME_COLORS[select.value as keyof typeof THEME_COLORS]);
 });

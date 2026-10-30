@@ -1295,10 +1295,11 @@ body {
   display: none !important;
 }
 
-@media all and (display-mode: standalone), (max-width: 850px), ((orientation: landscape) and (max-height: 600px)) {
-  .btn-pc-install {
-    display: none !important;
-  }
+@media all and (display-mode: standalone), (display-mode: minimal-ui), (display-mode: window-controls-overlay) {
+  .btn-pc-install { display: none !important; }
+}
+@media (max-width: 850px), ((orientation: landscape) and (max-height: 600px)) {
+  body:not(.view-desktop) .btn-pc-install { display: none !important; }
 }
 
 .btn-pc-install-icon {
