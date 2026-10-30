@@ -392,8 +392,16 @@
               <!-- (중) 배속 & 연속재생 클러스터 -->
               <div class="speed-cluster">
                 <span id="lbl-speed-tag" class="slider-label clickable" title="더블클릭 시 1.0x 복원"> 배속</span>
-                <input type="range" id="slider-preview-speed" min="1" max="10" value="2" class="range-slider" />
-                <span id="lbl-preview-speed-val" class="speed-value-badge clickable" title="더블클릭 시 1.0x 복원">1.0x</span>
+                <select id="select-preview-speed" class="select-box preview-speed-select" aria-labelledby="lbl-speed-tag">
+                  <option value="0.5">0.5x</option>
+                  <option value="1" selected>1x</option>
+                  <option value="1.2">1.2x</option>
+                  <option value="1.5">1.5x</option>
+                  <option value="2">2x</option>
+                  <option value="2.5">2.5x</option>
+                  <option value="3">3x</option>
+                  <option value="4">4x</option>
+                </select>
                 <label class="chk-item chk-auto-next-label">
                   <input type="checkbox" id="chk-auto-next" /> <span id="chk-auto-next-text">연속재생</span>
                 </label>

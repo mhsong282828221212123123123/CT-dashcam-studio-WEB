@@ -11,8 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "mp4-muxer": "^5.1.4",
-    "onnxruntime-web": "^1.31.1"
+    "mp4-muxer": "^5.1.4"
   },
   "devDependencies": {
     "@types/node": "^22.5.4",

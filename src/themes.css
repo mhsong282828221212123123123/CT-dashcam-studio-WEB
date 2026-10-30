@@ -266,7 +266,10 @@ html[data-theme] :is(button, [role="button"], select) { transition: filter .12s 
 }
 .player-empty-state .empty-eyebrow { font-size: 10px; letter-spacing: .18em; color: var(--text-dim); }
 .player-empty-state h1 { font-size: clamp(17px, 2vw, 24px); font-weight: 500; color: var(--text-main); letter-spacing: -.03em; }
-.player-empty-state p:last-child { max-width: 340px; font-size: 12px; line-height: 1.7; }
+.player-empty-state p:last-child {
+  width: max-content; max-width: 100%; font-size: 12px; line-height: 1.7;
+  white-space: normal; word-break: keep-all; overflow-wrap: anywhere;
+}
 .control-row-playback { flex-wrap: wrap; justify-content: flex-start; gap: 12px 20px; }
 .control-row-playback > .v-divider { display: none; }
 .transport-group, .speed-cluster, .filter-cluster { flex-wrap: wrap; min-width: 0; }
@@ -445,4 +448,15 @@ html[data-app-launch="leaving"] #app-launch-screen { opacity: 0; pointer-events:
 @media (prefers-reduced-motion: reduce) {
   .app-launch-icon, .app-launch-name, html[data-app-launch="leaving"] #app { animation: none; }
   html[data-app-launch] #app-launch-screen { transition: none; }
+}
+
+html[data-theme] .speed-cluster .preview-speed-select {
+  width: 84px; min-width: 76px; height: 32px; padding: 4px 8px;
+  font-family: var(--font-base); font-size: 12px;
+}
+@media (max-width: 850px) {
+  html[data-theme] .speed-cluster .preview-speed-select {
+    width: 84px; min-width: 76px; height: 44px !important;
+    padding: 0 8px !important; font-size: 13px !important;
+  }
 }

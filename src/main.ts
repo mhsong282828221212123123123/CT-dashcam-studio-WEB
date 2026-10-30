@@ -1,3 +1,4 @@
+import { clampPlaybackSpeed } from './core/playbackSpeed';
 import { isAppWindow, completeAppLaunch } from './core/appLaunch';
 // Main Application Entrypoint for CT Dashcam Studio Web
 import { RealTeslaSEIDecoder, BlobFileHandle, TelemetryData } from './core/seiDecoder';
@@ -20,7 +21,6 @@ import { WebCodecsExporter, ExportClipSegment } from './core/exporter';
 import { RESOLUTIONS, CameraKey } from './core/constants';
 import { initializeTheme } from './core/theme';
 import { i18n, SupportedLang, isIOSOrAndroid, isIOS, isAndroid } from './core/i18n';
-import type { FacePrivacyProcessor } from './core/facePrivacy';
 
 export interface RangePoint {
   clipId: string;
@@ -63,10 +63,6 @@ class CTDashcamStudioApp {
   private fps = 36.0;
   private options: RenderOptions = { ...DEFAULT_RENDER_OPTIONS };
 
-  // Face mosaic (FacePrivacyProcessor; lazy loaded on demand)
-  private faceBlurOn = false;
-  private facePrivacy: FacePrivacyProcessor | null = null;
-  private facePrivacyLoading: Promise<FacePrivacyProcessor> | null = null;
   // Video elements fixed pool & active segment Blob URLs tracking
   private readonly allCameraKeys: CameraKey[] = ['front', 'back', 'left_repeater', 'right_repeater', 'left_pillar', 'right_pillar'];
   private videoPool: Partial<Record<CameraKey, HTMLVideoElement>> = {};
@@ -145,7 +141,7 @@ class CTDashcamStudioApp {
     i18n.onChange(() => {
       this.updatePlayButton();
       this.applyViewMode();
-      this.updateSpeedSliderRange();
+      this.updateSpeedSelect();
       this.renderClipsTree();
       this.updateRangeUI();
       this.updateFpsOptions(false);
@@ -454,27 +450,15 @@ class CTDashcamStudioApp {
   }
 
   private getEffectivePlaybackSpeed(rate?: number): number {
-    const rawRate = rate !== undefined ? rate : (this.options.playbackSpeed || 1.0);
-    return this.isMobile() ? Math.min(rawRate, 4.0) : rawRate;
+    const value = rate ?? this.options.playbackSpeed ?? 1;
+    return clampPlaybackSpeed(value);
   }
 
-  private updateSpeedSliderRange() {
-    const isMobileEnv = this.isMobile();
-    const speedSlider = document.getElementById('slider-preview-speed') as HTMLInputElement | null;
-    const speedValBadge = document.getElementById('lbl-preview-speed-val');
-    if (!speedSlider) return;
-
-    if (isMobileEnv) {
-      speedSlider.max = '8'; // index 8 = 4.0x
-      if (parseInt(speedSlider.value, 10) > 8) {
-        speedSlider.value = '8';
-        this.options.playbackSpeed = 4.0;
-        if (speedValBadge) speedValBadge.textContent = '4.0x';
-        this.applyPlaybackSpeed();
-      }
-    } else {
-      speedSlider.max = '10'; // up to 8.0x
-    }
+  private updateSpeedSelect() {
+    const select = document.getElementById('select-preview-speed') as HTMLSelectElement | null;
+    this.options.playbackSpeed = this.getEffectivePlaybackSpeed();
+    if (select) select.value = String(this.options.playbackSpeed);
+    this.applyPlaybackSpeed();
   }
 
   toggleExplorerSheet(force?: boolean) {
@@ -724,7 +708,7 @@ class CTDashcamStudioApp {
       }
     }
     this.updatePlayButton();
-    this.updateSpeedSliderRange();
+    this.updateSpeedSelect();
   }
 
   private toggleViewMode() {
@@ -891,7 +875,6 @@ class CTDashcamStudioApp {
       }
     });
 
-    this.setupFaceBlurOption();
 
     this.updatePillarPipState();
 
@@ -1065,30 +1048,16 @@ class CTDashcamStudioApp {
     document.getElementById('btn-play')?.addEventListener('click', () => this.togglePlay());
     document.getElementById('btn-next-clip')?.addEventListener('click', () => this.nextClip());
 
-    // 9. Speed Slider
-    const speedSlider = document.getElementById('slider-preview-speed') as HTMLInputElement;
-    const speedValBadge = document.getElementById('lbl-preview-speed-val');
-    const speedTag = document.getElementById('lbl-speed-tag');
-
-    speedSlider?.addEventListener('input', () => {
-      const idx = parseInt(speedSlider.value, 10);
-      const speeds = [0.5, 1.0, 1.2, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 8.0];
-      let spd = speeds[idx - 1] || 1.0;
-      spd = this.getEffectivePlaybackSpeed(spd);
-      this.options.playbackSpeed = spd;
-      if (speedValBadge) speedValBadge.textContent = `${spd.toFixed(1)}x`;
-      this.applyPlaybackSpeed();
+    // Playback speed uses a native select on every platform.
+    const speedSelect = document.getElementById('select-preview-speed') as HTMLSelectElement;
+    speedSelect?.addEventListener('change', () => {
+      this.options.playbackSpeed = this.getEffectivePlaybackSpeed(Number(speedSelect.value));
+      this.updateSpeedSelect();
     });
-
-    // Double-click to reset speed to 1.0x
-    const resetSpeed = () => {
-      if (speedSlider) speedSlider.value = '2';
-      this.options.playbackSpeed = 1.0;
-      if (speedValBadge) speedValBadge.textContent = '1.0x';
-      this.applyPlaybackSpeed();
-    };
-    speedTag?.addEventListener('dblclick', resetSpeed);
-    speedValBadge?.addEventListener('dblclick', resetSpeed);
+    document.getElementById('lbl-speed-tag')?.addEventListener('dblclick', () => {
+      this.options.playbackSpeed = 1;
+      this.updateSpeedSelect();
+    });
 
     // 10. Brightness & Contrast Sliders (Synced between main and mobile tabs)
     const brSlider = document.getElementById('slider-brightness') as HTMLInputElement;
@@ -1175,7 +1144,6 @@ class CTDashcamStudioApp {
         (this.options as any)[key] = chk.checked;
       }
     });
-    this.resetFaceBlurOption();
     this.updatePillarPipState();
 
     // 5. 내보내기 설정 셀렉트박스 초기화
@@ -1190,13 +1158,9 @@ class CTDashcamStudioApp {
     if (fpsSelect) fpsSelect.value = '30';
     this.updateEstimatedSize();
 
-    // 6. 재생 속도 슬라이더 및 태그 초기화 (1.0x)
-    const speedSlider = document.getElementById('slider-preview-speed') as HTMLInputElement | null;
-    if (speedSlider) speedSlider.value = '2';
-    const speedValBadge = document.getElementById('lbl-preview-speed-val');
-    if (speedValBadge) speedValBadge.textContent = '1.0x';
-    this.options.playbackSpeed = 1.0;
-    this.applyPlaybackSpeed();
+    // Reset playback speed to 1x.
+    this.options.playbackSpeed = 1;
+    this.updateSpeedSelect();
 
     // 7. 밝기/대비 슬라이더 초기화
     const brSlider = document.getElementById('slider-brightness') as HTMLInputElement | null;
@@ -2150,7 +2114,6 @@ class CTDashcamStudioApp {
 
       // Requirement 4: 클립 전환 시 SEI 파싱 메모리 및 이전 클립 캐시 즉시 정리
       this.clipDecoders.clear();
-      if (__FACE_BLUR__) this.facePrivacy?.reset();
       if (this.seiWorker) {
         try {
           this.seiWorker.terminate();
@@ -2470,75 +2433,6 @@ class CTDashcamStudioApp {
     });
   }
 
-  /**
-   * Face mosaic option (YuNet detector + tracker + mosaic).
-   * The ONNX runtime and YuNet model assets are dynamically loaded only when checked.
-   */
-  private setupFaceBlurOption() {
-    if (!__FACE_BLUR__) return;
-    if (document.getElementById('chk-face-blur')) return;
-    const grid = document.getElementById('chk-map')?.closest('.grid-2col');
-    if (!grid) return;
-
-    const label = document.createElement('label');
-    label.className = 'chk-item';
-    label.innerHTML =
-      `<input type="checkbox" id="chk-face-blur" />` +
-      `<span class="chk-label">${i18n.t('chk_face_blur')}</span>`;
-    grid.appendChild(label);
-
-    const chk = label.querySelector('input') as HTMLInputElement;
-    chk.addEventListener('change', async () => {
-      if (!chk.checked) {
-        this.faceBlurOn = false;
-        return;
-      }
-      chk.disabled = true;
-      try {
-        await this.ensureFacePrivacy();
-        this.faceBlurOn = true;
-      } catch (e) {
-        chk.checked = false;
-        this.faceBlurOn = false;
-        alert(i18n.t('alert_face_blur_failed', [String((e as any)?.message || e)]));
-      } finally {
-        chk.disabled = false;
-      }
-    });
-  }
-
-  private resetFaceBlurOption() {
-    if (!__FACE_BLUR__) return;
-    const chk = document.getElementById('chk-face-blur') as HTMLInputElement | null;
-    if (chk) chk.checked = false;
-    this.faceBlurOn = false;
-  }
-
-  /** Lazily loads ONNX Runtime + the YuNet model on first use. */
-  private ensureFacePrivacy(): Promise<FacePrivacyProcessor> {
-    if (!__FACE_BLUR__) {
-      return Promise.reject(new Error('face mosaic is not enabled in this build'));
-    }
-    if (this.facePrivacy) return Promise.resolve(this.facePrivacy);
-    if (!this.facePrivacyLoading) {
-      this.showToast(i18n.t('toast_face_blur_loading'), 4000);
-      this.facePrivacyLoading = import('./core/facePrivacy')
-        .then(async (m) => {
-          const detector = await m.FaceDetector.create();
-          // dev knob for experiments: ?faceInterval=N (detect every Nth frame; default 4 like python)
-          const n = parseInt(new URLSearchParams(window.location.search).get('faceInterval') || '', 10);
-          const processor = new m.FacePrivacyProcessor(detector, n >= 1 ? n : undefined);
-          this.facePrivacy = processor;
-          return processor;
-        })
-        .catch((e) => {
-          this.facePrivacyLoading = null;
-          throw e;
-        });
-    }
-    return this.facePrivacyLoading;
-  }
-
   private startRenderLoop() {
     const loop = () => {
       if (this.isExporting) {
@@ -2679,15 +2573,9 @@ class CTDashcamStudioApp {
       }
     }
 
-    // Face mosaic: swap raw videos for mosaic-processed snapshots
-    let renderSources: Partial<Record<CameraKey, CanvasImageSource>> = activeFrames;
-    if (__FACE_BLUR__ && this.faceBlurOn && this.facePrivacy) {
-      renderSources = this.facePrivacy.processPreview(activeFrames);
-    }
-
     OverlayRenderer.render(
       this.canvas,
-      renderSources,
+      activeFrames,
       telemetry,
       baseDateStr,
       this.currentTimeSec,
@@ -3118,18 +3006,6 @@ class CTDashcamStudioApp {
       }
     }
 
-    // Face mosaic: make sure the model is ready BEFORE the UI is locked, and never
-    // fall through to an export without the mosaic when the user asked for it.
-    let faceProcessor: FacePrivacyProcessor | undefined;
-    if (__FACE_BLUR__ && this.faceBlurOn) {
-      try {
-        faceProcessor = await this.ensureFacePrivacy();
-      } catch (e) {
-        alert(i18n.t('alert_face_blur_failed', [String((e as any)?.message || e)]));
-        return;
-      }
-    }
-
     // Unconditionally stop playback and update play button for all platforms
     this.pauseAllVideos(true);
     this.isPlaying = false;
@@ -3236,16 +3112,6 @@ class CTDashcamStudioApp {
         exportSpeed,
         resolutionName: resSelect.value as any,
         options: this.options,
-        frameProcessor: faceProcessor,
-        onFaceAnalysisProgress: (pct, curSeg, totalSeg) => {
-          const message = i18n.t('status_face_analysis', [pct, curSeg, totalSeg]);
-          if (statusLabel) statusLabel.textContent = message;
-          if (exportModalFpsInfo) exportModalFpsInfo.textContent = message;
-          if (pbarFill) pbarFill.style.width = `${pct}%`;
-          if (exportModalPct) exportModalPct.textContent = `${pct}%`;
-          if (exportModalGaugeFill) exportModalGaugeFill.style.width = `${pct}%`;
-          if (exportModalFileSeg) exportModalFileSeg.textContent = i18n.t('export_modal_file_tag', [curSeg, totalSeg]);
-        },
         onProgress: (pct, curSeg, totalSeg) => {
           if (statusLabel) {
             statusLabel.textContent = i18n.t('status_encoding', [pct, curSeg, totalSeg]);
