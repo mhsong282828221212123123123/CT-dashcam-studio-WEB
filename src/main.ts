@@ -119,14 +119,6 @@ class CTDashcamStudioApp {
   private isExplorerExpanded = false;
 
   constructor() {
-    document.getElementById('btn-cancel-file-load')?.addEventListener('click', () => this.cancelFileLoad());
-    document.getElementById('load-progress-backdrop')?.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') this.cancelFileLoad();
-      if (event.key === 'Tab') {
-        event.preventDefault();
-        document.getElementById('btn-cancel-file-load')?.focus();
-      }
-    });
     this.canvas = document.getElementById('player-canvas') as HTMLCanvasElement;
     this.videoContainer = document.getElementById('hidden-video-container') as HTMLElement;
     this.initVideoPool();
@@ -303,14 +295,8 @@ class CTDashcamStudioApp {
   private loadWatchdogTimer: any = null;
   private fileLoadController: AbortController | null = null;
   private cancelNativeFilePick: (() => void) | null = null;
-  private loadProgressFocus: HTMLElement | null = null;
 
-  private cancelFileLoad(reloadOnIOS = true) {
-    if (reloadOnIOS && isIOS()) {
-      // Reset WebKit's native file picker state as well as the app's load state.
-      window.location.reload();
-      return;
-    }
+  private stopFileLoad() {
     this.fileLoadController?.abort();
     this.cancelNativeFilePick?.();
     this.cancelNativeFilePick = null;
@@ -324,7 +310,7 @@ class CTDashcamStudioApp {
     this.clearLoadWatchdog();
     this.loadWatchdogTimer = setTimeout(() => {
       console.warn('[App] File loading watchdog triggered: exceeded 2 minutes');
-      this.cancelFileLoad(false);
+      this.stopFileLoad();
       this.isSelectingClip = false;
       this.showToast(i18n.t('toast_load_timeout') || '파일 불러오기 시간이 2분을 초과하여 취소되었습니다. 외장 장치 연결 상태나 파일 개수를 확인해 주세요.');
     }, durationMs);
@@ -337,22 +323,15 @@ class CTDashcamStudioApp {
     }
   }
 
-  showLoadProgress(title: string, countText: string, pct: number, indeterminate = false, focusDialog = true) {
-    const backdrop = document.getElementById('load-progress-backdrop');
-    const opening = backdrop?.style.display === 'none';
-    if (backdrop) {
-      backdrop.style.display = 'flex';
-      if (opening) {
-        this.loadProgressFocus = document.activeElement as HTMLElement;
-      }
-    }
+  showLoadProgress(title: string, countText: string, pct: number, indeterminate = false) {
+    const note = document.getElementById('floating-progress-ios-note');
+    if (note) note.hidden = !isIOS();
     const floatingBanner = document.getElementById('floating-load-progress');
     const floatingTitle = document.getElementById('floating-progress-title');
     const floatingCount = document.getElementById('floating-progress-count');
     const floatingFill = document.getElementById('floating-progress-fill');
     if (floatingBanner && floatingTitle && floatingCount && floatingFill) {
       floatingBanner.style.display = 'flex';
-      if (opening && focusDialog) document.getElementById('btn-cancel-file-load')?.focus();
       floatingTitle.textContent = title;
       floatingCount.textContent = countText;
 
@@ -368,10 +347,6 @@ class CTDashcamStudioApp {
 
   hideLoadProgress() {
     this.clearLoadWatchdog();
-    const backdrop = document.getElementById('load-progress-backdrop');
-    if (backdrop) backdrop.style.display = 'none';
-    if (backdrop?.contains(document.activeElement)) this.loadProgressFocus?.focus();
-    this.loadProgressFocus = null;
     const floatingBanner = document.getElementById('floating-load-progress');
     if (floatingBanner) {
       floatingBanner.style.display = 'none';
@@ -1803,7 +1778,7 @@ class CTDashcamStudioApp {
         this.fileLoadController = new AbortController();
         this.cancelNativeFilePick = picker.cancel;
         // The native iOS picker exposes no enumeration/transfer progress before change.
-        this.showLoadProgress(i18n.t('progress_waiting_files'), i18n.t('progress_waiting_files_detail'), 0, true, false);
+        this.showLoadProgress(i18n.t('progress_waiting_files'), i18n.t('progress_waiting_files_detail'), 0, true);
       },
       received: (count) => {
         this.startLoadWatchdog(120000);

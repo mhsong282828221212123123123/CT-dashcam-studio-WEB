@@ -25,7 +25,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   fr,
   es,
   ko: {
-    btn_cancel_file_load: "취소",
+    progress_ios_usb_note: "USB 2.0을 사용하는 아이폰(특히 Pro가 아닌 모델)은 외장 저장 장치에서 파일을 준비하는 데 오랜 시간이 걸릴 수 있습니다. 필요한 클립을 먼저 아이폰에 복사한 뒤 편집하는 것을 권장합니다.",
     progress_waiting_files: "파일 목록을 기다리는 중",
     progress_waiting_files_detail: "파일을 선택한 뒤에도 저장 장치에 따라 준비 시간이 걸릴 수 있습니다.",
     status_face_analysis: "모자이크 영역 분석: {0}% [파일 {1}/{2}]",
@@ -278,7 +278,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   en: {
-    btn_cancel_file_load: "Cancel",
+    progress_ios_usb_note: "On iPhones using USB 2.0, especially non-Pro models, preparing files from external storage can take a long time. We recommend copying the clips you need to your iPhone before editing.",
     progress_waiting_files: "Waiting for the file list",
     progress_waiting_files_detail: "After selection, your storage device may need time to prepare the files.",
     status_face_analysis: "Analyzing mosaic regions: {0}% [File {1}/{2}]",
@@ -531,7 +531,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   ja: {
-    btn_cancel_file_load: "キャンセル",
+    progress_ios_usb_note: "USB 2.0を使用するiPhone（特にPro以外のモデル）では、外部ストレージのファイルの準備に時間がかかる場合があります。必要なクリップを先にiPhoneへコピーしてから編集することをおすすめします。",
     progress_waiting_files: "ファイル一覧を待っています",
     progress_waiting_files_detail: "選択後も、ストレージによってはファイルの準備に時間がかかります。",
     status_face_analysis: "モザイク領域を解析中: {0}% [ファイル {1}/{2}]",
@@ -784,7 +784,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   'zh-CN': {
-    btn_cancel_file_load: "取消",
+    progress_ios_usb_note: "使用 USB 2.0 的 iPhone（尤其是非 Pro 机型）从外部存储设备准备文件时可能需要较长时间。建议先将所需片段复制到 iPhone，再进行编辑。",
     progress_waiting_files: "正在等待文件列表",
     progress_waiting_files_detail: "选择后，存储设备可能仍需一些时间准备文件。",
     status_face_analysis: "正在分析马赛克区域：{0}% [文件 {1}/{2}]",
@@ -1037,7 +1037,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   'zh-TW': {
-    btn_cancel_file_load: "取消",
+    progress_ios_usb_note: "使用 USB 2.0 的 iPhone（尤其是非 Pro 機型）從外接儲存裝置準備檔案時可能需要較長時間。建議先將所需片段複製到 iPhone，再進行編輯。",
     progress_waiting_files: "正在等待檔案清單",
     progress_waiting_files_detail: "選取後，儲存裝置可能仍需一些時間準備檔案。",
     status_face_analysis: "正在分析馬賽克區域：{0}% [檔案 {1}/{2}]",

@@ -1961,45 +1961,6 @@ kbd {
     display: flex;
   }
 
-  /* 모바일/아이폰 전용: 불러오기 진행도 배너를 화면 상단 고정 플로팅 모달로 표시 */
-  .floating-load-progress {
-    position: fixed !important;
-    top: max(56px, calc(env(safe-area-inset-top, 20px) + 50px)) !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: min(92vw, 380px) !important;
-    z-index: 99998 !important;
-    background: rgba(16, 22, 34, 0.98) !important;
-    border: 1.5px solid var(--accent-blue, #1f6feb) !important;
-    border-radius: 12px !important;
-    padding: 12px 16px !important;
-    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.9), 0 0 20px rgba(31, 111, 235, 0.35) !important;
-    backdrop-filter: blur(14px) !important;
-    -webkit-backdrop-filter: blur(14px) !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    animation: toastSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  }
-
-  .floating-load-progress .progress-banner-header {
-    font-size: 13px !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-  }
-
-  .floating-load-progress .progress-banner-title {
-    font-size: 13px !important;
-    font-weight: 700 !important;
-    color: #58a6ff !important;
-  }
-
-  .floating-load-progress .progress-banner-bar {
-    height: 8px !important;
-    border-radius: 4px !important;
-    background: rgba(255, 255, 255, 0.12) !important;
-  }
-
   .mobile-brand {
     display: flex;
     align-items: center;
@@ -3417,63 +3378,44 @@ body.view-desktop .mobile-sheet-backdrop {
   line-height: 1.5;
 }
 
-/* A single loading dialog on every screen size. */
-.load-progress-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 99998;
-  align-items: flex-start;
-  justify-content: center;
-  padding: max(80px, calc(env(safe-area-inset-top, 0px) + 64px)) 16px 24px;
-  background: rgba(0, 0, 0, .32);
-  backdrop-filter: blur(7px);
-  -webkit-backdrop-filter: blur(7px);
-}
+/* Non-blocking file loading toast. */
 #floating-load-progress {
-  position: relative !important;
-  top: auto !important;
-  left: auto !important;
-  transform: none !important;
-  width: min(100%, 440px) !important;
+  position: fixed;
+  top: max(72px, calc(env(safe-area-inset-top, 0px) + 60px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(100% - 32px), 440px);
+  z-index: 99998;
   box-sizing: border-box;
-  padding: 22px !important;
-  border: 1px solid var(--control-border) !important;
-  border-radius: 16px !important;
-  background: var(--dialog-bg) !important;
+  padding: 18px;
+  border: 1px solid var(--control-border);
+  border-radius: 12px;
+  background: var(--dialog-bg);
   color: var(--text-main);
-  box-shadow: 0 18px 54px var(--shadow-color) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 12px 32px var(--shadow-color);
   flex-direction: column;
-  gap: 16px !important;
-  animation: none !important;
+  gap: 12px;
+  pointer-events: none;
 }
 #floating-load-progress .progress-banner-title {
-  color: var(--text-main) !important;
-  font-size: 16px !important;
+  color: var(--text-main);
+  font-size: 15px;
   white-space: normal;
 }
 #floating-load-progress .progress-banner-count {
-  color: var(--text-muted) !important;
+  color: var(--text-muted);
   font-size: 13px;
   margin: 0;
-  line-height: 1.65;
+  line-height: 1.6;
 }
-#floating-load-progress .progress-banner-bar { height: 8px !important; }
-#btn-cancel-file-load {
-  align-self: flex-end;
-  min-width: 96px;
-  min-height: 44px;
-  padding: 10px 22px;
-  font-size: 14px;
-}
-
-#btn-cancel-file-load {
-  border: 1px solid var(--control-border);
-  border-radius: 8px;
-  background: var(--control-bg);
-  color: var(--text-main);
+#floating-load-progress .progress-banner-bar { height: 7px; }
+#floating-load-progress .progress-ios-note {
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-muted);
   font-family: var(--font-base);
-  cursor: pointer;
+  font-size: 11px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
 }
-#btn-cancel-file-load:hover { background: var(--hover-bg, var(--control-bg)); }
