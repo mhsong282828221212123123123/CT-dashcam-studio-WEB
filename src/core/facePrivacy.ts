@@ -13,10 +13,15 @@ export type Rect = [number, number, number, number]; // x, y, w, h
 export type FrameSources = Partial<Record<CameraKey, CanvasImageSource | null | undefined>>;
 export type ProcessedFrames = Partial<Record<CameraKey, CanvasImageSource>>;
 
-/** Hook used by the exporter. Deterministic: detection is awaited for every due frame. */
+/** Shared export hook; optional coordinate pre-analysis enables temporal look-ahead. */
 export interface ExportFrameProcessor {
   reset(): void;
-  processExport(frames: FrameSources): Promise<ProcessedFrames>;
+  beginExportAnalysis?(): void;
+  beginExportSegment?(sampleIntervalSec: number): void;
+  analyzeExport?(frames: FrameSources, baseTimeSec: number): Promise<void>;
+  finishExportAnalysis?(): void;
+  clearExportAnalysis?(): void;
+  processExport(frames: FrameSources, sourceTimeSec?: number): Promise<ProcessedFrames>;
 }
 
 // ── Parameters mirrored from privacy_filter.py ──────────────────────────────────────────────────
@@ -336,6 +341,7 @@ export function canvasGray(ctx: CanvasRenderingContext2D, width: number, height:
 // ── Tracker (port of BoxTracker incl. template-matching inter-frame tracking) ───────────────────
 
 interface Track {
+  lastDetection?: Rect;
   rect: Rect;
   center: [number, number];
   velocity: [number, number];
@@ -411,6 +417,7 @@ export class BoxTracker {
       if (bestIdx >= 0) {
         matched.add(bestIdx);
         const [dx, dy, dw, dh] = detected[bestIdx];
+        t.lastDetection = [dx, dy, dw, dh];
         const dcx = dx + dw / 2;
         const dcy = dy + dh / 2;
         const [curCx, curCy] = t.center;
@@ -471,6 +478,7 @@ export class BoxTracker {
       if (matched.has(i)) return;
       this.nextId += 1;
       this.tracks.set(this.nextId, {
+        lastDetection: [...d],
         rect: [d[0], d[1], d[2], d[3]],
         center: BoxTracker.center(d),
         velocity: [0, 0],
@@ -574,6 +582,97 @@ export class BoxTracker {
 }
 
 // ── Mosaic ──────────────────────────────────────────────────────────────────────────────────────
+
+export const EXPORT_FACE_MARGIN_SEC = 0.5;
+interface FaceSample { time: number; rect: Rect }
+
+/** Coordinate-only history; no video frames are retained by the look-ahead pass. */
+export class FaceExportTimeline {
+  private episodes = new Map<CameraKey, FaceSample[][]>();
+  private index: Map<CameraKey, Map<number, FaceSample[][]>> | null = null;
+  private associations = new Map<CameraKey, {
+    tracker: BoxTracker; lastTime: number; width: number; height: number;
+    byId: Map<number, FaceSample[]>;
+  }>();
+  private ttl = 6;
+
+  clear(): void { this.episodes.clear(); this.associations.clear(); this.index = null; }
+
+  finalize(): void {
+    this.index = new Map();
+    for (const [key, episodes] of this.episodes) {
+      const bins = new Map<number, FaceSample[][]>();
+      for (const samples of episodes) {
+        const start = Math.floor(samples[0].time - EXPORT_FACE_MARGIN_SEC - 1e-7);
+        const end = Math.floor(samples[samples.length - 1].time + EXPORT_FACE_MARGIN_SEC + 1e-7);
+        for (let second = start; second <= end; second++) {
+          const bin = bins.get(second) || [];
+          bin.push(samples);
+          bins.set(second, bin);
+        }
+      }
+      this.index.set(key, bins);
+    }
+  }
+
+  beginSegment(sampleIntervalSec: number): void {
+    this.associations.clear();
+    this.ttl = Math.max(2, Math.ceil(EXPORT_FACE_MARGIN_SEC / sampleIntervalSec) + 1);
+  }
+
+  record(key: CameraKey, time: number, rects: Rect[], width: number, height: number): void {
+    let state = this.associations.get(key);
+    if (!state || state.width !== width || state.height !== height || time - state.lastTime > EXPORT_FACE_MARGIN_SEC) {
+      state = { tracker: new BoxTracker(1, this.ttl), lastTime: -Infinity, width, height, byId: new Map() };
+      this.associations.set(key, state);
+    }
+    // A shorter camera may already be on its last frame. Do not extend its lifetime
+    // by repeatedly recording that frame with another camera's later timestamp.
+    if (time <= state.lastTime + 1e-7) return;
+    this.index = null;
+    state.lastTime = time;
+    const previousHits = new Map([...state.tracker.tracks].map(([id, track]) => [id, track.hits]));
+    state.tracker.update(rects);
+    for (const [id, track] of state.tracker.tracks) {
+      if (track.hits <= (previousHits.get(id) || 0)) continue;
+      let samples = state.byId.get(id);
+      if (!samples || time - samples[samples.length - 1].time > EXPORT_FACE_MARGIN_SEC) {
+        samples = [];
+        state.byId.set(id, samples);
+        const episodes = this.episodes.get(key) || [];
+        episodes.push(samples);
+        this.episodes.set(key, episodes);
+      }
+      const [x, y, w, h] = track.lastDetection || track.rect;
+      samples.push({ time, rect: [x / width, y / height, w / width, h / height] });
+    }
+  }
+
+  boxesAt(key: CameraKey, time: number, width: number, height: number): Rect[] {
+    const boxes: Rect[] = [];
+    const candidates = this.index ? this.index.get(key)?.get(Math.floor(time)) || [] : this.episodes.get(key) || [];
+    for (const samples of candidates) {
+      const first = samples[0], last = samples[samples.length - 1];
+      if (time < first.time - EXPORT_FACE_MARGIN_SEC - 1e-7 || time > last.time + EXPORT_FACE_MARGIN_SEC + 1e-7) continue;
+      let rect: Rect;
+      if (time <= first.time) rect = first.rect;
+      else if (time >= last.time) rect = last.rect;
+      else {
+        let lo = 0, hi = samples.length - 1;
+        while (hi - lo > 1) {
+          const mid = (lo + hi) >>> 1;
+          if (samples[mid].time <= time) lo = mid; else hi = mid;
+        }
+        // Cover both neighboring positions instead of guessing motion between samples.
+        const a = samples[lo].rect, b = samples[hi].rect;
+        const x = Math.min(a[0], b[0]), y = Math.min(a[1], b[1]);
+        rect = [x, y, Math.max(a[0] + a[2], b[0] + b[2]) - x, Math.max(a[1] + a[3], b[1] + b[3]) - y];
+      }
+      boxes.push([rect[0] * width, rect[1] * height, rect[2] * width, rect[3] * height]);
+    }
+    return boxes;
+  }
+}
 
 let mosaicScratch: HTMLCanvasElement | null = null;
 
@@ -724,8 +823,43 @@ function isReady(src: CanvasImageSource): boolean {
 export class FacePrivacyProcessor implements ExportFrameProcessor {
   private cams = new Map<CameraKey, CamState>();
   private previewBusy = false;
+  private exportTimeline = new FaceExportTimeline();
+  private exportAnalysisReady = false;
+  private analysisFrameTimes = new Map<CameraKey, number>();
 
   constructor(private detector: FaceDetector, private detectInterval = DETECT_INTERVAL) {}
+
+  beginExportAnalysis(): void {
+    this.clearExportAnalysis();
+    // Detach any pending asynchronous preview result from the analysis canvases.
+    this.cams.clear();
+  }
+
+  beginExportSegment(sampleIntervalSec: number): void {
+    this.analysisFrameTimes.clear();
+    this.exportTimeline.beginSegment(sampleIntervalSec);
+  }
+
+  async analyzeExport(frames: FrameSources, baseTimeSec: number): Promise<void> {
+    for (const key of Object.keys(frames) as CameraKey[]) {
+      const src = frames[key];
+      if (!src) continue;
+      const time = baseTimeSec + (src as HTMLVideoElement).currentTime;
+      if (time <= (this.analysisFrameTimes.get(key) ?? -Infinity) + 1e-7) continue;
+      const st = this.snapshot(key, src);
+      if (!st) throw new Error(`Face analysis: no decoded frame for ${key}`);
+      const boxes = await this.detector.run(this.detector.grab(st.canvas, st.canvas.width, st.canvas.height));
+      this.exportTimeline.record(key, time, boxes, st.canvas.width, st.canvas.height);
+      this.analysisFrameTimes.set(key, time);
+    }
+  }
+
+  finishExportAnalysis(): void { this.exportTimeline.finalize(); this.exportAnalysisReady = true; }
+  clearExportAnalysis(): void {
+    this.exportAnalysisReady = false;
+    this.exportTimeline.clear();
+    this.analysisFrameTimes.clear();
+  }
 
   reset(): void {
     for (const st of this.cams.values()) {
@@ -805,7 +939,19 @@ export class FacePrivacyProcessor implements ExportFrameProcessor {
    * then mosaic. Errors propagate so an export never silently finishes without the mosaic.
    * All tracker reads (templates) happen on the clean snapshot, before any mosaic is drawn.
    */
-  async processExport(frames: FrameSources): Promise<ProcessedFrames> {
+  async processExport(frames: FrameSources, sourceTimeSec?: number): Promise<ProcessedFrames> {
+    if (this.exportAnalysisReady && sourceTimeSec !== undefined) {
+      const out: ProcessedFrames = {};
+      for (const key of Object.keys(frames) as CameraKey[]) {
+        const src = frames[key];
+        if (!src) continue;
+        const st = this.snapshot(key, src);
+        if (!st) throw new Error(`Face mosaic: no decoded frame for ${key}`);
+        applyMosaic(st.canvas, this.exportTimeline.boxesAt(key, sourceTimeSec, st.canvas.width, st.canvas.height));
+        out[key] = st.canvas;
+      }
+      return out;
+    }
     const out: ProcessedFrames = {};
     const active: Array<{ key: CameraKey; st: CamState; gray: GraySource }> = [];
 

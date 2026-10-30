@@ -3236,6 +3236,15 @@ class CTDashcamStudioApp {
         resolutionName: resSelect.value as any,
         options: this.options,
         frameProcessor: faceProcessor,
+        onFaceAnalysisProgress: (pct, curSeg, totalSeg) => {
+          const message = i18n.t('status_face_analysis', [pct, curSeg, totalSeg]);
+          if (statusLabel) statusLabel.textContent = message;
+          if (exportModalFpsInfo) exportModalFpsInfo.textContent = message;
+          if (pbarFill) pbarFill.style.width = `${pct}%`;
+          if (exportModalPct) exportModalPct.textContent = `${pct}%`;
+          if (exportModalGaugeFill) exportModalGaugeFill.style.width = `${pct}%`;
+          if (exportModalFileSeg) exportModalFileSeg.textContent = i18n.t('export_modal_file_tag', [curSeg, totalSeg]);
+        },
         onProgress: (pct, curSeg, totalSeg) => {
           if (statusLabel) {
             statusLabel.textContent = i18n.t('status_encoding', [pct, curSeg, totalSeg]);

@@ -209,9 +209,16 @@
   "error_no_chunks": "No se recibieron datos de vídeo codificados.",
   "error_empty_output": "El archivo de vídeo generado está vacío.",
   "label_theme": "Tema",
-  "theme_graphite": "Oscuro neutro",
-  "theme_classic": "Azul clásico",
+  "theme_graphite": "Grafito",
   "preview_empty_title": "Seleccione un clip para previsualizar",
   "preview_empty_description": "Abra una carpeta TeslaCam y seleccione un clip para ver sus grabaciones.",
-  "chk_qr": "Código QR 🥺"
+  "chk_qr": "Código QR 🥺",
+  "theme_midnight": "Medianoche",
+  "theme_forest": "Bosque",
+  "theme_burgundy": "Borgoña",
+  "theme_amber": "Ámbar",
+  "theme_paper": "Papel",
+  "tip_qr_keep": "Le agradeceríamos que mantuviera el código QR para que más personas puedan descubrir y usar CT Dashcam Studio.",
+  "status_face_analysis": "Analizando zonas de mosaico: {0}% [Archivo {1}/{2}]",
+  "error_face_analysis_frame": "No se pudo preparar un fotograma para analizar rostros: {0}, {1}s. Se detuvo la exportación para evitar guardar sin mosaico. ({2})"
 }

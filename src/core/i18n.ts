@@ -25,11 +25,18 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   fr,
   es,
   ko: {
+    status_face_analysis: "모자이크 영역 분석: {0}% [파일 {1}/{2}]",
+    error_face_analysis_frame: "얼굴 분석용 영상을 준비하지 못했습니다: {0}, {1}초. 모자이크 없이 저장하지 않고 내보내기를 중단합니다. ({2})",
+    tip_qr_keep: "많은 사람들이 이 CT Dashcam Studio를 쓸 수 있도록 QR을 유지해주시면 감사해요.",
+    theme_graphite: "그라파이트",
+    theme_midnight: "미드나이트",
+    theme_forest: "포레스트",
+    theme_burgundy: "버건디",
+    theme_amber: "앰버",
+    theme_paper: "페이퍼",
     chk_qr: "QR 코드 🥺",
     preview_empty_description: "TeslaCam 폴더를 열고 클립을 선택하면 영상을 확인할 수 있습니다.",
     label_theme: "테마",
-    theme_graphite: "뉴트럴 다크",
-    theme_classic: "클래식 블루",
     preview_empty_title: "미리볼 클립을 선택하세요",
     progress_files_received: "파일 목록 수신 완료 ({0}개), 분류 중...",
     alert_open_folder_failed: "폴더를 열 수 없습니다: {0}",
@@ -268,11 +275,18 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   en: {
+    status_face_analysis: "Analyzing mosaic regions: {0}% [File {1}/{2}]",
+    error_face_analysis_frame: "Could not prepare a frame for face analysis: {0}, {1}s. Export stopped rather than saving without the mosaic. ({2})",
+    tip_qr_keep: "We’d appreciate you keeping the QR code so more people can discover and use CT Dashcam Studio.",
+    theme_graphite: "Graphite",
+    theme_midnight: "Midnight",
+    theme_forest: "Forest",
+    theme_burgundy: "Burgundy",
+    theme_amber: "Amber",
+    theme_paper: "Paper",
     chk_qr: "QR code 🥺",
     preview_empty_description: "Open a TeslaCam folder, then select a clip to view your footage.",
     label_theme: "Theme",
-    theme_graphite: "Neutral dark",
-    theme_classic: "Classic blue",
     preview_empty_title: "Select a clip to preview",
     progress_files_received: "File list received ({0} files), grouping...",
     alert_open_folder_failed: "Cannot open folder: {0}",
@@ -511,11 +525,18 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   ja: {
+    status_face_analysis: "モザイク領域を解析中: {0}% [ファイル {1}/{2}]",
+    error_face_analysis_frame: "顔解析用のフレームを準備できませんでした: {0}、{1}秒。モザイクなしでは保存せず、書き出しを中止します。({2})",
+    tip_qr_keep: "より多くの方に CT Dashcam Studio を知って使っていただけるよう、QRコードを残していただけるとうれしいです。",
+    theme_graphite: "グラファイト",
+    theme_midnight: "ミッドナイト",
+    theme_forest: "フォレスト",
+    theme_burgundy: "バーガンディ",
+    theme_amber: "アンバー",
+    theme_paper: "ペーパー",
     chk_qr: "QRコード 🥺",
     preview_empty_description: "TeslaCamフォルダーを開き、クリップを選択すると映像を確認できます。",
     label_theme: "テーマ",
-    theme_graphite: "ニュートラルダーク",
-    theme_classic: "クラシックブルー",
     preview_empty_title: "プレビューするクリップを選択",
     progress_files_received: "ファイル一覧を取得しました（{0}件）。分類中...",
     alert_open_folder_failed: "フォルダーを開けません: {0}",
@@ -754,11 +775,18 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   'zh-CN': {
+    status_face_analysis: "正在分析马赛克区域：{0}% [文件 {1}/{2}]",
+    error_face_analysis_frame: "无法准备人脸分析帧：{0}，{1}秒。已停止导出，不会保存未打码的视频。({2})",
+    tip_qr_keep: "希望您能保留二维码，让更多人发现并使用 CT Dashcam Studio。谢谢您的支持！",
+    theme_graphite: "石墨",
+    theme_midnight: "午夜蓝",
+    theme_forest: "森林绿",
+    theme_burgundy: "勃艮第红",
+    theme_amber: "琥珀",
+    theme_paper: "纸白",
     chk_qr: "二维码 🥺",
     preview_empty_description: "打开 TeslaCam 文件夹并选择片段，即可查看视频。",
     label_theme: "主题",
-    theme_graphite: "中性深色",
-    theme_classic: "经典蓝色",
     preview_empty_title: "选择片段以预览",
     progress_files_received: "已接收文件列表（{0}个），正在分类...",
     alert_open_folder_failed: "无法打开文件夹：{0}",
@@ -997,11 +1025,18 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   'zh-TW': {
+    status_face_analysis: "正在分析馬賽克區域：{0}% [檔案 {1}/{2}]",
+    error_face_analysis_frame: "無法準備人臉分析影格：{0}，{1}秒。已停止匯出，不會儲存未遮蔽的影片。({2})",
+    tip_qr_keep: "希望您能保留 QR 碼，讓更多人認識並使用 CT Dashcam Studio。謝謝您的支持！",
+    theme_graphite: "石墨",
+    theme_midnight: "午夜藍",
+    theme_forest: "森林綠",
+    theme_burgundy: "勃根地紅",
+    theme_amber: "琥珀",
+    theme_paper: "紙白",
     chk_qr: "QR 碼 🥺",
     preview_empty_description: "開啟 TeslaCam 資料夾並選取片段，即可查看影片。",
     label_theme: "佈景主題",
-    theme_graphite: "中性深色",
-    theme_classic: "經典藍色",
     preview_empty_title: "選取片段以預覽",
     progress_files_received: "已接收檔案清單（{0}個），正在分類...",
     alert_open_folder_failed: "無法開啟資料夾：{0}",
@@ -1480,6 +1515,8 @@ export class I18nManager {
           const cleanText = text.replace(/^[^\p{L}\p{N}]+/u, '').trim();
           label.textContent = cleanText;
           if (id === 'chk-qr') {
+            input.closest('.chk-item')?.setAttribute('title', dict.tip_qr_keep);
+            input.setAttribute('aria-description', dict.tip_qr_keep);
             label.textContent = cleanText.replace(/\s*🥺$/u, '');
             const emotion = document.createElement('span');
             emotion.className = 'qr-emotion';

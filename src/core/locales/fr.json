@@ -209,9 +209,16 @@
   "error_no_chunks": "Aucune donnée vidéo encodée reçue.",
   "error_empty_output": "Le fichier vidéo généré est vide.",
   "label_theme": "Thème",
-  "theme_graphite": "Sombre neutre",
-  "theme_classic": "Bleu classique",
+  "theme_graphite": "Graphite",
   "preview_empty_title": "Sélectionnez un clip à prévisualiser",
   "preview_empty_description": "Ouvrez un dossier TeslaCam, puis sélectionnez un clip pour voir vos vidéos.",
-  "chk_qr": "Code QR 🥺"
+  "chk_qr": "Code QR 🥺",
+  "theme_midnight": "Minuit",
+  "theme_forest": "Forêt",
+  "theme_burgundy": "Bordeaux",
+  "theme_amber": "Ambre",
+  "theme_paper": "Papier",
+  "tip_qr_keep": "Merci de conserver le code QR pour permettre à davantage de personnes de découvrir et d’utiliser CT Dashcam Studio.",
+  "status_face_analysis": "Analyse des zones de mosaïque : {0}% [Fichier {1}/{2}]",
+  "error_face_analysis_frame": "Impossible de préparer une image pour l’analyse des visages : {0}, {1}s. Exportation interrompue pour éviter un enregistrement sans mosaïque. ({2})"
 }

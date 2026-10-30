@@ -3,7 +3,8 @@ import * as Mp4Muxer from 'mp4-muxer';
 import { OverlayRenderer, RenderOptions } from './renderer';
 import { RealTeslaSEIDecoder, TelemetryData } from './seiDecoder';
 import { RESOLUTIONS, CameraKey } from './constants';
-import { ClipItem, ensureClipFiles } from './clipScanner';
+import { ClipItem, ensureClipFiles, parseTimestampSec } from './clipScanner';
+import { seekAnalysisFrame } from './exportAnalysisSeek';
 import type { ExportFrameProcessor } from './facePrivacy';
 import { i18n } from './i18n';
 
@@ -38,12 +39,83 @@ export interface MultiClipExportConfig {
   resolutionName: keyof typeof RESOLUTIONS;
   options: RenderOptions;
   onProgress: (percent: number, currentSegmentIdx: number, totalSegments: number) => void;
+  onFaceAnalysisProgress?: (percent: number, currentSegmentIdx: number, totalSegments: number) => void;
   /** Optional per-frame processor (experimental face mosaic). Awaited for every output frame. */
   frameProcessor?: ExportFrameProcessor;
 }
 
 export class WebCodecsExporter {
   private isCancelled = false;
+
+  /** First pass: keep face coordinates only, so future detections can cover earlier frames. */
+  private async analyzeExportFaces(config: MultiClipExportConfig, isIOS: boolean): Promise<void> {
+    const processor = config.frameProcessor;
+    if (!processor?.analyzeExport) return;
+    processor.beginExportAnalysis?.();
+    const step = Math.max(1 / 120, Math.min(0.125, 4 / Math.max(1, config.sourceFps)));
+    for (let segIdx = 0; segIdx < config.segments.length; segIdx++) {
+      if (this.isCancelled) throw new Error(i18n.t('error_export_cancelled'));
+      const segment = config.segments[segIdx];
+      const videos: Partial<Record<CameraKey, HTMLVideoElement>> = {};
+      const urls: string[] = [];
+      try {
+        await ensureClipFiles(segment.clip);
+        for (const key of this.getActiveCamKeys(config.options)) {
+          const file = segment.clip.cams[key];
+          if (!file) continue;
+          const video = document.createElement('video');
+          videos[key] = video;
+          const url = URL.createObjectURL(file);
+          urls.push(url);
+          video.src = url;
+          video.muted = true;
+          video.playsInline = true;
+          video.preload = 'auto';
+          video.setAttribute('playsinline', '');
+          video.setAttribute('webkit-playsinline', '');
+          video.style.cssText = 'width:1px;height:1px;opacity:0.01;pointer-events:none';
+          document.getElementById('hidden-video-container')?.appendChild(video);
+          video.load();
+        }
+        const active = Object.entries(videos) as [CameraKey, HTMLVideoElement][];
+        if (!active.length) throw new Error(i18n.t('error_no_frames'));
+        // Include context outside the selected range, clamped separately for each camera.
+        const start = Math.max(0, segment.startSec - 0.5);
+        await this.warmupSegmentVideos(videos, start, isIOS);
+        const maxDuration = Math.max(...active.map(([, video]) => video.duration));
+        const end = Math.min(segment.endSec + 0.5, maxDuration);
+        if (!Number.isFinite(end) || end <= start) throw new Error(i18n.t('error_no_frames'));
+        const count = Math.max(1, Math.ceil((end - start) / step));
+        processor.beginExportSegment?.(step);
+        const base = parseTimestampSec(segment.clip.timestampRaw);
+        for (let i = 0; i <= count; i++) {
+          if (this.isCancelled) throw new Error(i18n.t('error_export_cancelled'));
+          const time = Math.min(end, start + i * step);
+          await Promise.all(active.map(async ([key, video]) => {
+            try { await seekAnalysisFrame(video, time, config.sourceFps, () => this.isCancelled); }
+            catch (error) {
+              if (this.isCancelled) throw new Error(i18n.t('error_export_cancelled'));
+              throw new Error(i18n.t('error_face_analysis_frame', [key, time.toFixed(2), String(error)]));
+            }
+          }));
+          await processor.analyzeExport(videos, base);
+          config.onFaceAnalysisProgress?.(
+            Math.min(100, Math.round(((segIdx + i / count) / config.segments.length) * 100)),
+            segIdx + 1, config.segments.length
+          );
+          await fastYield();
+        }
+      } finally {
+        for (const video of Object.values(videos)) {
+          if (!video) continue;
+          video.pause(); video.removeAttribute('src'); video.load(); video.remove();
+        }
+        for (const url of urls) URL.revokeObjectURL(url);
+      }
+    }
+    if (this.isCancelled) throw new Error(i18n.t('error_export_cancelled'));
+    processor.finishExportAnalysis?.();
+  }
 
   private getActiveCamKeys(options: RenderOptions): CameraKey[] {
     if (options.layout === '단일 카메라') {
@@ -443,7 +515,7 @@ export class WebCodecsExporter {
         const timestampText = `${segment.baseTimeStr} (+${mediaTime.toFixed(1)}s)`;
 
         const renderFrames = config.frameProcessor
-          ? await config.frameProcessor.processExport(segVideos)
+          ? await config.frameProcessor.processExport(segVideos, parseTimestampSec(segment.clip.timestampRaw) + mediaTime)
           : segVideos;
 
         OverlayRenderer.render(
@@ -670,6 +742,9 @@ export class WebCodecsExporter {
 
       videoEncoder.configure(encoderConfig);
 
+      await this.analyzeExportFaces(config, isIOS);
+      config.onProgress(0, 1, config.segments.length);
+
       const frameStepSec = (1.0 / config.targetFps) * config.exportSpeed;
       const totalSourceSec = config.segments.reduce(
         (sum, seg) => sum + Math.max(0.01, seg.endSec - seg.startSec),
@@ -825,7 +900,7 @@ export class WebCodecsExporter {
 
             // Render overlay onto offscreen export canvas
             const renderFrames = config.frameProcessor
-              ? await config.frameProcessor.processExport(segVideos)
+              ? await config.frameProcessor.processExport(segVideos, parseTimestampSec(segment.clip.timestampRaw) + currentSourceSec)
               : segVideos;
             OverlayRenderer.render(
               exportCanvas,
@@ -972,6 +1047,7 @@ export class WebCodecsExporter {
       }
       return new Blob([buffer], { type: 'video/mp4' });
     } finally {
+      config.frameProcessor?.clearExportAnalysis?.();
       if (videoEncoder && videoEncoder.state !== 'closed') {
         videoEncoder.close();
       }

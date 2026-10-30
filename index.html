@@ -43,7 +43,9 @@
     <meta name="theme-color" content="#0a0d14" />
     <script>
       try {
-        document.documentElement.dataset.theme = localStorage.getItem('ct_theme') === 'classic' ? 'classic' : 'graphite';
+        const savedTheme = localStorage.getItem('ct_theme');
+        document.documentElement.dataset.theme = savedTheme === 'classic' ? 'midnight' :
+          ['graphite', 'midnight', 'forest', 'burgundy', 'amber', 'paper'].includes(savedTheme) ? savedTheme : 'graphite';
       } catch {}
     </script>
     <link rel="stylesheet" href="/src/style.css" />
@@ -286,8 +288,12 @@
                 <div class="theme-select-box">
                   <label for="select-theme" data-i18n="label_theme">테마</label>
                   <select id="select-theme" class="select-box select-theme">
-                    <option value="graphite" data-i18n="theme_graphite">뉴트럴 다크</option>
-                    <option value="classic" data-i18n="theme_classic">클래식 블루</option>
+                    <option value="graphite" data-i18n="theme_graphite">그라파이트</option>
+                    <option value="midnight" data-i18n="theme_midnight">미드나이트</option>
+                    <option value="forest" data-i18n="theme_forest">포레스트</option>
+                    <option value="burgundy" data-i18n="theme_burgundy">버건디</option>
+                    <option value="amber" data-i18n="theme_amber">앰버</option>
+                    <option value="paper" data-i18n="theme_paper">페이퍼</option>
                   </select>
                 </div>
               </div>
