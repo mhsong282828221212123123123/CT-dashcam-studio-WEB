@@ -119,6 +119,17 @@ class CTDashcamStudioApp {
   private isExplorerExpanded = false;
 
   constructor() {
+    // Block app shortcuts without moving focus during native file-picker activation.
+    window.addEventListener('keydown', (event) => {
+      if (document.getElementById('load-progress-backdrop')?.style.display === 'flex') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    }, true);
+    const loadingBackdrop = document.getElementById('load-progress-backdrop');
+    for (const name of ['touchmove', 'wheel']) {
+      loadingBackdrop?.addEventListener(name, (event) => event.preventDefault(), { passive: false });
+    }
     this.canvas = document.getElementById('player-canvas') as HTMLCanvasElement;
     this.videoContainer = document.getElementById('hidden-video-container') as HTMLElement;
     this.initVideoPool();
@@ -324,6 +335,8 @@ class CTDashcamStudioApp {
   }
 
   showLoadProgress(title: string, countText: string, pct: number, indeterminate = false) {
+    const backdrop = document.getElementById('load-progress-backdrop');
+    if (backdrop) backdrop.style.display = 'flex';
     const note = document.getElementById('floating-progress-ios-note');
     if (note) note.hidden = !isIOS();
     const floatingBanner = document.getElementById('floating-load-progress');
@@ -347,6 +360,8 @@ class CTDashcamStudioApp {
 
   hideLoadProgress() {
     this.clearLoadWatchdog();
+    const backdrop = document.getElementById('load-progress-backdrop');
+    if (backdrop) backdrop.style.display = 'none';
     const floatingBanner = document.getElementById('floating-load-progress');
     if (floatingBanner) {
       floatingBanner.style.display = 'none';

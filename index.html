@@ -105,16 +105,19 @@
       <!-- 모바일 바텀시트 딤드 배경 (외부 터치 시 축소) -->
       <div id="mobile-sheet-backdrop" class="mobile-sheet-backdrop" style="display: none;"></div>
 
-      <div id="floating-load-progress" class="floating-load-progress" style="display: none;">
-        <div class="progress-banner-title-box">
-          <span class="progress-spinner" aria-hidden="true"></span>
-          <span id="floating-progress-title" class="progress-banner-title"></span>
+      <div id="load-progress-backdrop" class="load-progress-backdrop" style="display: none;">
+        <div id="floating-load-progress" class="floating-load-progress" style="display: none;">
+          <div class="progress-banner-title-box">
+            <span class="progress-spinner" aria-hidden="true"></span>
+            <span id="floating-progress-title" class="progress-banner-title"></span>
+          </div>
+          <p id="floating-progress-count" class="progress-banner-count" role="status" aria-live="polite"></p>
+          <div class="progress-banner-bar">
+            <div id="floating-progress-fill" class="progress-banner-fill" style="width: 0%;"></div>
+          </div>
+          <p id="floating-progress-ios-note" class="progress-ios-note" data-i18n="progress_ios_usb_note" hidden></p>
         </div>
-        <p id="floating-progress-count" class="progress-banner-count" role="status" aria-live="polite"></p>
-        <div class="progress-banner-bar">
-          <div id="floating-progress-fill" class="progress-banner-fill" style="width: 0%;"></div>
-        </div>
-        <p id="floating-progress-ios-note" class="progress-ios-note" data-i18n="progress_ios_usb_note" hidden></p>
+
       </div>
 
       <div class="main-container">

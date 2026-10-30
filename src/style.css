@@ -3378,13 +3378,25 @@ body.view-desktop .mobile-sheet-backdrop {
   line-height: 1.5;
 }
 
-/* Non-blocking file loading toast. */
-#floating-load-progress {
+/* Loading toast with a blocking, blurred background. */
+.load-progress-backdrop {
   position: fixed;
-  top: max(72px, calc(env(safe-area-inset-top, 0px) + 60px));
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(calc(100% - 32px), 440px);
+  inset: 0;
+  z-index: 99998;
+  align-items: flex-start;
+  justify-content: center;
+  padding: max(72px, calc(env(safe-area-inset-top, 0px) + 60px)) 16px 24px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, .32);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+#floating-load-progress {
+  position: relative;
+  width: min(100%, 440px);
   z-index: 99998;
   box-sizing: border-box;
   padding: 18px;
@@ -3395,7 +3407,7 @@ body.view-desktop .mobile-sheet-backdrop {
   box-shadow: 0 12px 32px var(--shadow-color);
   flex-direction: column;
   gap: 12px;
-  pointer-events: none;
+  pointer-events: auto;
 }
 #floating-load-progress .progress-banner-title {
   color: var(--text-main);
