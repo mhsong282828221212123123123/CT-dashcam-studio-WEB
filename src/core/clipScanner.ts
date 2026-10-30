@@ -230,55 +230,56 @@ export async function groupFilesIntoClips(
 
   for (let i = 0; i < total; i++) {
     const item = files[i];
-    if (!item) continue;
+    if (item) {
 
-    const isRealFile = item instanceof File || ('size' in item && typeof (item as any).slice === 'function');
-    const fileObj = isRealFile ? (item as File) : (item as ScannedFileItem).file;
-    const handleObj = !isRealFile ? (item as ScannedFileItem).handle : undefined;
-    const relPath =
-      (fileObj as any)?._relativePath ||
-      fileObj?.webkitRelativePath ||
-      (item as ScannedFileItem).relativePath ||
-      item.name || '';
+      const isRealFile = item instanceof File || ('size' in item && typeof (item as any).slice === 'function');
+      const fileObj = isRealFile ? (item as File) : (item as ScannedFileItem).file;
+      const handleObj = !isRealFile ? (item as ScannedFileItem).handle : undefined;
+      const relPath =
+        (fileObj as any)?._relativePath ||
+        fileObj?.webkitRelativePath ||
+        (item as ScannedFileItem).relativePath ||
+        item.name || '';
 
-    // 테슬라 블랙박스 암호화 디렉토리(EncryptedClips) 감지 시 제외 및 콜백 호출
-    if (/EncryptedClips/i.test(relPath)) {
-      onEncryptedDetected?.();
-      continue;
-    }
-
-    const match = relPath.match(CAM_REGEX);
-    if (match) {
-      const timestampRaw = match[1].replace(/^(\d{4}-\d{2}-\d{2})[-_](\d{2}[-:]?\d{2}[-:]?\d{2})$/, '$1_$2');
-      const camKey = match[2].toLowerCase() as CameraKey;
-
-      // Determine folder from relative path
-      const pathParts = relPath.split(/[\/\\]/);
-      let folder = "TeslaCam";
-      if (pathParts.length >= 3) {
-        folder = pathParts.slice(0, -1).join("/");
-      } else if (pathParts.length === 2) {
-        folder = pathParts[0];
+      // 테슬라 블랙박스 암호화 디렉토리(EncryptedClips) 감지 시 제외 및 콜백 호출
+      if (/EncryptedClips/i.test(relPath)) {
+        onEncryptedDetected?.();
       }
 
-      const groupKey = `${folder}/${timestampRaw}`;
-      if (!mapByFolderAndTimestamp.has(groupKey)) {
-        mapByFolderAndTimestamp.set(groupKey, {
-          folder,
-          timestampRaw,
-          cams: {},
-          camHandles: {},
-        });
+      const match = /EncryptedClips/i.test(relPath) ? null : relPath.match(CAM_REGEX);
+      if (match) {
+        const timestampRaw = match[1].replace(/^(\d{4}-\d{2}-\d{2})[-_](\d{2}[-:]?\d{2}[-:]?\d{2})$/, '$1_$2');
+        const camKey = match[2].toLowerCase() as CameraKey;
+
+        // Determine folder from relative path
+        const pathParts = relPath.split(/[\/\\]/);
+        let folder = "TeslaCam";
+        if (pathParts.length >= 3) {
+          folder = pathParts.slice(0, -1).join("/");
+        } else if (pathParts.length === 2) {
+          folder = pathParts[0];
+        }
+
+        const groupKey = `${folder}/${timestampRaw}`;
+        if (!mapByFolderAndTimestamp.has(groupKey)) {
+          mapByFolderAndTimestamp.set(groupKey, {
+            folder,
+            timestampRaw,
+            cams: {},
+            camHandles: {},
+          });
+        }
+
+        const groupEntry = mapByFolderAndTimestamp.get(groupKey)!;
+        if (fileObj) {
+          groupEntry.cams[camKey] = fileObj;
+        }
+        if (handleObj) {
+          if (!groupEntry.camHandles) groupEntry.camHandles = {};
+          groupEntry.camHandles[camKey] = handleObj;
+        }
       }
 
-      const groupEntry = mapByFolderAndTimestamp.get(groupKey)!;
-      if (fileObj) {
-        groupEntry.cams[camKey] = fileObj;
-      }
-      if (handleObj) {
-        if (!groupEntry.camHandles) groupEntry.camHandles = {};
-        groupEntry.camHandles[camKey] = handleObj;
-      }
     }
 
     if ((i + 1) % CHUNK_SIZE === 0 || i === total - 1) {

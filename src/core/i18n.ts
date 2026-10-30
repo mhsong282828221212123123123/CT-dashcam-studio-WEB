@@ -25,6 +25,8 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   fr,
   es,
   ko: {
+    progress_waiting_files: "파일 목록을 기다리는 중",
+    progress_waiting_files_detail: "파일을 선택한 뒤에도 저장 장치에 따라 준비 시간이 걸릴 수 있습니다.",
     status_face_analysis: "모자이크 영역 분석: {0}% [파일 {1}/{2}]",
     error_face_analysis_frame: "얼굴 분석용 영상을 준비하지 못했습니다: {0}, {1}초. 모자이크 없이 저장하지 않고 내보내기를 중단합니다. ({2})",
     tip_qr_keep: "많은 사람들이 이 CT Dashcam Studio를 쓸 수 있도록 QR을 유지해주시면 감사해요.",
@@ -275,6 +277,8 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   en: {
+    progress_waiting_files: "Waiting for the file list",
+    progress_waiting_files_detail: "After selection, your storage device may need time to prepare the files.",
     status_face_analysis: "Analyzing mosaic regions: {0}% [File {1}/{2}]",
     error_face_analysis_frame: "Could not prepare a frame for face analysis: {0}, {1}s. Export stopped rather than saving without the mosaic. ({2})",
     tip_qr_keep: "We’d appreciate you keeping the QR code so more people can discover and use CT Dashcam Studio.",
@@ -525,6 +529,8 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   ja: {
+    progress_waiting_files: "ファイル一覧を待っています",
+    progress_waiting_files_detail: "選択後も、ストレージによってはファイルの準備に時間がかかります。",
     status_face_analysis: "モザイク領域を解析中: {0}% [ファイル {1}/{2}]",
     error_face_analysis_frame: "顔解析用のフレームを準備できませんでした: {0}、{1}秒。モザイクなしでは保存せず、書き出しを中止します。({2})",
     tip_qr_keep: "より多くの方に CT Dashcam Studio を知って使っていただけるよう、QRコードを残していただけるとうれしいです。",
@@ -775,6 +781,8 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   'zh-CN': {
+    progress_waiting_files: "正在等待文件列表",
+    progress_waiting_files_detail: "选择后，存储设备可能仍需一些时间准备文件。",
     status_face_analysis: "正在分析马赛克区域：{0}% [文件 {1}/{2}]",
     error_face_analysis_frame: "无法准备人脸分析帧：{0}，{1}秒。已停止导出，不会保存未打码的视频。({2})",
     tip_qr_keep: "希望您能保留二维码，让更多人发现并使用 CT Dashcam Studio。谢谢您的支持！",
@@ -1025,6 +1033,8 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   'zh-TW': {
+    progress_waiting_files: "正在等待檔案清單",
+    progress_waiting_files_detail: "選取後，儲存裝置可能仍需一些時間準備檔案。",
     status_face_analysis: "正在分析馬賽克區域：{0}% [檔案 {1}/{2}]",
     error_face_analysis_frame: "無法準備人臉分析影格：{0}，{1}秒。已停止匯出，不會儲存未遮蔽的影片。({2})",
     tip_qr_keep: "希望您能保留 QR 碼，讓更多人認識並使用 CT Dashcam Studio。謝謝您的支持！",

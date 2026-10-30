@@ -1,3 +1,4 @@
+import { bindFilePickerProgress } from './core/filePickerProgress';
 import { clampPlaybackSpeed } from './core/playbackSpeed';
 import { isAppWindow, completeAppLaunch } from './core/appLaunch';
 // Main Application Entrypoint for CT Dashcam Studio Web
@@ -1782,47 +1783,25 @@ class CTDashcamStudioApp {
   }
 
   private bindPickerLifecycle(input: HTMLInputElement, type: 'folder' | 'files') {
-    // User selected files / folder
-    input.addEventListener('change', async () => {
-      const files = Array.from(input.files || []);
-
-      // Immediately recreate fresh input element for next pick without modifying value during click
-      if (type === 'folder') {
-        this.mountFolderOverlayInput(true);
-      } else {
-        this.mountFileOverlayInput(true);
-      }
-
-      if (files.length === 0) return;
-
-      // 2분 초과 지연 방지 타임아웃 워치독 가동
-      this.startLoadWatchdog(120000);
-
-      // 1) 즉시 진행도 배너 띄우기
-      this.showLoadProgress(
-        i18n.t('progress_grouping_clips'),
-        i18n.t('progress_files_received', [files.length]),
-        0,
-        true
-      );
-
-      // 2) 1프레임 양보하여 시각적 피드백 보장
-      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
-
-      // 3) 이전 세션 리소스 클린업
-      this.cleanupPreviousResources();
-
-      // 4) 파일 로드 및 그룹핑 파이프라인 시작
-      try {
-        await this.loadFiles(files);
-      } catch (err) {
+    bindFilePickerProgress(input, {
+      waiting: () => {
+        // The native iOS picker exposes no enumeration/transfer progress before change.
+        this.showLoadProgress(i18n.t('progress_waiting_files'), i18n.t('progress_waiting_files_detail'), 0, true);
+      },
+      received: (count) => {
+        this.startLoadWatchdog(120000);
+        this.showLoadProgress(i18n.t('progress_grouping_clips'), i18n.t('progress_files_received', [count]), 0, true);
+      },
+      recreate: () => {
+        if (type === 'folder') this.mountFolderOverlayInput(true);
+        else this.mountFileOverlayInput(true);
+      },
+      load: (files) => this.loadFiles(files),
+      cancel: () => this.hideLoadProgress(),
+      error: (err) => {
         console.error('[App] Failed to load files:', err);
         this.hideLoadProgress();
-      }
-    });
-
-    input.addEventListener('cancel', () => {
-      this.hideLoadProgress();
+      },
     });
   }
 
