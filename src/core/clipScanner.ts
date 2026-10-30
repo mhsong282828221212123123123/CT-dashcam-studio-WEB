@@ -212,8 +212,7 @@ export function splitSessionInto10MinChunks(session: ClipItem[]): ClipItem[][] {
 export async function groupFilesIntoClips(
   files: (File | ScannedFileItem)[] | FileList | ArrayLike<any>,
   onProgress?: (processed: number, total: number, clipCount: number) => void,
-  onEncryptedDetected?: () => void,
-  signal?: AbortSignal
+  onEncryptedDetected?: () => void
 ): Promise<FolderGroup[]> {
   const mapByFolderAndTimestamp = new Map<
     string,
@@ -230,58 +229,56 @@ export async function groupFilesIntoClips(
   const CHUNK_SIZE = Math.max(5, Math.min(25, Math.floor(total / 10)));
 
   for (let i = 0; i < total; i++) {
-    signal?.throwIfAborted();
     const item = files[i];
-    if (item) {
+    if (!item) continue;
 
-      const isRealFile = item instanceof File || ('size' in item && typeof (item as any).slice === 'function');
-      const fileObj = isRealFile ? (item as File) : (item as ScannedFileItem).file;
-      const handleObj = !isRealFile ? (item as ScannedFileItem).handle : undefined;
-      const relPath =
-        (fileObj as any)?._relativePath ||
-        fileObj?.webkitRelativePath ||
-        (item as ScannedFileItem).relativePath ||
-        item.name || '';
+    const isRealFile = item instanceof File || ('size' in item && typeof (item as any).slice === 'function');
+    const fileObj = isRealFile ? (item as File) : (item as ScannedFileItem).file;
+    const handleObj = !isRealFile ? (item as ScannedFileItem).handle : undefined;
+    const relPath =
+      (fileObj as any)?._relativePath ||
+      fileObj?.webkitRelativePath ||
+      (item as ScannedFileItem).relativePath ||
+      item.name || '';
 
-      // 테슬라 블랙박스 암호화 디렉토리(EncryptedClips) 감지 시 제외 및 콜백 호출
-      if (/EncryptedClips/i.test(relPath)) {
-        onEncryptedDetected?.();
+    // 테슬라 블랙박스 암호화 디렉토리(EncryptedClips) 감지 시 제외 및 콜백 호출
+    if (/EncryptedClips/i.test(relPath)) {
+      onEncryptedDetected?.();
+      continue;
+    }
+
+    const match = relPath.match(CAM_REGEX);
+    if (match) {
+      const timestampRaw = match[1].replace(/^(\d{4}-\d{2}-\d{2})[-_](\d{2}[-:]?\d{2}[-:]?\d{2})$/, '$1_$2');
+      const camKey = match[2].toLowerCase() as CameraKey;
+
+      // Determine folder from relative path
+      const pathParts = relPath.split(/[\/\\]/);
+      let folder = "TeslaCam";
+      if (pathParts.length >= 3) {
+        folder = pathParts.slice(0, -1).join("/");
+      } else if (pathParts.length === 2) {
+        folder = pathParts[0];
       }
 
-      const match = /EncryptedClips/i.test(relPath) ? null : relPath.match(CAM_REGEX);
-      if (match) {
-        const timestampRaw = match[1].replace(/^(\d{4}-\d{2}-\d{2})[-_](\d{2}[-:]?\d{2}[-:]?\d{2})$/, '$1_$2');
-        const camKey = match[2].toLowerCase() as CameraKey;
-
-        // Determine folder from relative path
-        const pathParts = relPath.split(/[\/\\]/);
-        let folder = "TeslaCam";
-        if (pathParts.length >= 3) {
-          folder = pathParts.slice(0, -1).join("/");
-        } else if (pathParts.length === 2) {
-          folder = pathParts[0];
-        }
-
-        const groupKey = `${folder}/${timestampRaw}`;
-        if (!mapByFolderAndTimestamp.has(groupKey)) {
-          mapByFolderAndTimestamp.set(groupKey, {
-            folder,
-            timestampRaw,
-            cams: {},
-            camHandles: {},
-          });
-        }
-
-        const groupEntry = mapByFolderAndTimestamp.get(groupKey)!;
-        if (fileObj) {
-          groupEntry.cams[camKey] = fileObj;
-        }
-        if (handleObj) {
-          if (!groupEntry.camHandles) groupEntry.camHandles = {};
-          groupEntry.camHandles[camKey] = handleObj;
-        }
+      const groupKey = `${folder}/${timestampRaw}`;
+      if (!mapByFolderAndTimestamp.has(groupKey)) {
+        mapByFolderAndTimestamp.set(groupKey, {
+          folder,
+          timestampRaw,
+          cams: {},
+          camHandles: {},
+        });
       }
 
+      const groupEntry = mapByFolderAndTimestamp.get(groupKey)!;
+      if (fileObj) {
+        groupEntry.cams[camKey] = fileObj;
+      }
+      if (handleObj) {
+        if (!groupEntry.camHandles) groupEntry.camHandles = {};
+        groupEntry.camHandles[camKey] = handleObj;
+      }
     }
 
     if ((i + 1) % CHUNK_SIZE === 0 || i === total - 1) {
@@ -292,8 +289,6 @@ export async function groupFilesIntoClips(
       await yieldToCompositor();
     }
   }
-
-  signal?.throwIfAborted();
 
   // Group into FolderGroups
   const folderMap = new Map<string, ClipItem[]>();
@@ -394,14 +389,12 @@ export async function groupFilesIntoClips(
 export async function scanFileSystemDirectory(
   dirHandle: FileSystemDirectoryHandle,
   onProgress?: (scannedFiles: number, scannedDirs: number) => void,
-  onEncryptedDetected?: () => void,
-  signal?: AbortSignal
+  onEncryptedDetected?: () => void
 ): Promise<ScannedFileItem[]> {
   const items: ScannedFileItem[] = [];
   let scannedDirs = 0;
 
   async function traverse(handle: FileSystemDirectoryHandle, currentPath: string) {
-    signal?.throwIfAborted();
     if (/EncryptedClips/i.test(handle.name) || /EncryptedClips/i.test(currentPath)) {
       onEncryptedDetected?.();
       return;
@@ -411,11 +404,9 @@ export async function scanFileSystemDirectory(
     const entries: any[] = [];
     try {
       for await (const entry of (handle as any).values()) {
-        signal?.throwIfAborted();
         entries.push(entry);
       }
     } catch (err) {
-      signal?.throwIfAborted();
       console.warn(`[Scanner] Cannot read directory ${currentPath || handle.name}:`, err);
       return;
     }
@@ -462,6 +453,5 @@ export async function scanFileSystemDirectory(
 
   const rootPath = (dirHandle.name && !dirHandle.name.includes(':') && dirHandle.name !== '/') ? dirHandle.name : '';
   await traverse(dirHandle, rootPath);
-  signal?.throwIfAborted();
   return items;
 }

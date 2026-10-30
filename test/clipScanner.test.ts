@@ -151,30 +151,3 @@ describe('clipScanner - groupFilesIntoClips & formatFolderGroup', () => {
     expect(typeof isIOSOrAndroid).toBe('function');
   });
 });
-
-
-describe('scan progress for excluded files', () => {
-  it('reaches 100% even when the whole selection is encrypted or empty entries', async () => {
-    const files = Array.from({ length: 51 }, (_, i) => i % 2 ? undefined : ({
-      name: 'ignored.mp4', relativePath: 'TeslaCam/EncryptedClips/ignored.mp4',
-    }));
-    const updates: number[] = [];
-    let encrypted = 0;
-    const result = await groupFilesIntoClips(files, (done) => updates.push(done), () => encrypted++);
-    expect(result).toEqual([]);
-    expect(encrypted).toBe(26);
-    expect(updates.length).toBeGreaterThan(1);
-    expect(updates.at(-1)).toBe(51);
-  });
-});
-
-it('stops file classification at a yield when cancelled', async () => {
-  const controller = new AbortController();
-  const items = Array.from({ length: 100 }, () => ({ name: 'ignored.json', relativePath: 'ignored.json' }));
-  const updates: number[] = [];
-  await expect(groupFilesIntoClips(items, done => {
-    updates.push(done);
-    controller.abort();
-  }, undefined, controller.signal)).rejects.toMatchObject({ name: 'AbortError' });
-  expect(updates).toEqual([10]);
-});

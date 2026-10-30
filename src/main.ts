@@ -1,4 +1,3 @@
-import { bindFilePickerProgress } from './core/filePickerProgress';
 import { clampPlaybackSpeed } from './core/playbackSpeed';
 import { isAppWindow, completeAppLaunch } from './core/appLaunch';
 // Main Application Entrypoint for CT Dashcam Studio Web
@@ -304,24 +303,11 @@ class CTDashcamStudioApp {
   }
 
   private loadWatchdogTimer: any = null;
-  private fileLoadController: AbortController | null = null;
-  private cancelNativeFilePick: (() => void) | null = null;
-
-  private stopFileLoad() {
-    this.fileLoadController?.abort();
-    this.cancelNativeFilePick?.();
-    this.cancelNativeFilePick = null;
-    this.hideLoadProgress();
-    // Keep a pending native picker attached. WebKit may still be completing its
-    // selection; replacing that input here can leave subsequent pickers blocked.
-  }
-
-
   startLoadWatchdog(durationMs = 120000) {
     this.clearLoadWatchdog();
     this.loadWatchdogTimer = setTimeout(() => {
       console.warn('[App] File loading watchdog triggered: exceeded 2 minutes');
-      this.stopFileLoad();
+      this.hideLoadProgress();
       this.isSelectingClip = false;
       this.showToast(i18n.t('toast_load_timeout') || '파일 불러오기 시간이 2분을 초과하여 취소되었습니다. 외장 장치 연결 상태나 파일 개수를 확인해 주세요.');
     }, durationMs);
@@ -1791,38 +1777,55 @@ class CTDashcamStudioApp {
   }
 
   private bindPickerLifecycle(input: HTMLInputElement, type: 'folder' | 'files') {
-    const picker = bindFilePickerProgress(input, {
-      waiting: () => {
-        this.fileLoadController?.abort();
-        this.fileLoadController = new AbortController();
-        this.cancelNativeFilePick = picker.cancel;
-        // The native iOS picker exposes no enumeration/transfer progress before change.
-        this.showLoadProgress('progress_waiting_files', 'progress_waiting_files_detail', 0, true);
-      },
-      received: (count) => {
-        this.startLoadWatchdog(120000);
-        this.showLoadProgress('progress_grouping_clips', 'progress_files_received', 0, true, [count]);
-      },
-      recreate: () => {
-        if (type === 'folder') this.mountFolderOverlayInput(true);
-        else this.mountFileOverlayInput(true);
-      },
-      load: (files) => this.loadFiles(files, this.fileLoadController?.signal),
-      cancel: () => this.hideLoadProgress(),
-      error: (err) => {
+    // User selected files / folder
+    input.addEventListener('change', async () => {
+      const files = Array.from(input.files || []);
+
+      // Immediately recreate fresh input element for next pick without modifying value during click
+      if (type === 'folder') {
+        this.mountFolderOverlayInput(true);
+      } else {
+        this.mountFileOverlayInput(true);
+      }
+
+      if (files.length === 0) return;
+
+      // 2분 초과 지연 방지 타임아웃 워치독 가동
+      this.startLoadWatchdog(120000);
+
+      // 1) 즉시 진행도 배너 띄우기
+      this.showLoadProgress(
+        'progress_grouping_clips',
+        'progress_files_received',
+        0,
+        true,
+        [files.length]
+      );
+
+      // 2) 1프레임 양보하여 시각적 피드백 보장
+      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+
+      // 3) 이전 세션 리소스 클린업
+      this.cleanupPreviousResources();
+
+      // 4) 파일 로드 및 그룹핑 파이프라인 시작
+      try {
+        await this.loadFiles(files);
+      } catch (err) {
         console.error('[App] Failed to load files:', err);
         this.hideLoadProgress();
-      },
+      }
+    });
+
+    input.addEventListener('cancel', () => {
+      this.hideLoadProgress();
     });
   }
 
   private openWithDirectoryPicker() {
-    this.fileLoadController?.abort();
-    const controller = this.fileLoadController = new AbortController();
     (async () => {
       try {
         const dirHandle = await (window as any).showDirectoryPicker();
-        controller.signal.throwIfAborted();
         this.hasNotifiedEncryptedClips = false;
         if (dirHandle.name && /EncryptedClips/i.test(dirHandle.name)) {
           this.notifyEncryptedClipsDetected();
@@ -1835,17 +1838,15 @@ class CTDashcamStudioApp {
           (filesCount, dirsCount) => {
             this.showLoadProgress('progress_searching_clips', 'progress_found_videos', 0, true, [filesCount, dirsCount]);
           },
-          () => this.notifyEncryptedClipsDetected(),
-          controller.signal
+          () => this.notifyEncryptedClipsDetected()
         );
         if (items && items.length > 0) {
-          await this.loadFiles(items, controller.signal);
+          await this.loadFiles(items);
         } else {
           this.hideLoadProgress();
           this.showToast(i18n.t('empty_no_clips'));
         }
       } catch (e: any) {
-        if (this.fileLoadController !== controller) return;
         this.hideLoadProgress();
         if (e.name === 'AbortError') {
           return;
@@ -1857,13 +1858,7 @@ class CTDashcamStudioApp {
     })();
   }
 
-  async loadFiles(files: (File | ScannedFileItem)[] | FileList | ArrayLike<any>, signal?: AbortSignal) {
-    if (!signal) {
-      this.fileLoadController?.abort();
-      this.fileLoadController = new AbortController();
-      signal = this.fileLoadController.signal;
-    }
-    if (signal.aborted) return;
+  async loadFiles(files: (File | ScannedFileItem)[] | FileList | ArrayLike<any>) {
     console.log('[App] loadFiles called with', files.length, 'files');
     if (!files || files.length === 0) return;
 
@@ -1886,9 +1881,7 @@ class CTDashcamStudioApp {
     // 모바일(iOS 등)에서 0% 상태 진행도 배너가 화면에 페인트되도록 1프레임 양보
     await yieldToCompositor();
 
-    let groups: FolderGroup[];
-    try {
-    groups = await groupFilesIntoClips(
+    this.folderGroups = await groupFilesIntoClips(
       files,
       (done, total, clipCount) => {
         const pct = Math.round((done / total) * 100);
@@ -1900,15 +1893,8 @@ class CTDashcamStudioApp {
           [done, total, pct, clipCount]
         );
       },
-      () => this.notifyEncryptedClipsDetected(),
-      signal
+      () => this.notifyEncryptedClipsDetected()
     );
-    } catch (error) {
-      if (signal.aborted) return;
-      throw error;
-    }
-    if (signal.aborted) return;
-    this.folderGroups = groups;
     console.log('[App] Parsed folderGroups count:', this.folderGroups.length);
 
     // 3. Populate clipMap
@@ -1923,7 +1909,6 @@ class CTDashcamStudioApp {
     this.renderClipsTree();
     // 100% 완료 상태가 화면에 잠깐 그려진 후 배너를 숨김
     await yieldToCompositor();
-    if (signal.aborted) return;
     this.hideLoadProgress();
 
     if (this.folderGroups.length === 0) {
@@ -1945,7 +1930,7 @@ class CTDashcamStudioApp {
       if (shouldAutoSelect) {
         const firstClip = firstGroup.clips[0];
         requestAnimationFrame(() => {
-          if (!signal?.aborted) this.selectClip(firstClip);
+          this.selectClip(firstClip);
         });
       }
     }
