@@ -73,3 +73,40 @@ it('cancels between the initial status paint and processing', async () => {
   await vi.runAllTimersAsync();
   expect(progress.load).not.toHaveBeenCalled();
 });
+
+it('allows selecting files again after app cancel without replacing a pending native input', async () => {
+  vi.useFakeTimers();
+  const { input, progress, picker } = fixture({ length: 100 } as FileList);
+  input.dispatchEvent(new Event('click'));
+  picker.cancel();
+  expect(progress.recreate).not.toHaveBeenCalled();
+  input.dispatchEvent(new Event('click'));
+  input.dispatchEvent(new Event('change'));
+  await vi.runAllTimersAsync();
+  expect(progress.waiting).toHaveBeenCalledTimes(2);
+  expect(progress.load).toHaveBeenCalledOnce();
+});
+it('waits for a native completion event before replacing a cancelled input', async () => {
+  vi.useFakeTimers();
+  const { input, progress, picker } = fixture({ length: 100 } as FileList);
+  input.dispatchEvent(new Event('click'));
+  picker.cancel();
+  expect(progress.recreate).not.toHaveBeenCalled();
+  input.dispatchEvent(new Event('change'));
+  await vi.runAllTimersAsync();
+  expect(progress.recreate).toHaveBeenCalledOnce();
+  expect(progress.load).not.toHaveBeenCalled();
+});
+it('a previous selection awaiting paint cannot load into a later picker attempt', async () => {
+  vi.useFakeTimers();
+  const { input, progress, picker } = fixture({ length: 100 } as FileList);
+  input.dispatchEvent(new Event('click'));
+  input.dispatchEvent(new Event('change'));
+  picker.cancel();
+  input.dispatchEvent(new Event('click'));
+  await vi.runAllTimersAsync();
+  expect(progress.load).not.toHaveBeenCalled();
+  input.dispatchEvent(new Event('change'));
+  await vi.runAllTimersAsync();
+  expect(progress.load).toHaveBeenCalledOnce();
+});

@@ -310,8 +310,8 @@ class CTDashcamStudioApp {
     this.cancelNativeFilePick?.();
     this.cancelNativeFilePick = null;
     this.hideLoadProgress();
-    this.mountFolderOverlayInput(true);
-    this.mountFileOverlayInput(true);
+    // Keep a pending native picker attached. WebKit may still be completing its
+    // selection; replacing that input here can leave subsequent pickers blocked.
   }
 
 
@@ -332,7 +332,7 @@ class CTDashcamStudioApp {
     }
   }
 
-  showLoadProgress(title: string, countText: string, pct: number, indeterminate = false) {
+  showLoadProgress(title: string, countText: string, pct: number, indeterminate = false, focusDialog = true) {
     const backdrop = document.getElementById('load-progress-backdrop');
     const opening = backdrop?.style.display === 'none';
     if (backdrop) {
@@ -347,7 +347,7 @@ class CTDashcamStudioApp {
     const floatingFill = document.getElementById('floating-progress-fill');
     if (floatingBanner && floatingTitle && floatingCount && floatingFill) {
       floatingBanner.style.display = 'flex';
-      if (opening) document.getElementById('btn-cancel-file-load')?.focus();
+      if (opening && focusDialog) document.getElementById('btn-cancel-file-load')?.focus();
       floatingTitle.textContent = title;
       floatingCount.textContent = countText;
 
@@ -365,7 +365,7 @@ class CTDashcamStudioApp {
     this.clearLoadWatchdog();
     const backdrop = document.getElementById('load-progress-backdrop');
     if (backdrop) backdrop.style.display = 'none';
-    this.loadProgressFocus?.focus();
+    if (backdrop?.contains(document.activeElement)) this.loadProgressFocus?.focus();
     this.loadProgressFocus = null;
     const floatingBanner = document.getElementById('floating-load-progress');
     if (floatingBanner) {
@@ -1798,7 +1798,7 @@ class CTDashcamStudioApp {
         this.fileLoadController = new AbortController();
         this.cancelNativeFilePick = picker.cancel;
         // The native iOS picker exposes no enumeration/transfer progress before change.
-        this.showLoadProgress(i18n.t('progress_waiting_files'), i18n.t('progress_waiting_files_detail'), 0, true);
+        this.showLoadProgress(i18n.t('progress_waiting_files'), i18n.t('progress_waiting_files_detail'), 0, true, false);
       },
       received: (count) => {
         this.startLoadWatchdog(120000);
