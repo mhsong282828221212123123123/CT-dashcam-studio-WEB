@@ -1,6 +1,9 @@
 /* Shared geometry, semantic colors. Palettes never alter dimensions or typography. */
 html[data-theme] {
   color-scheme: dark;
+  --clip-recent: #9fbea5;
+  --clip-saved: #b1c6dc;
+  --clip-sentry: #dba49d;
   --bg-app: #171817;
   --bg-sidebar: #1d1e1c;
   --bg-card: #252623;
@@ -178,6 +181,9 @@ html[data-theme="amber"] {
   --switch-active: #ad985e;
 }
 html[data-theme="paper"] {
+  --clip-recent: #356a46;
+  --clip-saved: #2b6090;
+  --clip-sentry: #a9433b;
   color-scheme: light;
   --bg-app: #f1f1ed;
   --bg-sidebar: #fafaf7;
@@ -232,7 +238,12 @@ html[data-theme="paper"] {
 }
 .workspace-preferences > div { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; }
 .workspace-preferences label { font-size: 11px; color: var(--text-muted); white-space: normal; }
-.workspace-preferences select { width: 100%; height: 30px; font-size: 12px; padding: 3px 8px; }
+html[data-theme] .workspace-preferences select.select-box {
+  box-sizing: border-box; width: 100%;
+  height: 32px !important; min-height: 32px !important;
+  font-size: 12px !important; line-height: normal !important;
+  padding: 4px 10px !important; border-radius: 4px !important;
+}
 .form-label { overflow-wrap: anywhere; }
 html[data-theme] :is(button, [role="button"], select) { transition: filter .12s ease, box-shadow .12s ease; }
 .qr-emotion {
@@ -324,8 +335,21 @@ html[data-theme] .brand-tag { background: var(--badge-bg); color: var(--accent-c
 html[data-theme] .clip-node { color: var(--text-muted); }
 html[data-theme] .clip-node.active { background: var(--selected-bg) !important; color: var(--selected-text) !important; }
 html[data-theme] .clip-node.in-range { border-left-color: var(--accent-gold); color: var(--accent-gold) !important; }
-html[data-theme] :is(.folder-type-recent, .folder-type-saved, .folder-type-sentry) { color: var(--text-main); border-left-color: var(--text-dim); }
-html[data-theme] :is(.folder-type-recent .folder-name, .folder-type-sentry .folder-name) { color: var(--text-main); }
+html[data-theme] .folder-type-recent { --clip-color: var(--clip-recent); }
+html[data-theme] .folder-type-saved { --clip-color: var(--clip-saved); }
+html[data-theme] .folder-type-sentry { --clip-color: var(--clip-sentry); }
+html[data-theme] .folder-header {
+  color: var(--clip-color, var(--text-main));
+  border-left-color: var(--clip-color, var(--text-dim));
+  background: var(--header-bg);
+}
+html[data-theme] .folder-header :is(.folder-name, .folder-arrow) { color: inherit; }
+html[data-theme] .folder-header:hover, html[data-theme] .clip-node:hover {
+  background: var(--hover-bg); color: var(--text-main);
+}
+html[data-theme] .clip-type-tag { color: inherit; }
+html[data-theme] .clip-node.in-range { background-color: var(--warning-bg) !important; }
+html[data-theme] .clip-node.active.in-range { background-color: var(--selected-bg) !important; }
 html[data-theme] :is(.clip-type-tag, .badge-timecode, .badge-range-info, .speed-value-badge, .tooltip-badge, .export-seg-badge) {
   background: var(--badge-bg); border-color: var(--control-border); color: var(--text-main); text-shadow: none; box-shadow: none; font-weight: 500;
 }
@@ -371,6 +395,10 @@ html[data-theme] body.view-mobile.explorer-expanded .explorer-card { background:
 }
 @media (max-width: 850px) {
   .workspace-preferences { gap: 10px; }
+  html[data-theme] .workspace-preferences select.select-box {
+    height: 44px !important; min-height: 44px !important;
+    font-size: 13px !important; padding: 0 12px !important; border-radius: 8px !important;
+  }
   html[data-theme] .timeline-deck { background: var(--bg-sidebar) !important; border-color: var(--border-subtle); }
   html[data-theme] .sidebar-panel { background: var(--bg-sidebar) !important; }
   html[data-theme] .mobile-top-bar, html[data-theme] .mobile-tabs-nav { background: var(--bg-sidebar) !important; }
