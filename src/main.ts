@@ -305,7 +305,12 @@ class CTDashcamStudioApp {
   private cancelNativeFilePick: (() => void) | null = null;
   private loadProgressFocus: HTMLElement | null = null;
 
-  private cancelFileLoad() {
+  private cancelFileLoad(reloadOnIOS = true) {
+    if (reloadOnIOS && isIOS()) {
+      // Reset WebKit's native file picker state as well as the app's load state.
+      window.location.reload();
+      return;
+    }
     this.fileLoadController?.abort();
     this.cancelNativeFilePick?.();
     this.cancelNativeFilePick = null;
@@ -319,7 +324,7 @@ class CTDashcamStudioApp {
     this.clearLoadWatchdog();
     this.loadWatchdogTimer = setTimeout(() => {
       console.warn('[App] File loading watchdog triggered: exceeded 2 minutes');
-      this.cancelFileLoad();
+      this.cancelFileLoad(false);
       this.isSelectingClip = false;
       this.showToast(i18n.t('toast_load_timeout') || '파일 불러오기 시간이 2분을 초과하여 취소되었습니다. 외장 장치 연결 상태나 파일 개수를 확인해 주세요.');
     }, durationMs);
