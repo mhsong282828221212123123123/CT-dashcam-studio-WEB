@@ -105,17 +105,17 @@
       <!-- 모바일 바텀시트 딤드 배경 (외부 터치 시 축소) -->
       <div id="mobile-sheet-backdrop" class="mobile-sheet-backdrop" style="display: none;"></div>
 
-      <!-- 모바일 상단 고정 플로팅 진행도 배너 (iOS 및 모바일 가로모드/시트 축소 시에도 상시 노출) -->
-      <div id="floating-load-progress" class="floating-load-progress" style="display: none;">
-        <div class="progress-banner-header">
+      <div id="load-progress-backdrop" class="load-progress-backdrop" style="display: none;">
+        <div id="floating-load-progress" class="floating-load-progress" role="dialog" aria-modal="true" aria-labelledby="floating-progress-title" aria-describedby="floating-progress-count" tabindex="-1" style="display: none;">
           <div class="progress-banner-title-box">
-            <span class="progress-spinner"></span>
-            <span id="floating-progress-title" class="progress-banner-title"> 폴더 스캔 중...</span>
+            <span class="progress-spinner" aria-hidden="true"></span>
+            <span id="floating-progress-title" class="progress-banner-title"></span>
           </div>
-          <span id="floating-progress-count" class="progress-banner-count">0 / 0개 (0%)</span>
-        </div>
-        <div class="progress-banner-bar">
-          <div id="floating-progress-fill" class="progress-banner-fill" style="width: 0%;"></div>
+          <p id="floating-progress-count" class="progress-banner-count" role="status" aria-live="polite"></p>
+          <div class="progress-banner-bar">
+            <div id="floating-progress-fill" class="progress-banner-fill" style="width: 0%;"></div>
+          </div>
+          <button id="btn-cancel-file-load" class="btn" data-i18n="btn_cancel_file_load">취소</button>
         </div>
       </div>
 
@@ -148,20 +148,6 @@
               </div>
               <div id="btn-open-files" class="btn btn-files-load" role="button" tabindex="0" title="대용량 RecentClips 또는 하위 파일 직접 다중 선택 (iOS 안정 로드)">
                 <span id="btn-open-files-text"> 파일 선택 (대용량/RecentClips)</span>
-              </div>
-            </div>
-
-            <!-- 다중 파일 스캔 및 클립 그룹핑 실시간 진행도 배너 -->
-            <div id="load-progress-banner" class="load-progress-banner" style="display: none;">
-              <div class="progress-banner-header">
-                <div class="progress-banner-title-box">
-                  <span class="progress-spinner"></span>
-                  <span id="load-progress-title" class="progress-banner-title"> 폴더 스캔 중...</span>
-                </div>
-                <span id="load-progress-count" class="progress-banner-count">0 / 0개 (0%)</span>
-              </div>
-              <div id="load-progress-bar" class="progress-banner-bar">
-                <div id="load-progress-fill" class="progress-banner-fill" style="width: 0%;"></div>
               </div>
             </div>
 

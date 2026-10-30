@@ -212,7 +212,8 @@ export function splitSessionInto10MinChunks(session: ClipItem[]): ClipItem[][] {
 export async function groupFilesIntoClips(
   files: (File | ScannedFileItem)[] | FileList | ArrayLike<any>,
   onProgress?: (processed: number, total: number, clipCount: number) => void,
-  onEncryptedDetected?: () => void
+  onEncryptedDetected?: () => void,
+  signal?: AbortSignal
 ): Promise<FolderGroup[]> {
   const mapByFolderAndTimestamp = new Map<
     string,
@@ -229,6 +230,7 @@ export async function groupFilesIntoClips(
   const CHUNK_SIZE = Math.max(5, Math.min(25, Math.floor(total / 10)));
 
   for (let i = 0; i < total; i++) {
+    signal?.throwIfAborted();
     const item = files[i];
     if (item) {
 
@@ -290,6 +292,8 @@ export async function groupFilesIntoClips(
       await yieldToCompositor();
     }
   }
+
+  signal?.throwIfAborted();
 
   // Group into FolderGroups
   const folderMap = new Map<string, ClipItem[]>();
@@ -390,12 +394,14 @@ export async function groupFilesIntoClips(
 export async function scanFileSystemDirectory(
   dirHandle: FileSystemDirectoryHandle,
   onProgress?: (scannedFiles: number, scannedDirs: number) => void,
-  onEncryptedDetected?: () => void
+  onEncryptedDetected?: () => void,
+  signal?: AbortSignal
 ): Promise<ScannedFileItem[]> {
   const items: ScannedFileItem[] = [];
   let scannedDirs = 0;
 
   async function traverse(handle: FileSystemDirectoryHandle, currentPath: string) {
+    signal?.throwIfAborted();
     if (/EncryptedClips/i.test(handle.name) || /EncryptedClips/i.test(currentPath)) {
       onEncryptedDetected?.();
       return;
@@ -405,9 +411,11 @@ export async function scanFileSystemDirectory(
     const entries: any[] = [];
     try {
       for await (const entry of (handle as any).values()) {
+        signal?.throwIfAborted();
         entries.push(entry);
       }
     } catch (err) {
+      signal?.throwIfAborted();
       console.warn(`[Scanner] Cannot read directory ${currentPath || handle.name}:`, err);
       return;
     }
@@ -454,5 +462,6 @@ export async function scanFileSystemDirectory(
 
   const rootPath = (dirHandle.name && !dirHandle.name.includes(':') && dirHandle.name !== '/') ? dirHandle.name : '';
   await traverse(dirHandle, rootPath);
+  signal?.throwIfAborted();
   return items;
 }

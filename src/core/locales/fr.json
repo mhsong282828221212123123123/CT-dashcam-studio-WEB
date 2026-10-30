@@ -222,5 +222,6 @@
   "status_face_analysis": "Analyse des zones de mosaïque : {0}% [Fichier {1}/{2}]",
   "error_face_analysis_frame": "Impossible de préparer une image pour l’analyse des visages : {0}, {1}s. Exportation interrompue pour éviter un enregistrement sans mosaïque. ({2})",
   "progress_waiting_files": "En attente de la liste des fichiers",
-  "progress_waiting_files_detail": "Après la sélection, votre périphérique peut avoir besoin de temps pour préparer les fichiers."
+  "progress_waiting_files_detail": "Après la sélection, votre périphérique peut avoir besoin de temps pour préparer les fichiers.",
+  "btn_cancel_file_load": "Annuler"
 }

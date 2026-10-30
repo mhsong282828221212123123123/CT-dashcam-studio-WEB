@@ -222,5 +222,6 @@
   "status_face_analysis": "Analizando zonas de mosaico: {0}% [Archivo {1}/{2}]",
   "error_face_analysis_frame": "No se pudo preparar un fotograma para analizar rostros: {0}, {1}s. Se detuvo la exportación para evitar guardar sin mosaico. ({2})",
   "progress_waiting_files": "Esperando la lista de archivos",
-  "progress_waiting_files_detail": "Después de seleccionar, el dispositivo puede necesitar tiempo para preparar los archivos."
+  "progress_waiting_files_detail": "Después de seleccionar, el dispositivo puede necesitar tiempo para preparar los archivos.",
+  "btn_cancel_file_load": "Cancelar"
 }

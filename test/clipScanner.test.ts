@@ -167,3 +167,14 @@ describe('scan progress for excluded files', () => {
     expect(updates.at(-1)).toBe(51);
   });
 });
+
+it('stops file classification at a yield when cancelled', async () => {
+  const controller = new AbortController();
+  const items = Array.from({ length: 100 }, () => ({ name: 'ignored.json', relativePath: 'ignored.json' }));
+  const updates: number[] = [];
+  await expect(groupFilesIntoClips(items, done => {
+    updates.push(done);
+    controller.abort();
+  }, undefined, controller.signal)).rejects.toMatchObject({ name: 'AbortError' });
+  expect(updates).toEqual([10]);
+});

@@ -25,6 +25,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   fr,
   es,
   ko: {
+    btn_cancel_file_load: "취소",
     progress_waiting_files: "파일 목록을 기다리는 중",
     progress_waiting_files_detail: "파일을 선택한 뒤에도 저장 장치에 따라 준비 시간이 걸릴 수 있습니다.",
     status_face_analysis: "모자이크 영역 분석: {0}% [파일 {1}/{2}]",
@@ -277,6 +278,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   en: {
+    btn_cancel_file_load: "Cancel",
     progress_waiting_files: "Waiting for the file list",
     progress_waiting_files_detail: "After selection, your storage device may need time to prepare the files.",
     status_face_analysis: "Analyzing mosaic regions: {0}% [File {1}/{2}]",
@@ -529,6 +531,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   ja: {
+    btn_cancel_file_load: "キャンセル",
     progress_waiting_files: "ファイル一覧を待っています",
     progress_waiting_files_detail: "選択後も、ストレージによってはファイルの準備に時間がかかります。",
     status_face_analysis: "モザイク領域を解析中: {0}% [ファイル {1}/{2}]",
@@ -781,6 +784,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   'zh-CN': {
+    btn_cancel_file_load: "取消",
     progress_waiting_files: "正在等待文件列表",
     progress_waiting_files_detail: "选择后，存储设备可能仍需一些时间准备文件。",
     status_face_analysis: "正在分析马赛克区域：{0}% [文件 {1}/{2}]",
@@ -1033,6 +1037,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   'zh-TW': {
+    btn_cancel_file_load: "取消",
     progress_waiting_files: "正在等待檔案清單",
     progress_waiting_files_detail: "選取後，儲存裝置可能仍需一些時間準備檔案。",
     status_face_analysis: "正在分析馬賽克區域：{0}% [檔案 {1}/{2}]",

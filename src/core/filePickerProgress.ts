@@ -12,7 +12,9 @@ interface PickerProgress {
 /** Keep the original FileList: copying it eagerly can block before the first paint. */
 export function bindFilePickerProgress(input: HTMLInputElement, progress: PickerProgress) {
   let waiting = false;
+  let cancelled = false;
   input.addEventListener('click', () => {
+    cancelled = false;
     waiting = true;
     progress.waiting();
     // Do not await or preventDefault here: the native picker needs the user gesture.
@@ -23,6 +25,7 @@ export function bindFilePickerProgress(input: HTMLInputElement, progress: Picker
   });
   input.addEventListener('change', async () => {
     waiting = false;
+    if (cancelled) return;
     const files = input.files;
     if (!files?.length) {
       progress.cancel();
@@ -32,6 +35,7 @@ export function bindFilePickerProgress(input: HTMLInputElement, progress: Picker
     try {
       progress.received(files.length);
       await yieldToCompositor();
+      if (cancelled) return;
       // Detaching the input preserves the captured FileList; never reset its value.
       progress.recreate();
       await progress.load(files);
@@ -39,4 +43,5 @@ export function bindFilePickerProgress(input: HTMLInputElement, progress: Picker
       progress.error(error);
     }
   });
+  return { cancel: () => { cancelled = true; waiting = false; } };
 }

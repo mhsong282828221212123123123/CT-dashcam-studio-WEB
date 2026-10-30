@@ -3416,3 +3416,64 @@ body.view-desktop .mobile-sheet-backdrop {
   font-family: var(--font-base);
   line-height: 1.5;
 }
+
+/* A single loading dialog on every screen size. */
+.load-progress-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  align-items: flex-start;
+  justify-content: center;
+  padding: max(80px, calc(env(safe-area-inset-top, 0px) + 64px)) 16px 24px;
+  background: rgba(0, 0, 0, .32);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+#floating-load-progress {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  width: min(100%, 440px) !important;
+  box-sizing: border-box;
+  padding: 22px !important;
+  border: 1px solid var(--control-border) !important;
+  border-radius: 16px !important;
+  background: var(--dialog-bg) !important;
+  color: var(--text-main);
+  box-shadow: 0 18px 54px var(--shadow-color) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  flex-direction: column;
+  gap: 16px !important;
+  animation: none !important;
+}
+#floating-load-progress .progress-banner-title {
+  color: var(--text-main) !important;
+  font-size: 16px !important;
+  white-space: normal;
+}
+#floating-load-progress .progress-banner-count {
+  color: var(--text-muted) !important;
+  font-size: 13px;
+  margin: 0;
+  line-height: 1.65;
+}
+#floating-load-progress .progress-banner-bar { height: 8px !important; }
+#btn-cancel-file-load {
+  align-self: flex-end;
+  min-width: 96px;
+  min-height: 44px;
+  padding: 10px 22px;
+  font-size: 14px;
+}
+
+#btn-cancel-file-load {
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  background: var(--control-bg);
+  color: var(--text-main);
+  font-family: var(--font-base);
+  cursor: pointer;
+}
+#btn-cancel-file-load:hover { background: var(--hover-bg, var(--control-bg)); }

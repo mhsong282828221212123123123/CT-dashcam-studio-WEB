@@ -119,6 +119,14 @@ class CTDashcamStudioApp {
   private isExplorerExpanded = false;
 
   constructor() {
+    document.getElementById('btn-cancel-file-load')?.addEventListener('click', () => this.cancelFileLoad());
+    document.getElementById('load-progress-backdrop')?.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') this.cancelFileLoad();
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        document.getElementById('btn-cancel-file-load')?.focus();
+      }
+    });
     this.canvas = document.getElementById('player-canvas') as HTMLCanvasElement;
     this.videoContainer = document.getElementById('hidden-video-container') as HTMLElement;
     this.initVideoPool();
@@ -293,12 +301,25 @@ class CTDashcamStudioApp {
   }
 
   private loadWatchdogTimer: any = null;
+  private fileLoadController: AbortController | null = null;
+  private cancelNativeFilePick: (() => void) | null = null;
+  private loadProgressFocus: HTMLElement | null = null;
+
+  private cancelFileLoad() {
+    this.fileLoadController?.abort();
+    this.cancelNativeFilePick?.();
+    this.cancelNativeFilePick = null;
+    this.hideLoadProgress();
+    this.mountFolderOverlayInput(true);
+    this.mountFileOverlayInput(true);
+  }
+
 
   startLoadWatchdog(durationMs = 120000) {
     this.clearLoadWatchdog();
     this.loadWatchdogTimer = setTimeout(() => {
       console.warn('[App] File loading watchdog triggered: exceeded 2 minutes');
-      this.hideLoadProgress();
+      this.cancelFileLoad();
       this.isSelectingClip = false;
       this.showToast(i18n.t('toast_load_timeout') || '파일 불러오기 시간이 2분을 초과하여 취소되었습니다. 외장 장치 연결 상태나 파일 개수를 확인해 주세요.');
     }, durationMs);
@@ -312,33 +333,21 @@ class CTDashcamStudioApp {
   }
 
   showLoadProgress(title: string, countText: string, pct: number, indeterminate = false) {
-    // 1. 사이드바 인라인 진행도 배너 (PC 및 갤럭시 안드로이드 탐색기 상단)
-    const banner = document.getElementById('load-progress-banner');
-    const titleEl = document.getElementById('load-progress-title');
-    const countEl = document.getElementById('load-progress-count');
-    const fillEl = document.getElementById('load-progress-fill');
-    if (banner && titleEl && countEl && fillEl) {
-      banner.style.display = 'flex';
-      titleEl.textContent = title;
-      countEl.textContent = countText;
-
-      if (indeterminate) {
-        fillEl.classList.add('indeterminate');
-        fillEl.style.width = '35%';
-      } else {
-        fillEl.classList.remove('indeterminate');
-        fillEl.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+    const backdrop = document.getElementById('load-progress-backdrop');
+    const opening = backdrop?.style.display === 'none';
+    if (backdrop) {
+      backdrop.style.display = 'flex';
+      if (opening) {
+        this.loadProgressFocus = document.activeElement as HTMLElement;
       }
     }
-
-    // 2. 모바일 전용 플로팅 진행도 배너 (iOS 및 모바일 가로모드/시트 축소 시 상시 노출)
     const floatingBanner = document.getElementById('floating-load-progress');
     const floatingTitle = document.getElementById('floating-progress-title');
     const floatingCount = document.getElementById('floating-progress-count');
     const floatingFill = document.getElementById('floating-progress-fill');
     if (floatingBanner && floatingTitle && floatingCount && floatingFill) {
-      const isMobile = this.isMobileDevice() || document.body.classList.contains('view-mobile') || window.innerWidth <= 850;
-      floatingBanner.style.display = isMobile ? 'flex' : 'none';
+      floatingBanner.style.display = 'flex';
+      if (opening) document.getElementById('btn-cancel-file-load')?.focus();
       floatingTitle.textContent = title;
       floatingCount.textContent = countText;
 
@@ -354,10 +363,10 @@ class CTDashcamStudioApp {
 
   hideLoadProgress() {
     this.clearLoadWatchdog();
-    const banner = document.getElementById('load-progress-banner');
-    if (banner) {
-      banner.style.display = 'none';
-    }
+    const backdrop = document.getElementById('load-progress-backdrop');
+    if (backdrop) backdrop.style.display = 'none';
+    this.loadProgressFocus?.focus();
+    this.loadProgressFocus = null;
     const floatingBanner = document.getElementById('floating-load-progress');
     if (floatingBanner) {
       floatingBanner.style.display = 'none';
@@ -1783,8 +1792,11 @@ class CTDashcamStudioApp {
   }
 
   private bindPickerLifecycle(input: HTMLInputElement, type: 'folder' | 'files') {
-    bindFilePickerProgress(input, {
+    const picker = bindFilePickerProgress(input, {
       waiting: () => {
+        this.fileLoadController?.abort();
+        this.fileLoadController = new AbortController();
+        this.cancelNativeFilePick = picker.cancel;
         // The native iOS picker exposes no enumeration/transfer progress before change.
         this.showLoadProgress(i18n.t('progress_waiting_files'), i18n.t('progress_waiting_files_detail'), 0, true);
       },
@@ -1796,7 +1808,7 @@ class CTDashcamStudioApp {
         if (type === 'folder') this.mountFolderOverlayInput(true);
         else this.mountFileOverlayInput(true);
       },
-      load: (files) => this.loadFiles(files),
+      load: (files) => this.loadFiles(files, this.fileLoadController?.signal),
       cancel: () => this.hideLoadProgress(),
       error: (err) => {
         console.error('[App] Failed to load files:', err);
@@ -1806,9 +1818,12 @@ class CTDashcamStudioApp {
   }
 
   private openWithDirectoryPicker() {
+    this.fileLoadController?.abort();
+    const controller = this.fileLoadController = new AbortController();
     (async () => {
       try {
         const dirHandle = await (window as any).showDirectoryPicker();
+        controller.signal.throwIfAborted();
         this.hasNotifiedEncryptedClips = false;
         if (dirHandle.name && /EncryptedClips/i.test(dirHandle.name)) {
           this.notifyEncryptedClipsDetected();
@@ -1821,15 +1836,17 @@ class CTDashcamStudioApp {
           (filesCount, dirsCount) => {
             this.showLoadProgress(i18n.t('progress_searching_clips'), i18n.t('progress_found_videos', [filesCount, dirsCount]), 0, true);
           },
-          () => this.notifyEncryptedClipsDetected()
+          () => this.notifyEncryptedClipsDetected(),
+          controller.signal
         );
         if (items && items.length > 0) {
-          await this.loadFiles(items);
+          await this.loadFiles(items, controller.signal);
         } else {
           this.hideLoadProgress();
           this.showToast(i18n.t('empty_no_clips'));
         }
       } catch (e: any) {
+        if (this.fileLoadController !== controller) return;
         this.hideLoadProgress();
         if (e.name === 'AbortError') {
           return;
@@ -1841,7 +1858,13 @@ class CTDashcamStudioApp {
     })();
   }
 
-  async loadFiles(files: (File | ScannedFileItem)[] | FileList | ArrayLike<any>) {
+  async loadFiles(files: (File | ScannedFileItem)[] | FileList | ArrayLike<any>, signal?: AbortSignal) {
+    if (!signal) {
+      this.fileLoadController?.abort();
+      this.fileLoadController = new AbortController();
+      signal = this.fileLoadController.signal;
+    }
+    if (signal.aborted) return;
     console.log('[App] loadFiles called with', files.length, 'files');
     if (!files || files.length === 0) return;
 
@@ -1864,7 +1887,9 @@ class CTDashcamStudioApp {
     // 모바일(iOS 등)에서 0% 상태 진행도 배너가 화면에 페인트되도록 1프레임 양보
     await yieldToCompositor();
 
-    this.folderGroups = await groupFilesIntoClips(
+    let groups: FolderGroup[];
+    try {
+    groups = await groupFilesIntoClips(
       files,
       (done, total, clipCount) => {
         const pct = Math.round((done / total) * 100);
@@ -1875,8 +1900,15 @@ class CTDashcamStudioApp {
           false
         );
       },
-      () => this.notifyEncryptedClipsDetected()
+      () => this.notifyEncryptedClipsDetected(),
+      signal
     );
+    } catch (error) {
+      if (signal.aborted) return;
+      throw error;
+    }
+    if (signal.aborted) return;
+    this.folderGroups = groups;
     console.log('[App] Parsed folderGroups count:', this.folderGroups.length);
 
     // 3. Populate clipMap
@@ -1891,6 +1923,7 @@ class CTDashcamStudioApp {
     this.renderClipsTree();
     // 100% 완료 상태가 화면에 잠깐 그려진 후 배너를 숨김
     await yieldToCompositor();
+    if (signal.aborted) return;
     this.hideLoadProgress();
 
     if (this.folderGroups.length === 0) {
@@ -1912,7 +1945,7 @@ class CTDashcamStudioApp {
       if (shouldAutoSelect) {
         const firstClip = firstGroup.clips[0];
         requestAnimationFrame(() => {
-          this.selectClip(firstClip);
+          if (!signal?.aborted) this.selectClip(firstClip);
         });
       }
     }

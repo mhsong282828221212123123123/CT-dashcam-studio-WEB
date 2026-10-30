@@ -7,8 +7,8 @@ function fixture(files: FileList | null) {
     waiting: vi.fn(), received: vi.fn(), recreate: vi.fn(),
     load: vi.fn(async (_files: FileList) => {}), cancel: vi.fn(), error: vi.fn(),
   };
-  bindFilePickerProgress(input as unknown as HTMLInputElement, progress);
-  return { input, progress };
+  const picker = bindFilePickerProgress(input as unknown as HTMLInputElement, progress);
+  return { input, progress, picker };
 }
 afterEach(() => vi.useRealTimers());
 
@@ -54,3 +54,22 @@ describe('native picker progress', () => {
   });
 });
 
+
+it('discards a late iOS FileList after the user cancels', async () => {
+  vi.useFakeTimers();
+  const { input, progress, picker } = fixture({ length: 100 } as FileList);
+  input.dispatchEvent(new Event('click'));
+  picker.cancel();
+  input.dispatchEvent(new Event('change'));
+  await vi.runAllTimersAsync();
+  expect(progress.received).not.toHaveBeenCalled();
+  expect(progress.load).not.toHaveBeenCalled();
+});
+it('cancels between the initial status paint and processing', async () => {
+  vi.useFakeTimers();
+  const { input, progress, picker } = fixture({ length: 100 } as FileList);
+  input.dispatchEvent(new Event('change'));
+  picker.cancel();
+  await vi.runAllTimersAsync();
+  expect(progress.load).not.toHaveBeenCalled();
+});
