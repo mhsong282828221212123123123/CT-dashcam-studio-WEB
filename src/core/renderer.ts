@@ -2,6 +2,7 @@
 import { TelemetryData } from './seiDecoder';
 import { OpenStreetMapTileLoader } from './mapLoader';
 import { CameraKey } from './constants';
+import { drawQRCode } from './qrCode';
 
 export interface RenderOptions {
   layout: '기본 (1:3 세로배치)' | '2x2 분할 (전후/좌우)' | '단일 카메라';
@@ -279,8 +280,11 @@ export class OverlayRenderer {
     const offsetX = mapW;
     const availW = outW - offsetX;
 
-    // No QR Code space reservation as requested
-    const colsAvailW = availW - Math.round(24 * scale);
+    // Unmovable Brand QR Code space reservation (Bottom-Right corner)
+    const qrPx = Math.round(122 * scale);
+    const qrPadR = Math.round(16 * scale);
+    const qrZoneW = qrPx + qrPadR + Math.round(24 * scale);
+    const colsAvailW = Math.max(Math.round(200 * scale), availW - qrZoneW);
 
     const rawOrder = options.telemetryOrder || DEFAULT_TELEMETRY_ORDER;
     const order = rawOrder.filter((k) => k in COL_WIDTH_BASE);
@@ -356,6 +360,8 @@ export class OverlayRenderer {
       availW,
       frontH,
       bottomH,
+      qrPx,
+      qrPadR,
     };
   }
 
@@ -385,7 +391,7 @@ export class OverlayRenderer {
       ctx.filter = 'none';
     }
 
-    const { colBoxMap, fsdDividers, offsetX, availW, frontH, bottomH } = this.computeTelemetryLayout(options, outW, outH);
+    const { colBoxMap, fsdDividers, offsetX, availW, frontH, bottomH, qrPx, qrPadR } = this.computeTelemetryLayout(options, outW, outH);
     const hasBottomHud = bottomH > 0;
     const mapW = options.map ? offsetX : 0;
 
@@ -864,6 +870,48 @@ export class OverlayRenderer {
         }
         ctx.restore();
       }
+
+      // 7. Unmovable Brand QR Code (Bottom-Right of HUD)
+      const qrX1 = outW - qrPadR - qrPx;
+      const qrY1 = hdrY;
+      drawQRCode(ctx, qrX1, qrY1, qrPx);
+
+      // Watermark text below QR code
+      ctx.save();
+      ctx.fillStyle = '#8a7c72';
+      ctx.font = `600 ${Math.max(9, Math.round(11 * scale))}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText('CT Dashcam Studio', qrX1 + qrPx / 2, outH - Math.round(14 * scale));
+      ctx.restore();
+    }
+
+    // Unmovable Brand QR Code when Bottom HUD is turned off
+    if (!hasBottomHud) {
+      const qx1 = outW - qrPadR - qrPx;
+      const qy1 = outH - Math.round(28 * scale) - qrPx;
+
+      ctx.save();
+      // Semi-transparent dark card background over video
+      ctx.fillStyle = 'rgba(8, 11, 16, 0.75)';
+      ctx.beginPath();
+      ctx.roundRect(
+        qx1 - Math.round(6 * scale),
+        qy1 - Math.round(6 * scale),
+        qrPx + Math.round(12 * scale),
+        qrPx + Math.round(26 * scale),
+        Math.round(8 * scale)
+      );
+      ctx.fill();
+
+      drawQRCode(ctx, qx1, qy1, qrPx);
+
+      ctx.fillStyle = '#ded4ca';
+      ctx.font = `600 ${Math.max(9, Math.round(11 * scale))}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText('CT Dashcam Studio', qx1 + qrPx / 2, qy1 + qrPx + Math.round(15 * scale));
+      ctx.restore();
     }
   }
 }
