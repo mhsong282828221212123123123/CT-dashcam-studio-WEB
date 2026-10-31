@@ -71,3 +71,14 @@ npm run build
 | <kbd>하단 바 드래그</kbd> | 텔레메트리 표시 순서 좌우 드래그 변경 |
 | <kbd>하단 바 더블클릭</kbd> | 텔레메트리 표시 순서 기본 배치로 초기화 |
 | <kbd>F1</kbd> 또는 <kbd>?</kbd> | 단축키 및 조작 안내 팝업 |
+
+
+## 정식판과 테스트판 배포
+
+- `main`: 정식 주소 `/CT-dashcam-studio-WEB/`
+- `dev`: 테스트 주소 `/CT-dashcam-studio-WEB/dev/` (Tier 옆에 `DEV` 표시)
+
+일반 수정은 `dev`에서 진행하고 테스트 주소에서 확인한 뒤, 정식 반영할 때 `main`에 병합합니다.
+두 브랜치 중 하나에 푸시하면 GitHub Actions가 각 브랜치를 별도로 체크아웃하고 검사·빌드합니다.
+Pages는 사이트 전체를 교체하므로, 매번 `main` 빌드를 루트에, `dev` 빌드를 `/dev/`에 함께 배포합니다.
+각 주소의 `deployment.json`에서 배포 채널·소스 브랜치·커밋을 확인할 수 있습니다.

@@ -166,19 +166,19 @@ class CTDashcamStudioApp {
   }
 
   private initDevBadge() {
-    const isDevDeployment = typeof window !== 'undefined' && (
-      window.location.pathname.includes('/dev/') ||
-      (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL?.includes('/dev/'))
-    );
-    if (isDevDeployment) {
-      document.querySelectorAll('.footer-brand, .brand-title').forEach((el) => {
-        if (!el.querySelector('.badge-dev-pill')) {
-          const badge = document.createElement('span');
-          badge.className = 'badge-dev-pill';
-          badge.textContent = 'DEV';
-          el.appendChild(badge);
-        }
-      });
+    const isDevDeployment = window.location.pathname.includes('/dev/') || import.meta.env.BASE_URL.includes('/dev/');
+    document.body.classList.toggle('is-dev-deployment', isDevDeployment);
+    if (!isDevDeployment) return;
+    for (const id of ['tier-badge', 'mobile-tier-badge']) {
+      const tier = document.getElementById(id);
+      if (!tier || tier.parentElement?.classList.contains('tier-dev-group')) continue;
+      const group = document.createElement('span');
+      group.className = 'tier-dev-group';
+      const badge = document.createElement('span');
+      badge.className = 'badge-dev-pill';
+      badge.textContent = 'DEV';
+      tier.replaceWith(group);
+      group.append(tier, badge);
     }
   }
 
