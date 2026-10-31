@@ -3432,8 +3432,20 @@ body.view-desktop .mobile-sheet-backdrop {
   overflow-wrap: anywhere;
 }
 
-/* A little breathing room on iOS, within the existing header height. */
-body.platform-ios:not(.view-desktop) #mobile-header > :is(.mobile-brand, .mobile-header-actions) {
-  position: relative;
-  top: 10px;
+/* Reserve real iOS header space; trade 10px of preview height for it. */
+@media (orientation: portrait), (min-height: 601px) {
+  body.platform-ios:not(.view-desktop) #mobile-header {
+    height: calc(54px + env(safe-area-inset-top, 0px));
+    min-height: calc(54px + env(safe-area-inset-top, 0px));
+    padding-top: calc(10px + env(safe-area-inset-top, 0px)) !important;
+  }
+  body.platform-ios:not(.view-desktop) .main-viewport {
+    container-type: inline-size;
+  }
+  body.platform-ios:not(.view-desktop) .canvas-container {
+    flex: none;
+    height: min(calc(56.25cqw - 10px), calc(30vh - 10px));
+    max-height: calc(30vh - 10px);
+    aspect-ratio: auto;
+  }
 }
