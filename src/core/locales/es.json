@@ -217,7 +217,7 @@
   "theme_forest": "Bosque",
   "theme_burgundy": "Borgoña",
   "theme_amber": "Ámbar",
-  "theme_paper": "Papel",
+  "theme_paper": "Papel verde",
   "tip_qr_keep": "Le agradeceríamos que mantuviera el código QR para que más personas puedan descubrir y usar CT Dashcam Studio.",
   "status_face_analysis": "Analizando zonas de mosaico: {0}% [Archivo {1}/{2}]",
   "error_face_analysis_frame": "No se pudo preparar un fotograma para analizar rostros: {0}, {1}s. Se detuvo la exportación para evitar guardar sin mosaico. ({2})",

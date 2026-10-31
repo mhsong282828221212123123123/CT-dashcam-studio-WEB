@@ -217,7 +217,7 @@
   "theme_forest": "Wald",
   "theme_burgundy": "Burgunder",
   "theme_amber": "Bernstein",
-  "theme_paper": "Papier",
+  "theme_paper": "Papier Grün",
   "tip_qr_keep": "Wir würden uns freuen, wenn Sie den QR-Code beibehalten, damit mehr Menschen CT Dashcam Studio entdecken und nutzen können.",
   "status_face_analysis": "Mosaikbereiche werden analysiert: {0}% [Datei {1}/{2}]",
   "error_face_analysis_frame": "Frame für Gesichtsanalyse nicht verfügbar: {0}, {1}s. Export abgebrochen, statt ohne Mosaik zu speichern. ({2})",
