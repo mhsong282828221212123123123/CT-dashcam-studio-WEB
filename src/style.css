@@ -3431,3 +3431,9 @@ body.view-desktop .mobile-sheet-backdrop {
   line-height: 1.65;
   overflow-wrap: anywhere;
 }
+
+/* A little breathing room on iOS, within the existing header height. */
+body.platform-ios:not(.view-desktop) #mobile-header > :is(.mobile-brand, .mobile-header-actions) {
+  position: relative;
+  top: 2px;
+}

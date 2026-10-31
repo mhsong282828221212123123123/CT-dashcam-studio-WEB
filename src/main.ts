@@ -118,6 +118,7 @@ class CTDashcamStudioApp {
   private isExplorerExpanded = false;
 
   constructor() {
+    document.body.classList.toggle('platform-ios', isIOS());
     // Block app shortcuts without moving focus during native file-picker activation.
     window.addEventListener('keydown', (event) => {
       if (document.getElementById('load-progress-backdrop')?.style.display === 'flex') {
