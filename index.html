@@ -43,9 +43,10 @@
     <meta name="theme-color" content="#0a0d14" />
     <script>
       try {
-        const savedTheme = localStorage.getItem('ct_theme');
+        const themeKey = window.location.pathname.includes('/dev/') ? 'ct_theme_dev' : 'ct_theme';
+        const savedTheme = localStorage.getItem(themeKey) || localStorage.getItem('ct_theme');
         document.documentElement.dataset.theme = savedTheme === 'classic' ? 'midnight' :
-          ['graphite', 'midnight', 'forest', 'burgundy', 'amber', 'paper'].includes(savedTheme) ? savedTheme : 'graphite';
+          ['graphite', 'midnight', 'forest', 'burgundy', 'amber', 'paper', 'paper-blue', 'paper-violet', 'paper-rose', 'paper-sand'].includes(savedTheme) ? savedTheme : 'graphite';
       } catch {}
     </script>
     <script>
@@ -55,7 +56,7 @@
           ['standalone', 'minimal-ui', 'window-controls-overlay'].some(mode =>
             window.matchMedia('(display-mode: ' + mode + ')').matches);
         if (!appWindow) return;
-        const colors = { graphite: '#171817', midnight: '#14191f', forest: '#141b18', burgundy: '#1d1518', amber: '#1c1912', paper: '#f1f1ed' };
+        const colors = { graphite: '#171817', midnight: '#14191f', forest: '#141b18', burgundy: '#1d1518', amber: '#1c1912', paper: '#f1f1ed', 'paper-blue': '#f1f1ed', 'paper-violet': '#f1f1ed', 'paper-rose': '#f1f1ed', 'paper-sand': '#f1f1ed' };
         root.style.backgroundColor = colors[root.dataset.theme] || colors.graphite;
         root.dataset.appLaunch = 'true';
         window.__ctLaunchStart = performance.now();
@@ -310,7 +311,11 @@
                     <option value="forest" data-i18n="theme_forest">포레스트</option>
                     <option value="burgundy" data-i18n="theme_burgundy">버건디</option>
                     <option value="amber" data-i18n="theme_amber">앰버</option>
-                    <option value="paper" data-i18n="theme_paper">페이퍼</option>
+                    <option value="paper" data-i18n="theme_paper">페이퍼 그린</option>
+                    <option value="paper-blue" data-i18n="theme_paper_blue">페이퍼 블루</option>
+                    <option value="paper-violet" data-i18n="theme_paper_violet">페이퍼 바이올렛</option>
+                    <option value="paper-rose" data-i18n="theme_paper_rose">페이퍼 로즈</option>
+                    <option value="paper-sand" data-i18n="theme_paper_sand">페이퍼 샌드</option>
                   </select>
                 </div>
               </div>

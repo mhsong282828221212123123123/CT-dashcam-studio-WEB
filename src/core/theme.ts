@@ -5,6 +5,11 @@ export const THEME_COLORS = {
   burgundy: '#1d1518',
   amber: '#1c1912',
   paper: '#f1f1ed',
+  'paper-blue': '#f1f1ed',
+  'paper-violet': '#f1f1ed',
+  'paper-rose': '#f1f1ed',
+  'paper-sand': '#f1f1ed',
+
 } as const;
 export type Theme = keyof typeof THEME_COLORS;
 
@@ -15,10 +20,11 @@ export function resolveTheme(saved: string | null): Theme {
 }
 
 /** UI preferences are local to this browser and independent of the export settings. */
-export function initializeTheme(): void {
+export function initializeTheme(basePath = import.meta.env.BASE_URL): void {
+  const storageKey = basePath.includes('/dev/') ? 'ct_theme_dev' : 'ct_theme';
   let theme: Theme = 'graphite';
   try {
-    theme = resolveTheme(localStorage.getItem('ct_theme'));
+    theme = resolveTheme(localStorage.getItem(storageKey) || localStorage.getItem('ct_theme'));
   } catch { /* The default also works when browser storage is unavailable. */ }
 
   const select = document.getElementById('select-theme') as HTMLSelectElement | null;
@@ -32,6 +38,6 @@ export function initializeTheme(): void {
   select?.addEventListener('change', () => {
     const value = resolveTheme(select.value);
     apply(value);
-    try { localStorage.setItem('ct_theme', value); } catch { /* Persistence is optional. */ }
+    try { localStorage.setItem(storageKey, value); } catch { /* Persistence is optional. */ }
   });
 }
