@@ -1,3 +1,4 @@
+import { i18n } from '../src/core/i18n';
 import { describe, it, expect } from 'vitest';
 import {
   parseTimestampSec,
@@ -106,23 +107,23 @@ describe('clipScanner - groupFilesIntoClips & formatFolderGroup', () => {
 
     const f0 = formatFolderGroup(groups[0].folderName, groups[0].clips);
     expect(f0.type).toBe('recent');
-    expect(f0.displayTitle).toContain('2026-08-17 12:00 ~ 12:03 (3분)');
+    expect(f0.displayTitle).toContain(`2026-08-17 12:00 ~ 12:03 (3${i18n.t('unit_min')})`);
 
     const f1 = formatFolderGroup(groups[1].folderName, groups[1].clips);
     expect(f1.type).toBe('recent');
-    expect(f1.displayTitle).toContain('2026-08-17 12:10 ~ 12:12 (2분)');
+    expect(f1.displayTitle).toContain(`2026-08-17 12:10 ~ 12:12 (2${i18n.t('unit_min')})`);
   });
 
   it('formats SavedClips and SentryClips with respective type and color', () => {
     const saved = formatFolderGroup('SavedClips/2026-08-17_12-48-22');
     expect(saved.type).toBe('saved');
     expect(saved.color).toBe('#ffffff');
-    expect(saved.displayTitle).toContain('저장된 클립 - 2026-08-17 12:48:22');
+    expect(saved.displayTitle).toContain(`${i18n.t('folder_saved')} - 2026-08-17 12:48:22`);
 
     const sentry = formatFolderGroup('SentryClips/2026-08-17_15-30-00');
     expect(sentry.type).toBe('sentry');
     expect(sentry.color).toBe('#f85149');
-    expect(sentry.displayTitle).toContain('센트리 클립 - 2026-08-17 15:30:00');
+    expect(sentry.displayTitle).toContain(`${i18n.t('folder_sentry')} - 2026-08-17 15:30:00`);
   });
 
   it('detects and ignores files in EncryptedClips directory and triggers callback', async () => {

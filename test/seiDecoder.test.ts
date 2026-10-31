@@ -18,14 +18,16 @@ class NodeFileHandle implements AsyncFileHandle {
   }
 }
 
-describe('RealTeslaSEIDecoder comparison with Python implementation', () => {
-  const testMp4 = 'E:/tesla/project/testfile/SavedClips/2026-08-17_12-48-22/2026-08-17_12-37-37-front.mp4';
+// Real-media integration checks are optional on hosts without these external fixtures.
+const testMp4 = process.env.CT_TEST_MP4 || 'E:/tesla/project/testfile/SavedClips/2026-08-17_12-48-22/2026-08-17_12-37-37-front.mp4';
+const pythonSource = process.env.CT_PYTHON_SOURCE || 'E:/tesla/project/CT-dashcam-studio';
+describe.skipIf(!fs.existsSync(testMp4))('RealTeslaSEIDecoder comparison with Python implementation', () => {
 
-  it('correctly parses telemetry matching Python core.decoder', async () => {
+  it.skipIf(!fs.existsSync(path.join(pythonSource, 'core/decoder.py')))('correctly parses telemetry matching Python core.decoder', async () => {
     // 1. Run Python decoder using temporary py script
     const pyScript = `
 import sys, json
-sys.path.insert(0, r"E:/tesla/project/CT-dashcam-studio")
+sys.path.insert(0, r"${pythonSource}")
 from core.decoder import RealTeslaSEIDecoder
 
 dec = RealTeslaSEIDecoder(r"${testMp4}")
