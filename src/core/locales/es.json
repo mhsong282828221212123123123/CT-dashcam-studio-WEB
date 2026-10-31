@@ -223,5 +223,9 @@
   "error_face_analysis_frame": "No se pudo preparar un fotograma para analizar rostros: {0}, {1}s. Se detuvo la exportación para evitar guardar sin mosaico. ({2})",
   "progress_waiting_files": "Esperando la lista de archivos",
   "progress_waiting_files_detail": "Después de seleccionar, el dispositivo puede necesitar tiempo para preparar los archivos.",
-  "progress_ios_usb_note": "En los iPhone con USB 2.0, especialmente los modelos que no son Pro, preparar archivos desde una unidad externa puede tardar bastante. Recomendamos copiar primero los clips necesarios al iPhone y después editarlos."
+  "progress_ios_usb_note": "En los iPhone con USB 2.0, especialmente los modelos que no son Pro, preparar archivos desde una unidad externa puede tardar bastante. Recomendamos copiar primero los clips necesarios al iPhone y después editarlos.",
+  "theme_paper_blue": "Papel azul",
+  "theme_paper_violet": "Papel violeta",
+  "theme_paper_rose": "Papel rosa",
+  "theme_paper_sand": "Papel arena"
 }

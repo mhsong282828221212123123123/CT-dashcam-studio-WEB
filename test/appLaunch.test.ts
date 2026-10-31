@@ -65,8 +65,8 @@ describe('first-paint bootstrap from the actual HTML', () => {
       performance: { now: () => 0 }, setTimeout: (fn: () => void) => { failSafe = fn; return 1; } });
     return { root, failSafe, removeAttribute, remove };
   }
-  it('paints an iPhone app launch in the stored light theme before the module loads', () => {
-    const f = boot(true); expect(f.root.dataset.appLaunch).toBe('true');
+  it.each(['paper', 'paper-blue', 'paper-violet', 'paper-rose', 'paper-sand'])('paints the stored light theme %s before the module loads', theme => {
+    const f = boot(true, theme); expect(f.root.dataset.appLaunch).toBe('true');
     expect(f.root.style.backgroundColor).toBe('#f1f1ed');
   });
   it('does not create a launch overlay for an ordinary browser', () => {

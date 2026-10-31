@@ -25,6 +25,10 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   fr,
   es,
   ko: {
+    theme_paper_blue: "페이퍼 블루",
+    theme_paper_violet: "페이퍼 바이올렛",
+    theme_paper_rose: "페이퍼 로즈",
+    theme_paper_sand: "페이퍼 샌드",
     progress_ios_usb_note: "USB 2.0을 사용하는 아이폰(특히 Pro가 아닌 모델)은 외장 저장 장치에서 파일을 준비하는 데 오랜 시간이 걸릴 수 있습니다. 필요한 클립을 먼저 아이폰에 복사한 뒤 편집하는 것을 권장합니다.",
     progress_waiting_files: "파일 목록을 기다리는 중",
     progress_waiting_files_detail: "파일을 선택한 뒤에도 저장 장치에 따라 준비 시간이 걸릴 수 있습니다.",
@@ -278,6 +282,10 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   en: {
+    theme_paper_blue: "Paper Blue",
+    theme_paper_violet: "Paper Violet",
+    theme_paper_rose: "Paper Rose",
+    theme_paper_sand: "Paper Sand",
     progress_ios_usb_note: "On iPhones using USB 2.0, especially non-Pro models, preparing files from external storage can take a long time. We recommend copying the clips you need to your iPhone before editing.",
     progress_waiting_files: "Waiting for the file list",
     progress_waiting_files_detail: "After selection, your storage device may need time to prepare the files.",
@@ -531,6 +539,10 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   ja: {
+    theme_paper_blue: "ペーパー・ブルー",
+    theme_paper_violet: "ペーパー・バイオレット",
+    theme_paper_rose: "ペーパー・ローズ",
+    theme_paper_sand: "ペーパー・サンド",
     progress_ios_usb_note: "USB 2.0を使用するiPhone（特にPro以外のモデル）では、外部ストレージのファイルの準備に時間がかかる場合があります。必要なクリップを先にiPhoneへコピーしてから編集することをおすすめします。",
     progress_waiting_files: "ファイル一覧を待っています",
     progress_waiting_files_detail: "選択後も、ストレージによってはファイルの準備に時間がかかります。",
@@ -784,6 +796,10 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   'zh-CN': {
+    theme_paper_blue: "纸白·蓝",
+    theme_paper_violet: "纸白·紫",
+    theme_paper_rose: "纸白·玫瑰",
+    theme_paper_sand: "纸白·沙金",
     progress_ios_usb_note: "使用 USB 2.0 的 iPhone（尤其是非 Pro 机型）从外部存储设备准备文件时可能需要较长时间。建议先将所需片段复制到 iPhone，再进行编辑。",
     progress_waiting_files: "正在等待文件列表",
     progress_waiting_files_detail: "选择后，存储设备可能仍需一些时间准备文件。",
@@ -1037,6 +1053,10 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
   },
 
   'zh-TW': {
+    theme_paper_blue: "紙白·藍",
+    theme_paper_violet: "紙白·紫",
+    theme_paper_rose: "紙白·玫瑰",
+    theme_paper_sand: "紙白·沙金",
     progress_ios_usb_note: "使用 USB 2.0 的 iPhone（尤其是非 Pro 機型）從外接儲存裝置準備檔案時可能需要較長時間。建議先將所需片段複製到 iPhone，再進行編輯。",
     progress_waiting_files: "正在等待檔案清單",
     progress_waiting_files_detail: "選取後，儲存裝置可能仍需一些時間準備檔案。",

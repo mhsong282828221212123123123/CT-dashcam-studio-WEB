@@ -223,5 +223,9 @@
   "error_face_analysis_frame": "Impossible de préparer une image pour l’analyse des visages : {0}, {1}s. Exportation interrompue pour éviter un enregistrement sans mosaïque. ({2})",
   "progress_waiting_files": "En attente de la liste des fichiers",
   "progress_waiting_files_detail": "Après la sélection, votre périphérique peut avoir besoin de temps pour préparer les fichiers.",
-  "progress_ios_usb_note": "Sur les iPhone utilisant USB 2.0, notamment les modèles non Pro, la préparation des fichiers depuis un support externe peut prendre beaucoup de temps. Nous vous conseillons de copier les clips nécessaires sur votre iPhone avant de les modifier."
+  "progress_ios_usb_note": "Sur les iPhone utilisant USB 2.0, notamment les modèles non Pro, la préparation des fichiers depuis un support externe peut prendre beaucoup de temps. Nous vous conseillons de copier les clips nécessaires sur votre iPhone avant de les modifier.",
+  "theme_paper_blue": "Papier bleu",
+  "theme_paper_violet": "Papier violet",
+  "theme_paper_rose": "Papier rose",
+  "theme_paper_sand": "Papier sable"
 }
