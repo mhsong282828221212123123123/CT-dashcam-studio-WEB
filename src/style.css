@@ -3435,5 +3435,5 @@ body.view-desktop .mobile-sheet-backdrop {
 /* A little breathing room on iOS, within the existing header height. */
 body.platform-ios:not(.view-desktop) #mobile-header > :is(.mobile-brand, .mobile-header-actions) {
   position: relative;
-  top: 2px;
+  top: 10px;
 }
