@@ -1,3 +1,4 @@
+import { clampSegmentToMedia } from './clipTiming';
 // Ported & adapted from core/exporter.py (ExportWorker) using WebCodecs + mp4-muxer
 import * as Mp4Muxer from 'mp4-muxer';
 import { OverlayRenderer, RenderOptions } from './renderer';
@@ -667,11 +668,11 @@ export class WebCodecsExporter {
       config.onProgress(0, 1, config.segments.length);
 
       const frameStepSec = (1.0 / config.targetFps) * config.exportSpeed;
-      const totalSourceSec = config.segments.reduce(
+      let totalSourceSec = config.segments.reduce(
         (sum, seg) => sum + Math.max(0.01, seg.endSec - seg.startSec),
         0
       );
-      const totalFrames = Math.max(1, Math.ceil(totalSourceSec / frameStepSec));
+      let totalFrames = Math.max(1, Math.ceil(totalSourceSec / frameStepSec));
 
       let outputFrameCount = 0;
       let cumulativeCompletedSec = 0;
@@ -679,7 +680,7 @@ export class WebCodecsExporter {
 
       for (let segIdx = 0; segIdx < config.segments.length; segIdx++) {
         if (this.isCancelled) break;
-        const segment = config.segments[segIdx];
+        let segment = config.segments[segIdx];
 
         // Prepare video elements for this clip's cameras
         await ensureClipFiles(segment.clip);
@@ -722,6 +723,15 @@ export class WebCodecsExporter {
         // Preload, prime hardware decoders, seek to segment.startSec, and verify actual canvas pixel output before encoding
         await this.warmupSegmentVideos(segVideos, segment.startSec, isIOS);
 
+        // A SavedClip may end after only a few seconds. Never encode the scanner's
+        // 60-second estimate after the master video has already ended.
+        const masterVideo = segVideos.front || Object.values(segVideos).find(Boolean);
+        const actualSegment = clampSegmentToMedia(segment, masterVideo?.duration ?? NaN);
+        totalSourceSec += (actualSegment.endSec - actualSegment.startSec)
+          - (segment.endSec - segment.startSec);
+        totalFrames = Math.max(1, Math.ceil(totalSourceSec / frameStepSec));
+        segment = actualSegment;
+
         // New clip: drop any tracker state carried over from the previous segment
         // Fetch SEI decoder
         const decoder = await config.getClipDecoder(segment.clip);
@@ -750,7 +760,7 @@ export class WebCodecsExporter {
           let currentSourceSec = segment.startSec;
           let isFirstSegmentFrame = true;
 
-          while (currentSourceSec <= segment.endSec && !this.isCancelled) {
+          while (currentSourceSec < segment.endSec - 1e-9 && !this.isCancelled) {
             if (isFirstSegmentFrame) {
               // Frame #0 is already pre-seeked and pixel-verified by warmupSegmentVideos
               isFirstSegmentFrame = false;

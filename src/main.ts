@@ -1,3 +1,4 @@
+import { rememberClipDuration } from './core/clipTiming';
 import { clampPlaybackSpeed } from './core/playbackSpeed';
 import { isAppWindow, completeAppLaunch } from './core/appLaunch';
 // Main Application Entrypoint for CT Dashcam Studio Web
@@ -2117,6 +2118,7 @@ class CTDashcamStudioApp {
 
       // Base FPS unified to 36.0 for both HW3 and HW4 (1x default 36 FPS)
       this.fps = 36.0;
+      this.durationSec = clip.durationSec;
       this.isPlaying = false;
       this.currentTimeSec = 0;
 
@@ -2216,8 +2218,9 @@ class CTDashcamStudioApp {
               v.playbackRate = configuredSpeed;
             } catch {}
 
-            if (isMaster && v.duration && !isNaN(v.duration) && v.duration > 0) {
+            if (isMaster && rememberClipDuration(clip, v.duration)) {
               this.durationSec = v.duration;
+              this.updateEstimatedSize();
               this.updateTimelineUI();
               this.updateRangeUI();
             }
@@ -2255,8 +2258,9 @@ class CTDashcamStudioApp {
           this.pauseAllVideos(false);
         };
 
-        if (masterVideo.readyState >= 1 && masterVideo.duration > 0) {
+        if (masterVideo.readyState >= 1 && rememberClipDuration(clip, masterVideo.duration)) {
           this.durationSec = masterVideo.duration;
+          this.updateEstimatedSize();
           this.updateTimelineUI();
           this.updateRangeUI();
         }
