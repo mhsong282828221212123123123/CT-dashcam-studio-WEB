@@ -290,6 +290,7 @@ class CTDashcamStudioApp {
       decoder.sortedKeys = Array.from(decoder.telemetryCache.keys()).sort((a, b) => a - b);
       decoder.maxSpeedKmh = msg.maxSpeedKmh;
       decoder.hasSeiData = msg.hasSeiData;
+      decoder.setSampleTimes(msg.sampleTimesSec);
 
       this.clipDecoders.set(msg.clipId, decoder);
       this.hideSeiProgress();
@@ -2568,9 +2569,10 @@ class CTDashcamStudioApp {
   private renderFrame() {
     this.lastRenderedTimeSec = this.currentTimeSec;
     this.lastRenderWallMs = performance.now();
-    const currentFrameIdx = Math.round(this.currentTimeSec * this.fps);
     const decoder = this.activeClip ? this.clipDecoders.get(this.activeClip.id) : null;
-    const telemetry = decoder ? decoder.getFrameTelemetry(currentFrameIdx) : {
+    const currentFrameIdx = Math.round(this.currentTimeSec * this.fps);
+    const telemetryFrameIdx = decoder ? decoder.getFrameIndexAtTime(this.currentTimeSec, this.fps) : currentFrameIdx;
+    const telemetry = decoder ? decoder.getFrameTelemetry(telemetryFrameIdx) : {
       speed_kmh: 0,
       steering_deg: 0,
       accel_pct: 0,

@@ -1,3 +1,4 @@
+import { parseVideoSampleTimes } from './sampleTiming';
 // Ported from core/decoder.py (RealTeslaSEIDecoder)
 
 export interface TelemetryData {
@@ -148,6 +149,28 @@ class BufferedChunkReader {
 }
 
 export class RealTeslaSEIDecoder {
+  sampleTimesSec: Float64Array | null = null;
+  private presentationOrder: number[] = [];
+
+  setSampleTimes(times: Float64Array | null): void {
+    this.sampleTimesSec = times;
+    this.presentationOrder = times ? Array.from(times.keys()).sort((a, b) => times[a] - times[b]) : [];
+  }
+
+  getFrameIndexAtTime(timeSec: number, fallbackFps = 36): number {
+    if (!Number.isFinite(timeSec)) return 0;
+    const times = this.sampleTimesSec;
+    const order = this.presentationOrder;
+    if (!times || !order.length) return Math.max(0, Math.round(timeSec * fallbackFps));
+    let low = 0, high = order.length;
+    while (low < high) {
+      const mid = (low + high) >>> 1;
+      if (times[order[mid]] <= timeSec + 1e-7) low = mid + 1;
+      else high = mid;
+    }
+    return order[Math.max(0, low - 1)];
+  }
+
   telemetryCache: Map<number, TelemetryData> = new Map();
   sortedKeys: number[] = [];
   hasSeiData = false;
@@ -382,6 +405,7 @@ export class RealTeslaSEIDecoder {
 
       const moovData = await file.read(moov.offset, moov.size);
       if (!moovData || moovData.length === 0) return false;
+      this.setSampleTimes(parseVideoSampleTimes(moovData));
 
       function findBoxInMemory(data: Uint8Array, targetType: string, start = 0, end = data.length): { offset: number; size: number } | null {
         let p = start;
@@ -675,6 +699,7 @@ export class RealTeslaSEIDecoder {
         p += sz;
       }
       if (!moovBox) return false;
+      this.setSampleTimes(parseVideoSampleTimes(data.subarray(moovBox.offset, moovBox.offset + moovBox.size)));
 
       // 2. Find stsz
       const stszBox = findBox(data, 'stsz', moovBox.offset, moovBox.offset + moovBox.size);

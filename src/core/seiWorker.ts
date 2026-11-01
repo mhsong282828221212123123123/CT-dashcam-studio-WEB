@@ -24,6 +24,7 @@ export interface SeiWorkerComplete {
   entries: [number, TelemetryData][];
   maxSpeedKmh: number;
   hasSeiData: boolean;
+  sampleTimesSec: Float64Array | null;
 }
 
 export interface SeiWorkerError {
@@ -63,6 +64,7 @@ self.onmessage = async (e: MessageEvent<SeiWorkerRequest>) => {
       entries: Array.from(decoder.telemetryCache.entries()),
       maxSpeedKmh: decoder.maxSpeedKmh,
       hasSeiData: decoder.hasSeiData,
+      sampleTimesSec: decoder.sampleTimesSec,
     };
     self.postMessage(completeMsg);
   } catch (err: any) {

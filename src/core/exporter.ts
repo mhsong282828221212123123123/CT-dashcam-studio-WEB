@@ -423,8 +423,9 @@ export class WebCodecsExporter {
 
         // 6. Canvas 렌더링
         const currentFrameIdx = Math.round(mediaTime * config.sourceFps);
+        const telemetryFrameIdx = decoder ? decoder.getFrameIndexAtTime(mediaTime, config.sourceFps) : currentFrameIdx;
         const telemetry: TelemetryData = decoder
-          ? decoder.getFrameTelemetry(currentFrameIdx)
+          ? decoder.getFrameTelemetry(telemetryFrameIdx)
           : {
               speed_kmh: 0,
               steering_deg: 0,
@@ -439,7 +440,7 @@ export class WebCodecsExporter {
               heading: 0,
             };
 
-        const timestampText = `${segment.baseTimeStr} (+${mediaTime.toFixed(1)}s)`;
+        const timestampText = segment.baseTimeStr;
 
         OverlayRenderer.render(
           exportCanvas,
@@ -810,8 +811,9 @@ export class WebCodecsExporter {
             }
 
             const currentFrameIdx = Math.round(currentSourceSec * config.sourceFps);
+            const telemetryFrameIdx = decoder ? decoder.getFrameIndexAtTime(currentSourceSec, config.sourceFps) : currentFrameIdx;
             const telemetry: TelemetryData = decoder
-              ? decoder.getFrameTelemetry(currentFrameIdx)
+              ? decoder.getFrameTelemetry(telemetryFrameIdx)
               : {
                   speed_kmh: 0,
                   steering_deg: 0,
@@ -826,7 +828,7 @@ export class WebCodecsExporter {
                   heading: 0,
                 };
 
-            const timestampText = `${segment.baseTimeStr} (+${currentSourceSec.toFixed(1)}s)`;
+            const timestampText = segment.baseTimeStr;
 
             // Render overlay onto offscreen export canvas
             OverlayRenderer.render(
