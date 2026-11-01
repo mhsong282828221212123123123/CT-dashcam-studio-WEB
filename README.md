@@ -3,7 +3,9 @@
 **License: [GPL-3.0-only](LICENSE)** — original project code; third-party terms and provenance limits: [license audit](LICENSE_AUDIT.md).
 
 > **순수 웹 기술(TypeScript + Canvas + WebCodecs) 기반의 고성능 테슬라 블랙박스 뷰어 및 멀티채널 편집·추출 스튜디오**  
-> PC 설치 없이 브라우저(Edge, Chrome 등)에서 바로 테슬라 Dashcam/Sentry 영상 및 실제 차량 텔레메트리(속도, 스티어링 각도, 페달, FSD 모드, 방향지시등, GPS 미니맵)를 동기 재생하고 무손실 MP4로 내보낼 수 있습니다.
+> PC 설치 없이 브라우저(Edge, Chrome 등)에서 바로 테슬라 Dashcam/Sentry 영상 및 실제 차량 텔레메트리(속도, 스티어링 각도, 페달, FSD 모드, 방향지시등, GPS 미니맵)를 동기 재생하고 고화질 MP4로 내보낼 수 있습니다.
+
+내보내기는 합성한 화면을 H.264로 다시 인코딩합니다. 원본 스트림 복사나 무손실 출력이 아니며, 출력 해상도는 선택한 설정을 따릅니다.
 
 ---
 
