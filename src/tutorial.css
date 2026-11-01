@@ -1,0 +1,115 @@
+/* Code-only tutorial: theme-aware, finite animations, no media or file access. */
+.tutorial-launch { border: 0; padding: 2px 4px; background: transparent; color: var(--text-muted); font: inherit; font-size: 11px; cursor: pointer; white-space: nowrap; }
+.tutorial-launch:hover { color: var(--text-main); text-decoration: underline; }
+.workspace-feedback .tutorial-launch { min-height: 44px; border: 1px solid var(--control-border); border-radius: 6px; font-size: 13px; background: var(--control-bg); }
+.tutorial-backdrop[hidden], .tutorial-warning[hidden] { display: none !important; }
+.tutorial-backdrop { position: fixed; inset: 0; z-index: 100000; padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.42); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); overscroll-behavior: contain; }
+.tutorial-panel { width: min(820px, 100%); max-height: 100%; display: flex; flex-direction: column; min-height: 0; color: var(--text-main); background: var(--dialog-bg); border: 1px solid var(--control-border); border-radius: 14px; box-shadow: 0 24px 80px #0006; overflow: hidden; }
+.tutorial-panel button { font: inherit; font-size: 13px; cursor: pointer; color: var(--text-main); border: 1px solid var(--control-border); background: var(--control-bg); border-radius: 6px; padding: 8px 12px; min-height: 38px; }
+.tutorial-panel button:hover { border-color: var(--border-active); }
+.tutorial-panel button:focus-visible, .tutorial-launch:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 2px; }
+.tutorial-panel button:disabled { opacity: .45; cursor: default; }
+.tutorial-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px 14px; flex-shrink: 0; }
+.tutorial-header h1 { margin: 0; font-size: 20px; font-weight: 650; line-height: 1.3; }
+.tutorial-header button { background: transparent; border-color: transparent; flex-shrink: 0; }
+.tutorial-content { overflow-y: auto; overscroll-behavior: contain; padding: 0 24px 24px; min-height: 0; }
+.tutorial-platforms { display: flex; gap: 4px; padding: 4px; background: var(--bg-app); border-radius: 8px; }
+.tutorial-platforms button { flex: 1; border-color: transparent; background: transparent; }
+.tutorial-platforms button[aria-pressed="true"] { color: var(--selected-text); background: var(--selected-bg); border-color: var(--selected-border); }
+.tutorial-steps { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; padding: 0; margin: 18px 0; list-style: none; }
+.tutorial-steps button { width: 100%; height: 100%; display: flex; align-items: center; gap: 8px; text-align: left; background: transparent; border-color: var(--border-subtle); }
+.tutorial-steps small { color: var(--text-dim); font-size: 11px; }
+.tutorial-steps [aria-current="step"] { color: var(--selected-text); border-color: var(--selected-border); background: var(--selected-bg); }
+.tutorial-story { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); gap: 28px; align-items: center; }
+.tutorial-visual { min-width: 0; padding: 12px; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--bg-app); }
+.tutorial-demo-label { margin: 0 0 10px; color: var(--text-dim); font-size: 10px; letter-spacing: .06em; }
+#tutorial-stage { min-height: 242px; display: flex; align-items: center; justify-content: center; }
+.tutorial-copy { min-width: 0; }
+.tutorial-count { color: var(--text-muted); font-size: 12px; margin: 0 0 10px; font-variant-numeric: tabular-nums; }
+.tutorial-copy h2 { font-size: 24px; margin: 0 0 14px; line-height: 1.35; }
+#tutorial-description { font-size: 14px; line-height: 1.8; color: var(--text-muted); margin: 0; overflow-wrap: anywhere; word-break: keep-all; }
+.tutorial-warning { margin-top: 18px; padding: 14px 16px; border-left: 3px solid var(--accent-gold); background: var(--control-bg); border-radius: 4px; font-size: 12px; line-height: 1.7; }
+.tutorial-warning strong { font-weight: 650; color: var(--text-main); }
+.tutorial-warning p { margin: 5px 0 0; color: var(--text-muted); overflow-wrap: anywhere; word-break: keep-all; }
+.tutorial-footer { padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--border-subtle); flex-shrink: 0; }
+.tutorial-footer > div { display: flex; gap: 8px; }
+.tutorial-footer [data-tutorial-replay] { color: var(--text-muted); background: transparent; border-color: transparent; }
+.tutorial-footer .tutorial-primary { color: var(--primary-text); background: var(--primary-bg); border-color: var(--primary-bg); }
+/* Miniature UI, deliberately separate from the real editor controls. */
+.tutorial-demo-app { width: 100%; border: 1px solid var(--control-border); border-radius: 7px; background: var(--bg-sidebar); overflow: hidden; }
+.tutorial-demo-app:not([data-platform="pc"]) { max-width: 252px; border-radius: 12px; }
+.tutorial-demo-title { display: flex; justify-content: space-between; gap: 6px; padding: 9px; font-size: 10px; color: var(--text-main); border-bottom: 1px solid var(--border-subtle); }
+.tutorial-demo-title small { font-size: 9px; color: var(--text-muted); }
+.tutorial-demo-body { height: 195px; padding: 12px; position: relative; }
+.tutorial-demo-tabs { display: flex; justify-content: space-around; border-top: 1px solid var(--border-subtle); font-size: 8px; color: var(--text-muted); }
+.tutorial-demo-tabs span { padding: 7px 2px; }
+.tutorial-demo-tabs .active { background: var(--selected-bg); color: var(--selected-text); }
+.tutorial-demo-action { display: flex; justify-content: center; align-items: center; text-align: center; padding: 8px; font-size: 10px; line-height: 1.4; border: 1px solid var(--selected-border); background: var(--selected-bg); border-radius: 4px; color: var(--selected-text); }
+.tutorial-file-picker { position: absolute; inset: 55px 12px 12px; opacity: 0; animation: tutorial-files 4.8s both; }
+.tutorial-file { display: flex; align-items: center; gap: 6px; margin: 5px 0; padding: 5px; border: 1px solid var(--control-border); border-radius: 3px; color: var(--text-main); font: 8px ui-monospace,monospace; }
+.tutorial-file i { width: 8px; height: 8px; border: 1px solid var(--selected-border); background: var(--border-active); flex-shrink: 0; }
+.tutorial-file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tutorial-loaded-view { position: absolute; inset: 55px 12px 12px; animation: tutorial-preview 4.8s both; }
+.tutorial-loaded-view > span { font: 9px ui-monospace,monospace; display: block; text-align: center; margin-top: 8px; color: var(--text-muted); }
+.tutorial-road { height: 102px; position: relative; overflow: hidden; border-radius: 4px; background: linear-gradient(#8493a0 0 39%,#596059 40% 48%,#3c4245 49%); }
+.tutorial-road::before, .tutorial-road::after { content: ''; position: absolute; top: 48%; width: 2px; height: 90%; background: #e5dfbd; transform-origin: top; }
+.tutorial-road::before { left: 46%; transform: rotate(30deg); }
+.tutorial-road::after { left: 54%; transform: rotate(-30deg); }
+.tutorial-road i { position: absolute; top: 19%; width: 12%; height: 30%; background: #5b666b; }
+.tutorial-road i:nth-child(1) { left: 7%; }.tutorial-road i:nth-child(2) { left: 22%; height: 35%; top: 14%; }.tutorial-road i:nth-child(3) { right: 10%; }
+.tutorial-car { position: absolute; top: 57%; left: 43%; width: 14%; height: 15%; background: #d9d6cf; border: 2px solid #272d30; border-radius: 4px; animation: tutorial-car 4.8s both; }
+.tutorial-cursor { position: absolute; width: 20px; height: 24px; color: var(--text-main); fill: var(--primary-bg); stroke: var(--primary-text); stroke-width: 1.2px; opacity: 0; pointer-events: none; }
+.tutorial-demo-load .tutorial-cursor { left: 50%; top: 26px; animation: tutorial-load-cursor 4.8s both; }
+.tutorial-demo-timeline { height: 8px; margin: 20px 0 12px; position: relative; border-radius: 4px; background: var(--track-bg); }
+.tutorial-demo-range { position: absolute; inset: 0 auto 0 18%; width: 60%; background: var(--border-active); border-radius: 3px; animation: tutorial-range 4.8s both; }
+.tutorial-demo-playhead { position: absolute; left: 78%; top: -4px; height: 16px; width: 2px; background: var(--text-main); animation: tutorial-playhead 4.8s both; }
+.tutorial-demo-points { display: flex; justify-content: space-between; gap: 10px; }
+.tutorial-demo-points span { width: 46%; text-align: center; font-size: 10px; padding: 6px 2px; background: var(--control-bg); color: var(--text-main); border: 1px solid var(--control-border); border-radius: 3px; }
+.tutorial-demo-points span:first-child { animation: tutorial-point-in 4.8s both; }.tutorial-demo-points span:last-child { animation: tutorial-point-out 4.8s both; }
+.tutorial-demo-times { margin-top: 8px; font: 9px ui-monospace,monospace; color: var(--text-muted); text-align: center; }
+[data-step="1"] .tutorial-cursor { animation: tutorial-range-cursor 4.8s both; }
+.tutorial-demo-export { padding-top: 34px; }
+.tutorial-demo-export .tutorial-demo-action { color: var(--primary-text); background: var(--primary-bg); border-color: var(--primary-bg); }
+.tutorial-demo-export-progress { padding: 24px 4px 0; }
+.tutorial-demo-gauge { height: 10px; border-radius: 5px; overflow: hidden; background: var(--track-bg); }
+.tutorial-demo-gauge i { display: block; height: 100%; width: 100%; background: var(--border-active); transform-origin: left; animation: tutorial-export 4.8s both; }
+.tutorial-demo-complete { display: block; margin-top: 12px; text-align: center; font: 10px ui-monospace,monospace; color: var(--text-main); animation: tutorial-complete 4.8s both; }
+.tutorial-demo-export .tutorial-cursor { top: 54px; left: 52%; animation: tutorial-export-cursor 4.8s both; }
+@keyframes tutorial-files { 0%,12% { opacity: 0; transform: translateY(5px); } 22%,60% { opacity: 1; transform: none; } 72%,100% { opacity: 0; } }
+@keyframes tutorial-preview { 0%,65% { opacity: 0; transform: translateY(5px); } 80%,100% { opacity: 1; transform: none; } }
+@keyframes tutorial-car { 0%,70% { transform: translateY(-2px) scale(.92); } 100% { transform: none; } }
+@keyframes tutorial-load-cursor { 0% { opacity: 0; transform: translate(25px,20px); } 10%,20% { opacity: 1; transform: none; } 45%,60% { opacity: 1; transform: translate(-20px,72px); } 75%,100% { opacity: 0; transform: translate(-20px,72px); } }
+@keyframes tutorial-playhead { 0%,35% { left: 18%; } 65%,100% { left: 78%; } }
+@keyframes tutorial-range { 0%,35% { width: 0; } 65%,100% { width: 60%; } }
+@keyframes tutorial-point-in { 0%,20% { border-color: var(--control-border); } 25%,100% { border-color: var(--border-active); } }
+@keyframes tutorial-point-out { 0%,65% { border-color: var(--control-border); } 70%,100% { border-color: var(--border-active); } }
+@keyframes tutorial-range-cursor { 0% { opacity: 0; left: 22%; top: 145px; } 15%,30% { opacity: 1; left: 22%; top: 145px; } 60%,75% { opacity: 1; left: 78%; top: 145px; } 90%,100% { opacity: 0; left: 78%; top: 145px; } }
+@keyframes tutorial-export { 0%,18% { transform: scaleX(0); } 85%,100% { transform: scaleX(1); } }
+@keyframes tutorial-complete { 0%,84% { opacity: 0; } 90%,100% { opacity: 1; } }
+@keyframes tutorial-export-cursor { 0% { opacity: 0; transform: translate(20px,20px); } 10%,20% { opacity: 1; transform: none; } 35%,100% { opacity: 0; } }
+@media (max-width: 600px) {
+  .tutorial-backdrop { padding: max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom)); }
+  .tutorial-panel { border-radius: 10px; }
+  .tutorial-header { padding: 14px 16px 8px; gap: 8px; }.tutorial-header h1 { font-size: 17px; }
+  .tutorial-content { padding: 0 16px 16px; }.tutorial-panel button { min-height: 40px; font-size: 12px; padding: 7px 10px; }
+  .tutorial-steps { margin: 12px 0; gap: 5px; }.tutorial-steps button { padding: 6px; gap: 5px; font-size: 10px; }.tutorial-steps small { font-size: 9px; }
+  .tutorial-story { grid-template-columns: minmax(0,1fr); gap: 16px; }
+  .tutorial-visual { padding: 10px; }.tutorial-demo-label { margin-bottom: 5px; }
+  #tutorial-stage { min-height: 0; }.tutorial-demo-body { height: 185px; padding: 10px; }.tutorial-demo-app { max-width: 270px; }.tutorial-demo-app:not([data-platform="pc"]) { max-width: 250px; }
+  .tutorial-copy h2 { font-size: 20px; margin-bottom: 8px; }.tutorial-count { margin-bottom: 6px; }#tutorial-description { font-size: 13px; line-height: 1.65; }
+  .tutorial-warning { padding: 10px 12px; font-size: 11px; margin-top: 14px; }
+  .tutorial-footer { padding: 10px 12px; gap: 6px; }.tutorial-footer > div { gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-backdrop *, .tutorial-backdrop *::before, .tutorial-backdrop *::after { animation: none !important; transition: none !important; }
+}
+
+.tutorial-demo-app[data-step="1"] .tutorial-road { height: 80px; }
+@media (max-width: 600px) {
+  .tutorial-content { display: flex; flex-direction: column; }
+  .tutorial-platforms { order: 0; }.tutorial-steps { order: 1; }
+  .tutorial-warning { order: 2; margin: 0 0 14px; }.tutorial-story { order: 3; }
+}
+
+.tutorial-preview-launch { position: absolute; top: 8px; right: 8px; z-index: 2; min-height: 32px; padding: 5px 10px; border: 1px solid var(--control-border); border-radius: 5px; background: var(--bg-sidebar); }
+.canvas-container:not(.is-empty) .tutorial-preview-launch { display: none; }

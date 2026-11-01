@@ -1,3 +1,4 @@
+import { TUTORIAL_STRINGS } from './locales/tutorial';
 import de from './locales/de.json';
 import fr from './locales/fr.json';
 import es from './locales/es.json';
@@ -1319,6 +1320,11 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     pillar_cam_na: '4通道影片中沒有B柱攝影機',
   },
 };
+
+// Component translations share the same language selection and English fallback.
+for (const lang of Object.keys(TUTORIAL_STRINGS) as SupportedLang[]) {
+  Object.assign(TRANSLATIONS[lang], TUTORIAL_STRINGS[lang]);
+}
 
 export const LOCALIZED_SEO: Record<SupportedLang, { title: string; desc: string; ogTitle: string; ogDesc: string }> = {
   de: {

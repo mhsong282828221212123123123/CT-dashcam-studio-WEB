@@ -1,3 +1,5 @@
+import { initTutorial } from './core/tutorial';
+import './tutorial.css';
 import { rememberClipDuration } from './core/clipTiming';
 import { clampPlaybackSpeed } from './core/playbackSpeed';
 import { isAppWindow, completeAppLaunch } from './core/appLaunch';
@@ -150,6 +152,11 @@ class CTDashcamStudioApp {
     this.initSeiWorker();
     this.startRenderLoop();
     this.initDevBadge();
+    initTutorial(() => {
+      if (this.isExporting || this.isSelectingClip) return false;
+      if (this.isPlaying) { this.pauseAllVideos(false); this.updatePlayButton(); }
+      return true;
+    });
 
     i18n.onChange(() => {
       this.updatePlayButton();
