@@ -86,3 +86,10 @@ Pages는 사이트 전체를 교체하므로, 매번 `main` 빌드를 루트에,
 자동 배포 서버에서는 외부 원본 영상이 필요한 SEI 통합 검사를 명시적으로 건너뛰고 나머지 검사를 실행합니다.
 원본 영상이 있는 개발 PC에서는 해당 통합 검사도 실행합니다. 다른 경로의 원본을 사용하려면
 `CT_TEST_MP4`와 `CT_PYTHON_SOURCE` 환경 변수로 영상 파일과 Python 비교 소스 경로를 지정할 수 있습니다.
+
+
+## Introduction / 소개
+
+[English](https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB/intro/en/) · [한국어](https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB/intro/kr/) · [日本語](https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB/intro/jp/) · [简体中文](https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB/intro/zh-cn/) · [繁體中文](https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB/intro/zh-tw/) · [Deutsch](https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB/intro/de/) · [Français](https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB/intro/fr/) · [Español](https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB/intro/es/)
+
+소개 페이지는 `intro/`의 공통 템플릿·번역으로 생성됩니다. `npm run dev`와 `npm run build`가 자동으로 `scripts/build-intro.mjs`를 실행합니다. 최상위 URL은 뷰어이며, DEV 소개 페이지는 검색 제외(`noindex`) 상태로 배포됩니다.

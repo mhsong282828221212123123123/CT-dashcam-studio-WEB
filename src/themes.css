@@ -584,3 +584,7 @@ body.view-mobile .workspace-feedback { display: flex; flex-direction: column; ga
   body:not(.view-desktop) .footer-feedback { display: none; }
   body:not(.view-desktop) .workspace-feedback { display: flex; flex-direction: column; gap: 4px; }
 }
+
+.intro-about-link { color: var(--text-muted); font-size: 11px; padding: 4px 8px; align-self: center; text-decoration: underline; }
+.footer-brand[data-intro-link] { color: var(--text-muted); text-decoration: none; }
+.footer-brand[data-intro-link]:hover { color: var(--text-main); }

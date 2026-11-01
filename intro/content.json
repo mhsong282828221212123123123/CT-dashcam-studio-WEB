@@ -1,0 +1,682 @@
+{
+  "en": {
+    "slug": "en",
+    "lang": "en",
+    "name": "English",
+    "seoTitle": "Free TeslaCam Viewer & Editor for Web and Windows — CT Dashcam Studio",
+    "seoDescription": "View Tesla dashcam and Sentry Mode clips, sync camera views with telemetry, select a time range and export MP4. Free browser and Windows versions.",
+    "navFeatures": "Explore",
+    "navVersions": "Choose a version",
+    "theme": "Theme",
+    "language": "Language",
+    "kicker": "TESLACAM VIEWER & EDITOR",
+    "heroTitle": "Every angle of your drive.\nOne video worth keeping.",
+    "heroBody": "Turn Tesla dashcam and Sentry Mode clips into a synchronized view of the moment. See the cameras together, add the driving data, and export the part you need.",
+    "openWeb": "Open the web viewer",
+    "getWindows": "Get the Windows version",
+    "heroNote": "Free to use. Video processing stays on your device.",
+    "preview": "Illustrative interface",
+    "facts": [
+      "Multi-camera playback",
+      "Driving telemetry",
+      "MP4 export"
+    ],
+    "cameraLabel": "01 / THE WHOLE SCENE",
+    "cameraTitle": "One moment.\nAll the angles.",
+    "cameraBody": "Watch front, rear and side cameras together. Switch between a front-focused layout, a four-camera grid or a single view. Recordings with supported pillar cameras can show those too.",
+    "cameraModes": [
+      "Front focus",
+      "Four cameras",
+      "Single view"
+    ],
+    "dataLabel": "02 / THE CONTEXT",
+    "dataTitle": "The drive,\nbeyond the picture.",
+    "dataBody": "Speed, steering, pedals, indicators and driving mode sit alongside the footage. The viewer reads the telemetry embedded in compatible TeslaCam recordings.",
+    "dataNote": "Available telemetry and camera channels depend on the recording.",
+    "rangeLabel": "03 / THE MOMENT",
+    "rangeTitle": "Keep the part\nthat matters.",
+    "rangeBody": "Find your start. Set your end. Export the selected range as a single MP4, including ranges across clips.",
+    "steps": [
+      [
+        "Open a folder",
+        "Choose your TeslaCam folder or a clip folder, then preview a clip."
+      ],
+      [
+        "Set the range",
+        "Move the timeline and mark the in and out points."
+      ],
+      [
+        "Export an MP4",
+        "Save the selected range and keep the app open until it finishes."
+      ]
+    ],
+    "rangeIn": "In point",
+    "rangeOut": "Out point",
+    "selectedRange": "Selected range",
+    "versionsLabel": "SAME STUDIO. TWO WAYS IN.",
+    "versionsTitle": "Start where\nyou feel at home.",
+    "webTitle": "In your browser",
+    "webBody": "Open the viewer on a PC, Android or iPhone. No app installation is needed to get started.",
+    "webNote": "Export support and speed depend on the browser and device.",
+    "winTitle": "On Windows",
+    "winBody": "Download the portable desktop app, extract the ZIP, and run the executable. No separate Python installation is needed.",
+    "winNote": "Windows x64. Choose a build on GitHub Releases; test builds are marked as pre-releases.",
+    "faqTitle": "Before you start",
+    "faq": [
+      [
+        "Are my videos uploaded?",
+        "Video processing runs on your device. Opening the web app and loading map tiles may use the network."
+      ],
+      [
+        "Which clips can I open?",
+        "Use unencrypted TeslaCam MP4 files from RecentClips, SavedClips or SentryClips. Some recordings do not contain telemetry."
+      ],
+      [
+        "Can I use external storage on iPhone?",
+        "Yes. Opening a folder is the normal workflow. On USB 2.0 iPhones connected over OTG, reading many files can be slow. In that case, select only the files you need or copy them to the phone first."
+      ]
+    ],
+    "closingTitle": "Your next clip\nis already waiting.",
+    "closingBody": "Choose a version, open your footage, and make the moment easier to see.",
+    "source": "Source code",
+    "feedback": "Send feedback",
+    "feedbackNote": "Google sign-in required",
+    "footer": "An independent tool for TeslaCam footage. Not affiliated with Tesla, Inc.",
+    "backTop": "Back to top"
+  },
+  "ko": {
+    "slug": "kr",
+    "lang": "ko",
+    "name": "한국어",
+    "seoTitle": "무료 테슬라 블랙박스 뷰어·편집기 웹·Windows — CT Dashcam Studio",
+    "seoDescription": "테슬라 TeslaCam·센트리 영상을 여러 카메라와 텔레메트리로 함께 확인하세요. 필요한 구간을 선택해 MP4로 저장하는 무료 웹·Windows 뷰어입니다.",
+    "navFeatures": "기능 살펴보기",
+    "navVersions": "버전 선택",
+    "theme": "테마",
+    "language": "언어",
+    "kicker": "TESLACAM VIEWER & EDITOR",
+    "heroTitle": "테슬라가 기록한 순간,\n하나의 영상으로.",
+    "heroBody": "블랙박스와 센트리 클립을 한눈에 확인하세요. 여러 카메라와 주행 정보를 함께 보고, 필요한 순간만 골라 하나의 영상으로 저장합니다.",
+    "openWeb": "웹 뷰어 열기",
+    "getWindows": "Windows 버전 받기",
+    "heroNote": "무료로 사용하세요. 영상은 내 기기에서 처리합니다.",
+    "preview": "예시 인터페이스",
+    "facts": [
+      "여러 카메라 동시 재생",
+      "주행 텔레메트리",
+      "MP4 내보내기"
+    ],
+    "cameraLabel": "01 / 장면 전체를",
+    "cameraTitle": "하나의 순간,\n모든 시선.",
+    "cameraBody": "전방·후방·좌우 카메라를 함께 확인하세요. 전방 중심, 4분할, 단일 화면을 선택할 수 있고, 지원되는 필러 카메라 영상이 있으면 함께 볼 수 있습니다.",
+    "cameraModes": [
+      "전방 중심",
+      "4분할",
+      "단일 화면"
+    ],
+    "dataLabel": "02 / 주행의 맥락을",
+    "dataTitle": "장면에 더하는\n주행 정보.",
+    "dataBody": "속도와 조향각, 페달, 방향지시등, 주행 모드를 영상과 함께 확인합니다. 호환되는 TeslaCam 영상에 담긴 텔레메트리를 직접 읽습니다.",
+    "dataNote": "제공되는 정보와 카메라 채널은 원본 녹화에 따라 다릅니다.",
+    "rangeLabel": "03 / 필요한 순간만",
+    "rangeTitle": "시작과 끝 사이,\n남기고 싶은 만큼.",
+    "rangeBody": "원하는 시작점과 끝점을 지정하세요. 여러 클립에 걸친 구간도 하나의 MP4로 내보낼 수 있습니다.",
+    "steps": [
+      [
+        "폴더 열기",
+        "TeslaCam 전체나 클립 폴더를 열고, 목록에서 영상을 확인합니다."
+      ],
+      [
+        "구간 지정",
+        "타임라인을 움직여 시작점과 끝점을 지정합니다."
+      ],
+      [
+        "MP4로 내보내기",
+        "선택한 구간을 저장합니다. 완료될 때까지 앱을 열어 두세요."
+      ]
+    ],
+    "rangeIn": "시작점",
+    "rangeOut": "끝점",
+    "selectedRange": "선택 구간",
+    "versionsLabel": "같은 스튜디오, 두 가지 방식",
+    "versionsTitle": "익숙한 곳에서\n시작하세요.",
+    "webTitle": "브라우저에서",
+    "webBody": "PC·Android·iPhone에서 바로 여세요. 앱을 설치하지 않고도 뷰어를 사용할 수 있습니다.",
+    "webNote": "내보내기 지원 여부와 속도는 브라우저·기기에 따라 다릅니다.",
+    "winTitle": "Windows에서",
+    "winBody": "포터블 앱을 내려받고 ZIP을 푼 뒤 실행하세요. Python을 별도로 설치할 필요가 없습니다.",
+    "winNote": "Windows x64용입니다. GitHub Releases에서 빌드를 선택하세요. 테스트 버전은 pre-release로 표시됩니다.",
+    "faqTitle": "시작하기 전에",
+    "faq": [
+      [
+        "영상을 서버로 올리나요?",
+        "영상 처리는 내 기기에서 이루어집니다. 웹 앱을 열거나 지도 타일을 불러올 때는 네트워크를 사용할 수 있습니다."
+      ],
+      [
+        "어떤 클립을 열 수 있나요?",
+        "RecentClips·SavedClips·SentryClips의 암호화되지 않은 TeslaCam MP4를 사용하세요. 일부 녹화에는 텔레메트리가 없습니다."
+      ],
+      [
+        "iPhone에서 외장 저장장치를 써도 되나요?",
+        "가능하며, 기본은 폴더 열기입니다. 다만 USB 2.0 iPhone을 OTG로 연결하면 많은 파일을 읽는 데 오래 걸릴 수 있습니다. 이때는 필요한 파일만 직접 선택하거나 먼저 휴대폰으로 복사하세요."
+      ]
+    ],
+    "closingTitle": "다음에 볼 순간도,\n이미 기록되어 있으니까.",
+    "closingBody": "편한 버전을 고르고 영상을 열어 보세요. 필요한 순간이 더 잘 보입니다.",
+    "source": "소스 코드",
+    "feedback": "의견 보내기",
+    "feedbackNote": "Google 로그인 필요",
+    "footer": "TeslaCam 영상을 위한 독립 도구입니다. Tesla, Inc.와 관련이 없습니다.",
+    "backTop": "맨 위로"
+  },
+  "ja": {
+    "slug": "jp",
+    "lang": "ja",
+    "name": "日本語",
+    "seoTitle": "無料のTeslaCamビューアー・動画編集ツール Web・Windows — CT Dashcam Studio",
+    "seoDescription": "テスラのドライブレコーダーとセントリーモード映像を複数カメラ・走行データと一緒に確認。区間を選んでMP4に保存できる無料のWeb・Windowsツール。",
+    "navFeatures": "機能を見る",
+    "navVersions": "バージョンを選ぶ",
+    "theme": "テーマ",
+    "language": "言語",
+    "kicker": "TESLACAM VIEWER & EDITOR",
+    "heroTitle": "テスラが記録した瞬間を、\nひとつの映像に。",
+    "heroBody": "ドライブレコーダーやセントリーモードのクリップをまとめて確認。複数のカメラと走行データを一緒に見ながら、必要な区間をひとつの動画に保存できます。",
+    "openWeb": "Webビューアーを開く",
+    "getWindows": "Windows版を入手",
+    "heroNote": "無料で利用できます。動画はお使いの端末で処理します。",
+    "preview": "インターフェースの例",
+    "facts": [
+      "複数カメラを同期再生",
+      "走行テレメトリー",
+      "MP4書き出し"
+    ],
+    "cameraLabel": "01 / シーン全体を",
+    "cameraTitle": "ひとつの瞬間を、\nすべての視点から。",
+    "cameraBody": "前方・後方・左右のカメラを一緒に確認できます。前方中心、4分割、単一画面を選択でき、対応するピラーカメラの録画も表示できます。",
+    "cameraModes": [
+      "前方中心",
+      "4分割",
+      "単一画面"
+    ],
+    "dataLabel": "02 / 走行の背景を",
+    "dataTitle": "映像に添える、\n走行データ。",
+    "dataBody": "速度、操舵角、ペダル、方向指示器、走行モードを映像と一緒に確認。対応するTeslaCam映像に含まれるテレメトリーを読み取ります。",
+    "dataNote": "表示できるデータとカメラは録画によって異なります。",
+    "rangeLabel": "03 / 必要な瞬間だけ",
+    "rangeTitle": "開始点から終了点まで、\n残したい分だけ。",
+    "rangeBody": "開始点と終了点を指定してください。複数のクリップにまたがる区間も、ひとつのMP4に書き出せます。",
+    "steps": [
+      [
+        "フォルダーを開く",
+        "TeslaCam全体またはクリップフォルダーを開き、一覧から映像を確認します。"
+      ],
+      [
+        "区間を指定する",
+        "タイムラインを動かし、開始点と終了点を指定します。"
+      ],
+      [
+        "MP4に書き出す",
+        "選択した区間を保存します。完了するまでアプリを開いたままにしてください。"
+      ]
+    ],
+    "rangeIn": "開始点",
+    "rangeOut": "終了点",
+    "selectedRange": "選択区間",
+    "versionsLabel": "同じスタジオを、ふたつの方法で",
+    "versionsTitle": "使い慣れた場所から\n始めましょう。",
+    "webTitle": "ブラウザーで",
+    "webBody": "PC・Android・iPhoneでそのまま開けます。アプリをインストールせずに使い始められます。",
+    "webNote": "書き出しの対応状況と速度はブラウザーや端末によって異なります。",
+    "winTitle": "Windowsで",
+    "winBody": "ポータブル版をダウンロードし、ZIPを展開して実行します。Pythonを別途インストールする必要はありません。",
+    "winNote": "Windows x64向けです。GitHub Releasesでビルドを選んでください。テスト版にはpre-releaseと表示されます。",
+    "faqTitle": "始める前に",
+    "faq": [
+      [
+        "動画はアップロードされますか？",
+        "動画は端末内で処理します。Webアプリを開くときや地図タイルの読み込みにはネットワークを使う場合があります。"
+      ],
+      [
+        "どのクリップを開けますか？",
+        "RecentClips・SavedClips・SentryClips内の暗号化されていないTeslaCam MP4を使用してください。一部の録画にはテレメトリーがありません。"
+      ],
+      [
+        "iPhoneで外部ストレージは使えますか？",
+        "使えます。通常はフォルダーを開いてください。USB 2.0のiPhoneをOTGで接続した場合は、大量のファイルの読み込みに時間がかかることがあります。その場合は必要なファイルだけ選ぶか、先に端末へコピーしてください。"
+      ]
+    ],
+    "closingTitle": "次に見たい瞬間も、\nすでに記録されています。",
+    "closingBody": "使いやすいバージョンを選んで動画を開き、大切な場面を見つけてください。",
+    "source": "ソースコード",
+    "feedback": "フィードバック",
+    "feedbackNote": "Googleへのログインが必要",
+    "footer": "TeslaCam映像のための独立したツールです。Tesla, Inc.とは関係ありません。",
+    "backTop": "先頭へ"
+  },
+  "zh-CN": {
+    "slug": "zh-cn",
+    "lang": "zh-CN",
+    "name": "简体中文",
+    "seoTitle": "免费 TeslaCam 特斯拉行车记录仪查看与编辑工具 Web·Windows — CT Dashcam Studio",
+    "seoDescription": "同步查看特斯拉行车记录仪、哨兵模式的多摄像头视频与车辆数据，选择所需区间导出 MP4。提供免费的网页版和 Windows 版。",
+    "navFeatures": "探索功能",
+    "navVersions": "选择版本",
+    "theme": "主题",
+    "language": "语言",
+    "kicker": "TESLACAM VIEWER & EDITOR",
+    "heroTitle": "特斯拉记录的每个视角，\n汇成一段完整影像。",
+    "heroBody": "一起查看行车记录仪与哨兵模式片段，将多个摄像头和车辆数据同步呈现，再把需要的时刻保存为一段视频。",
+    "openWeb": "打开网页版",
+    "getWindows": "获取 Windows 版",
+    "heroNote": "免费使用。视频在你的设备上处理。",
+    "preview": "界面示例",
+    "facts": [
+      "多摄像头同步播放",
+      "车辆遥测数据",
+      "MP4 导出"
+    ],
+    "cameraLabel": "01 / 完整的场景",
+    "cameraTitle": "同一瞬间，\n每个视角。",
+    "cameraBody": "同时查看前、后、左、右摄像头。可选择前方为主、四分屏或单画面布局，有受支持的立柱摄像头录像时也能一并显示。",
+    "cameraModes": [
+      "前方为主",
+      "四分屏",
+      "单画面"
+    ],
+    "dataLabel": "02 / 行驶的细节",
+    "dataTitle": "画面之外，\n还有行驶数据。",
+    "dataBody": "在视频旁查看速度、转向角、踏板、转向灯和驾驶模式。查看器会读取兼容 TeslaCam 录像中嵌入的遥测数据。",
+    "dataNote": "可用的数据与摄像头通道取决于原始录像。",
+    "rangeLabel": "03 / 需要的时刻",
+    "rangeTitle": "从起点到终点，\n只留下需要的部分。",
+    "rangeBody": "设置开始和结束位置，将选中的区间导出为一个 MP4，也支持跨多个片段的区间。",
+    "steps": [
+      [
+        "打开文件夹",
+        "打开整个 TeslaCam 或片段文件夹，从列表预览片段。"
+      ],
+      [
+        "设置区间",
+        "移动时间轴，标记起点和终点。"
+      ],
+      [
+        "导出 MP4",
+        "保存选中的区间，完成前保持应用开启。"
+      ]
+    ],
+    "rangeIn": "起点",
+    "rangeOut": "终点",
+    "selectedRange": "选定区间",
+    "versionsLabel": "同一个工作室，两种使用方式",
+    "versionsTitle": "从你熟悉的地方\n开始。",
+    "webTitle": "在浏览器中",
+    "webBody": "在 PC、Android 或 iPhone 上直接打开，无需安装应用即可开始。",
+    "webNote": "导出支持情况和速度取决于浏览器及设备。",
+    "winTitle": "在 Windows 上",
+    "winBody": "下载便携版，解压 ZIP 后运行，无需单独安装 Python。",
+    "winNote": "适用于 Windows x64。请在 GitHub Releases 选择构建版本，测试版本会标注为 pre-release。",
+    "faqTitle": "开始之前",
+    "faq": [
+      [
+        "视频会被上传吗？",
+        "视频在你的设备上处理。打开网页应用和加载地图图块时可能会使用网络。"
+      ],
+      [
+        "支持哪些片段？",
+        "请使用 RecentClips、SavedClips 或 SentryClips 中未加密的 TeslaCam MP4。部分录像没有遥测数据。"
+      ],
+      [
+        "iPhone 可以使用外部存储吗？",
+        "可以，通常直接打开文件夹即可。USB 2.0 iPhone 通过 OTG 读取大量文件时可能较慢，此时可只选所需文件，或先复制到手机。"
+      ]
+    ],
+    "closingTitle": "下一个值得回看的瞬间，\n也已经被记录。",
+    "closingBody": "选择适合的版本，打开视频，让需要的时刻更清楚。",
+    "source": "源代码",
+    "feedback": "发送反馈",
+    "feedbackNote": "需要登录 Google",
+    "footer": "面向 TeslaCam 视频的独立工具，与 Tesla, Inc. 无关联。",
+    "backTop": "返回顶部"
+  },
+  "zh-TW": {
+    "slug": "zh-tw",
+    "lang": "zh-TW",
+    "name": "繁體中文",
+    "seoTitle": "免費 TeslaCam 特斯拉行車記錄器檢視與編輯工具 Web·Windows — CT Dashcam Studio",
+    "seoDescription": "同步查看特斯拉行車記錄器、哨兵模式的多鏡頭影片與車輛資料，選取所需區間匯出 MP4。提供免費的網頁版與 Windows 版。",
+    "navFeatures": "探索功能",
+    "navVersions": "選擇版本",
+    "theme": "主題",
+    "language": "語言",
+    "kicker": "TESLACAM VIEWER & EDITOR",
+    "heroTitle": "特斯拉記錄的每個視角，\n匯成一段完整影像。",
+    "heroBody": "一起查看行車記錄器與哨兵模式片段，同步呈現多個鏡頭和行車資料，再把需要的時刻儲存成一段影片。",
+    "openWeb": "開啟網頁版",
+    "getWindows": "取得 Windows 版",
+    "heroNote": "免費使用。影片在你的裝置上處理。",
+    "preview": "介面示意",
+    "facts": [
+      "多鏡頭同步播放",
+      "行車遙測資料",
+      "MP4 匯出"
+    ],
+    "cameraLabel": "01 / 完整的場景",
+    "cameraTitle": "同一瞬間，\n每個視角。",
+    "cameraBody": "同時查看前、後、左、右鏡頭。可選擇前方為主、四分割或單一畫面，有支援的立柱鏡頭錄影時也能一併顯示。",
+    "cameraModes": [
+      "前方為主",
+      "四分割",
+      "單一畫面"
+    ],
+    "dataLabel": "02 / 行車的細節",
+    "dataTitle": "畫面之外，\n還有行車資料。",
+    "dataBody": "在影片旁查看速度、轉向角、踏板、方向燈和駕駛模式。檢視器會讀取相容 TeslaCam 錄影中嵌入的遙測資料。",
+    "dataNote": "可用資料與鏡頭通道取決於原始錄影。",
+    "rangeLabel": "03 / 需要的時刻",
+    "rangeTitle": "從起點到終點，\n只留下需要的部分。",
+    "rangeBody": "設定開始和結束位置，將選取區間匯出為一個 MP4，也支援跨越多個片段的區間。",
+    "steps": [
+      [
+        "開啟資料夾",
+        "開啟整個 TeslaCam 或片段資料夾，從清單預覽片段。"
+      ],
+      [
+        "設定區間",
+        "移動時間軸，標記起點和終點。"
+      ],
+      [
+        "匯出 MP4",
+        "儲存選取的區間，完成前保持應用程式開啟。"
+      ]
+    ],
+    "rangeIn": "起點",
+    "rangeOut": "終點",
+    "selectedRange": "選取區間",
+    "versionsLabel": "同一個工作室，兩種使用方式",
+    "versionsTitle": "從你熟悉的地方\n開始。",
+    "webTitle": "在瀏覽器中",
+    "webBody": "在 PC、Android 或 iPhone 上直接開啟，不用安裝應用程式即可開始。",
+    "webNote": "匯出支援情況與速度取決於瀏覽器和裝置。",
+    "winTitle": "在 Windows 上",
+    "winBody": "下載可攜版，解壓縮 ZIP 後執行，不需要另外安裝 Python。",
+    "winNote": "適用於 Windows x64。請在 GitHub Releases 選擇組建版本，測試版本會標註為 pre-release。",
+    "faqTitle": "開始之前",
+    "faq": [
+      [
+        "影片會被上傳嗎？",
+        "影片在你的裝置上處理。開啟網頁應用程式及載入地圖圖磚時可能會使用網路。"
+      ],
+      [
+        "支援哪些片段？",
+        "請使用 RecentClips、SavedClips 或 SentryClips 中未加密的 TeslaCam MP4。部分錄影沒有遙測資料。"
+      ],
+      [
+        "iPhone 可以使用外接儲存裝置嗎？",
+        "可以，通常直接開啟資料夾即可。USB 2.0 iPhone 透過 OTG 讀取大量檔案時可能較慢，此時可只選所需檔案，或先複製到手機。"
+      ]
+    ],
+    "closingTitle": "下一個值得回看的瞬間，\n也已經被記錄。",
+    "closingBody": "選擇適合的版本，開啟影片，讓需要的時刻更清楚。",
+    "source": "原始碼",
+    "feedback": "提供意見",
+    "feedbackNote": "需要登入 Google",
+    "footer": "供 TeslaCam 影片使用的獨立工具，與 Tesla, Inc. 無關聯。",
+    "backTop": "回到頂端"
+  },
+  "de": {
+    "slug": "de",
+    "lang": "de",
+    "name": "Deutsch",
+    "seoTitle": "Kostenloser TeslaCam-Viewer und Video-Editor für Web und Windows — CT Dashcam Studio",
+    "seoDescription": "Tesla-Dashcam- und Wächtermodus-Clips mit mehreren Kameras und Telemetrie ansehen, einen Bereich auswählen und als MP4 exportieren. Für Browser und Windows.",
+    "navFeatures": "Entdecken",
+    "navVersions": "Version wählen",
+    "theme": "Design",
+    "language": "Sprache",
+    "kicker": "TESLACAM VIEWER & EDITOR",
+    "heroTitle": "Alle Blickwinkel der Fahrt.\nEin Video zum Behalten.",
+    "heroBody": "Sieh Dashcam- und Wächtermodus-Clips deiner Tesla-Kameras zusammen mit den Fahrdaten. Wähle den wichtigen Moment und speichere ihn als ein Video.",
+    "openWeb": "Web-Viewer öffnen",
+    "getWindows": "Windows-Version laden",
+    "heroNote": "Kostenlos nutzbar. Die Videoverarbeitung bleibt auf deinem Gerät.",
+    "preview": "Beispieloberfläche",
+    "facts": [
+      "Mehrere Kameras synchron",
+      "Fahrzeugtelemetrie",
+      "MP4-Export"
+    ],
+    "cameraLabel": "01 / DIE GANZE SZENE",
+    "cameraTitle": "Ein Moment.\nAlle Blickwinkel.",
+    "cameraBody": "Sieh Front-, Heck- und Seitenkameras zusammen. Wähle die Frontansicht, ein Vierer-Raster oder eine Einzelansicht. Unterstützte Aufnahmen der Säulenkameras lassen sich ebenfalls anzeigen.",
+    "cameraModes": [
+      "Frontfokus",
+      "Vier Kameras",
+      "Einzelansicht"
+    ],
+    "dataLabel": "02 / DER KONTEXT",
+    "dataTitle": "Die Fahrt,\nüber das Bild hinaus.",
+    "dataBody": "Geschwindigkeit, Lenkwinkel, Pedale, Blinker und Fahrmodus begleiten das Video. Der Viewer liest die eingebetteten Telemetriedaten kompatibler TeslaCam-Aufnahmen.",
+    "dataNote": "Verfügbare Daten und Kamerakanäle hängen von der Aufnahme ab.",
+    "rangeLabel": "03 / DER MOMENT",
+    "rangeTitle": "Behalte den Teil,\nder wichtig ist.",
+    "rangeBody": "Setze Anfang und Ende. Exportiere den gewählten Bereich als eine MP4-Datei, auch über mehrere Clips hinweg.",
+    "steps": [
+      [
+        "Ordner öffnen",
+        "Wähle den TeslaCam-Ordner oder einen Clip-Ordner und sieh dir einen Clip an."
+      ],
+      [
+        "Bereich festlegen",
+        "Bewege die Zeitleiste und setze In- und Out-Punkt."
+      ],
+      [
+        "Als MP4 exportieren",
+        "Speichere den Bereich und lass die App bis zum Abschluss geöffnet."
+      ]
+    ],
+    "rangeIn": "In-Punkt",
+    "rangeOut": "Out-Punkt",
+    "selectedRange": "Ausgewählter Bereich",
+    "versionsLabel": "EIN STUDIO. ZWEI WEGE.",
+    "versionsTitle": "Starte dort,\nwo du dich wohlfühlst.",
+    "webTitle": "Im Browser",
+    "webBody": "Öffne den Viewer auf PC, Android oder iPhone. Zum Start ist keine App-Installation nötig.",
+    "webNote": "Export-Unterstützung und Geschwindigkeit hängen vom Browser und Gerät ab.",
+    "winTitle": "Unter Windows",
+    "winBody": "Lade die portable App, entpacke die ZIP-Datei und starte die Anwendung. Eine separate Python-Installation ist nicht nötig.",
+    "winNote": "Windows x64. Wähle einen Build auf GitHub Releases; Testversionen sind als Pre-release markiert.",
+    "faqTitle": "Bevor du startest",
+    "faq": [
+      [
+        "Werden meine Videos hochgeladen?",
+        "Die Videoverarbeitung läuft auf deinem Gerät. Das Laden der Web-App und von Kartenkacheln kann eine Netzwerkverbindung benötigen."
+      ],
+      [
+        "Welche Clips kann ich öffnen?",
+        "Nutze unverschlüsselte TeslaCam-MP4-Dateien aus RecentClips, SavedClips oder SentryClips. Manche Aufnahmen enthalten keine Telemetrie."
+      ],
+      [
+        "Kann ich externen Speicher am iPhone nutzen?",
+        "Ja. Normalerweise öffnest du einen Ordner. Bei USB-2.0-iPhones über OTG kann das Lesen vieler Dateien langsam sein. Wähle dann nur die nötigen Dateien oder kopiere sie vorher auf das Telefon."
+      ]
+    ],
+    "closingTitle": "Dein nächster Clip\nwartet schon.",
+    "closingBody": "Wähle eine Version, öffne deine Aufnahmen und sieh den Moment deutlicher.",
+    "source": "Quellcode",
+    "feedback": "Feedback senden",
+    "feedbackNote": "Google-Anmeldung erforderlich",
+    "footer": "Ein unabhängiges Werkzeug für TeslaCam-Aufnahmen. Nicht mit Tesla, Inc. verbunden.",
+    "backTop": "Nach oben"
+  },
+  "fr": {
+    "slug": "fr",
+    "lang": "fr",
+    "name": "Français",
+    "seoTitle": "Lecteur et éditeur TeslaCam gratuit pour Web et Windows — CT Dashcam Studio",
+    "seoDescription": "Visualisez les clips de la dashcam Tesla et du mode Sentinelle avec plusieurs caméras et la télémétrie. Sélectionnez une plage et exportez un MP4, sur Web ou Windows.",
+    "navFeatures": "Découvrir",
+    "navVersions": "Choisir une version",
+    "theme": "Thème",
+    "language": "Langue",
+    "kicker": "TESLACAM VIEWER & EDITOR",
+    "heroTitle": "Tous les angles du trajet.\nUne vidéo à garder.",
+    "heroBody": "Réunissez les clips de la dashcam Tesla et du mode Sentinelle dans une vue synchronisée. Regardez les caméras et les données de conduite, puis gardez le passage utile.",
+    "openWeb": "Ouvrir le lecteur web",
+    "getWindows": "Obtenir la version Windows",
+    "heroNote": "Utilisation gratuite. Le traitement vidéo reste sur votre appareil.",
+    "preview": "Exemple d’interface",
+    "facts": [
+      "Lecture multicaméra",
+      "Télémétrie de conduite",
+      "Export MP4"
+    ],
+    "cameraLabel": "01 / TOUTE LA SCÈNE",
+    "cameraTitle": "Un instant.\nTous les angles.",
+    "cameraBody": "Regardez ensemble les caméras avant, arrière et latérales. Choisissez une vue avant, une grille à quatre caméras ou une vue unique. Les enregistrements compatibles des caméras de montant peuvent aussi être affichés.",
+    "cameraModes": [
+      "Vue avant",
+      "Quatre caméras",
+      "Vue unique"
+    ],
+    "dataLabel": "02 / LE CONTEXTE",
+    "dataTitle": "Le trajet,\nau-delà de l’image.",
+    "dataBody": "Vitesse, volant, pédales, clignotants et mode de conduite accompagnent les images. Le lecteur lit la télémétrie intégrée aux enregistrements TeslaCam compatibles.",
+    "dataNote": "Les données et les caméras disponibles dépendent de l’enregistrement.",
+    "rangeLabel": "03 / L’INSTANT",
+    "rangeTitle": "Gardez le passage\nqui compte.",
+    "rangeBody": "Définissez le début et la fin. Exportez la plage choisie dans un seul MP4, même si elle traverse plusieurs clips.",
+    "steps": [
+      [
+        "Ouvrir un dossier",
+        "Choisissez le dossier TeslaCam ou un dossier de clips et prévisualisez un clip."
+      ],
+      [
+        "Définir la plage",
+        "Déplacez la tête de lecture et marquez les points d’entrée et de sortie."
+      ],
+      [
+        "Exporter un MP4",
+        "Enregistrez la plage et laissez l’application ouverte jusqu’à la fin."
+      ]
+    ],
+    "rangeIn": "Point d’entrée",
+    "rangeOut": "Point de sortie",
+    "selectedRange": "Plage sélectionnée",
+    "versionsLabel": "UN STUDIO. DEUX FAÇONS D’ENTRER.",
+    "versionsTitle": "Commencez là où\nvous êtes à l’aise.",
+    "webTitle": "Dans votre navigateur",
+    "webBody": "Ouvrez le lecteur sur PC, Android ou iPhone. Aucune installation d’application n’est nécessaire pour commencer.",
+    "webNote": "La prise en charge de l’export et sa vitesse dépendent du navigateur et de l’appareil.",
+    "winTitle": "Sur Windows",
+    "winBody": "Téléchargez l’application portable, décompressez le ZIP et lancez l’exécutable. Aucune installation séparée de Python n’est nécessaire.",
+    "winNote": "Windows x64. Choisissez une version sur GitHub Releases ; les versions de test portent la mention pre-release.",
+    "faqTitle": "Avant de commencer",
+    "faq": [
+      [
+        "Mes vidéos sont-elles envoyées ?",
+        "Le traitement vidéo se fait sur votre appareil. L’ouverture de l’application web et le chargement des cartes peuvent utiliser le réseau."
+      ],
+      [
+        "Quels clips puis-je ouvrir ?",
+        "Utilisez les MP4 TeslaCam non chiffrés de RecentClips, SavedClips ou SentryClips. Certains enregistrements n’ont pas de télémétrie."
+      ],
+      [
+        "Puis-je utiliser un stockage externe sur iPhone ?",
+        "Oui. Ouvrir un dossier est le fonctionnement normal. Sur un iPhone USB 2.0 connecté en OTG, la lecture de nombreux fichiers peut être lente. Sélectionnez alors les fichiers utiles ou copiez-les d’abord sur le téléphone."
+      ]
+    ],
+    "closingTitle": "Votre prochain clip\nvous attend déjà.",
+    "closingBody": "Choisissez une version, ouvrez vos images et retrouvez le moment plus clairement.",
+    "source": "Code source",
+    "feedback": "Donner un avis",
+    "feedbackNote": "Connexion Google requise",
+    "footer": "Un outil indépendant pour les vidéos TeslaCam. Sans affiliation avec Tesla, Inc.",
+    "backTop": "Haut de page"
+  },
+  "es": {
+    "slug": "es",
+    "lang": "es",
+    "name": "Español",
+    "seoTitle": "Visor y editor TeslaCam gratis para Web y Windows — CT Dashcam Studio",
+    "seoDescription": "Mira los vídeos de la dashcam Tesla y del modo Centinela con varias cámaras y telemetría. Selecciona un intervalo y expórtalo a MP4. Versiones web y Windows gratis.",
+    "navFeatures": "Explorar",
+    "navVersions": "Elegir versión",
+    "theme": "Tema",
+    "language": "Idioma",
+    "kicker": "TESLACAM VIEWER & EDITOR",
+    "heroTitle": "Cada ángulo del trayecto.\nUn vídeo para guardar.",
+    "heroBody": "Reúne los clips de la dashcam Tesla y del modo Centinela en una vista sincronizada. Mira las cámaras con los datos de conducción y guarda el momento que necesitas.",
+    "openWeb": "Abrir el visor web",
+    "getWindows": "Obtener la versión Windows",
+    "heroNote": "Uso gratuito. Los vídeos se procesan en tu dispositivo.",
+    "preview": "Interfaz de ejemplo",
+    "facts": [
+      "Reproducción multicámara",
+      "Telemetría de conducción",
+      "Exportación MP4"
+    ],
+    "cameraLabel": "01 / TODA LA ESCENA",
+    "cameraTitle": "Un momento.\nTodos los ángulos.",
+    "cameraBody": "Mira juntas las cámaras frontal, trasera y laterales. Elige una vista frontal, una cuadrícula de cuatro cámaras o una sola vista. También se pueden mostrar las cámaras de pilar compatibles con la grabación.",
+    "cameraModes": [
+      "Vista frontal",
+      "Cuatro cámaras",
+      "Vista única"
+    ],
+    "dataLabel": "02 / EL CONTEXTO",
+    "dataTitle": "El trayecto,\nmás allá de la imagen.",
+    "dataBody": "Velocidad, dirección, pedales, intermitentes y modo de conducción acompañan al vídeo. El visor lee la telemetría integrada en grabaciones TeslaCam compatibles.",
+    "dataNote": "Los datos y canales de cámara disponibles dependen de la grabación.",
+    "rangeLabel": "03 / EL MOMENTO",
+    "rangeTitle": "Guarda la parte\nque importa.",
+    "rangeBody": "Marca el inicio y el final. Exporta el intervalo elegido como un solo MP4, incluso entre varios clips.",
+    "steps": [
+      [
+        "Abrir una carpeta",
+        "Elige la carpeta TeslaCam o una carpeta de clips y previsualiza un clip."
+      ],
+      [
+        "Definir el intervalo",
+        "Mueve la línea de tiempo y marca los puntos de entrada y salida."
+      ],
+      [
+        "Exportar un MP4",
+        "Guarda el intervalo y mantén la aplicación abierta hasta que termine."
+      ]
+    ],
+    "rangeIn": "Punto de entrada",
+    "rangeOut": "Punto de salida",
+    "selectedRange": "Intervalo seleccionado",
+    "versionsLabel": "UN ESTUDIO. DOS FORMAS DE ENTRAR.",
+    "versionsTitle": "Empieza donde\nte sientas a gusto.",
+    "webTitle": "En tu navegador",
+    "webBody": "Abre el visor en PC, Android o iPhone. No necesitas instalar una aplicación para empezar.",
+    "webNote": "La compatibilidad y velocidad de exportación dependen del navegador y del dispositivo.",
+    "winTitle": "En Windows",
+    "winBody": "Descarga la aplicación portátil, extrae el ZIP y ejecuta el programa. No necesitas instalar Python por separado.",
+    "winNote": "Windows x64. Elige una compilación en GitHub Releases; las de prueba están marcadas como pre-release.",
+    "faqTitle": "Antes de empezar",
+    "faq": [
+      [
+        "¿Se suben mis vídeos?",
+        "Los vídeos se procesan en tu dispositivo. Abrir la aplicación web y cargar mapas puede utilizar la red."
+      ],
+      [
+        "¿Qué clips puedo abrir?",
+        "Usa archivos MP4 TeslaCam sin cifrar de RecentClips, SavedClips o SentryClips. Algunas grabaciones no contienen telemetría."
+      ],
+      [
+        "¿Puedo usar almacenamiento externo en iPhone?",
+        "Sí. Lo habitual es abrir una carpeta. En iPhone USB 2.0 conectados por OTG, leer muchos archivos puede ser lento. En ese caso, selecciona solo los necesarios o cópialos primero al teléfono."
+      ]
+    ],
+    "closingTitle": "Tu próximo clip\nya está esperando.",
+    "closingBody": "Elige una versión, abre tus vídeos y encuentra el momento con más claridad.",
+    "source": "Código fuente",
+    "feedback": "Enviar comentarios",
+    "feedbackNote": "Se requiere iniciar sesión en Google",
+    "footer": "Una herramienta independiente para vídeos TeslaCam. Sin afiliación con Tesla, Inc.",
+    "backTop": "Volver arriba"
+  }
+}

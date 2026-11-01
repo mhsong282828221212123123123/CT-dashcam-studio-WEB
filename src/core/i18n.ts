@@ -32,6 +32,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     theme_paper_sand: "페이퍼 샌드",
     feedback_link: "문제 신고·의견 보내기",
     feedback_login_note: "Google 로그인 필요",
+    intro_link: "소개",
     progress_ios_usb_note: "USB 2.0을 사용하는 아이폰(특히 Pro가 아닌 모델)은 외장 저장 장치에서 파일을 준비하는 데 오랜 시간이 걸릴 수 있습니다. 필요한 클립을 먼저 아이폰에 복사한 뒤 편집하는 것을 권장합니다.",
     progress_waiting_files: "파일 목록을 기다리는 중",
     progress_waiting_files_detail: "파일을 선택한 뒤에도 저장 장치에 따라 준비 시간이 걸릴 수 있습니다.",
@@ -291,6 +292,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     theme_paper_sand: "Paper Sand",
     feedback_link: "Report a problem / Send feedback",
     feedback_login_note: "Google sign-in required",
+    intro_link: "About",
     progress_ios_usb_note: "On iPhones using USB 2.0, especially non-Pro models, preparing files from external storage can take a long time. We recommend copying the clips you need to your iPhone before editing.",
     progress_waiting_files: "Waiting for the file list",
     progress_waiting_files_detail: "After selection, your storage device may need time to prepare the files.",
@@ -550,6 +552,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     theme_paper_sand: "ペーパー・サンド",
     feedback_link: "不具合報告・ご意見",
     feedback_login_note: "Google へのログインが必要です",
+    intro_link: "紹介",
     progress_ios_usb_note: "USB 2.0を使用するiPhone（特にPro以外のモデル）では、外部ストレージのファイルの準備に時間がかかる場合があります。必要なクリップを先にiPhoneへコピーしてから編集することをおすすめします。",
     progress_waiting_files: "ファイル一覧を待っています",
     progress_waiting_files_detail: "選択後も、ストレージによってはファイルの準備に時間がかかります。",
@@ -809,6 +812,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     theme_paper_sand: "纸白·沙金",
     feedback_link: "报告问题 / 提交反馈",
     feedback_login_note: "需要登录 Google",
+    intro_link: "关于",
     progress_ios_usb_note: "使用 USB 2.0 的 iPhone（尤其是非 Pro 机型）从外部存储设备准备文件时可能需要较长时间。建议先将所需片段复制到 iPhone，再进行编辑。",
     progress_waiting_files: "正在等待文件列表",
     progress_waiting_files_detail: "选择后，存储设备可能仍需一些时间准备文件。",
@@ -1068,6 +1072,7 @@ export const TRANSLATIONS: Record<SupportedLang, Record<string, string>> = {
     theme_paper_sand: "紙白·沙金",
     feedback_link: "回報問題 / 提供意見",
     feedback_login_note: "需要登入 Google",
+    intro_link: "關於",
     progress_ios_usb_note: "使用 USB 2.0 的 iPhone（尤其是非 Pro 機型）從外接儲存裝置準備檔案時可能需要較長時間。建議先將所需片段複製到 iPhone，再進行編輯。",
     progress_waiting_files: "正在等待檔案清單",
     progress_waiting_files_detail: "選取後，儲存裝置可能仍需一些時間準備檔案。",
@@ -1584,6 +1589,12 @@ export class I18nManager {
     if (lblBrightSub) lblBrightSub.textContent = dict.slider_brightness_label;
     const lblContrastSub = document.getElementById('lbl-contrast-sub-tag');
     if (lblContrastSub) lblContrastSub.textContent = dict.slider_contrast_label;
+
+    const introSlug: Record<SupportedLang, string> = {ko:'kr',en:'en',ja:'jp','zh-CN':'zh-cn','zh-TW':'zh-tw',de:'de',fr:'fr',es:'es'};
+    document.querySelectorAll<HTMLAnchorElement>('[data-intro-link]').forEach(link => {
+      link.href = `${import.meta.env.BASE_URL}intro/${introSlug[lang]}/`;
+      link.title = this.t('intro_link');
+    });
 
     // 6. Export form labels
     const formLabels = document.querySelectorAll<HTMLElement>('[data-i18n]');

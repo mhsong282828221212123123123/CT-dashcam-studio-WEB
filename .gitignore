@@ -5,3 +5,6 @@ dist/
 Thumbs.db
 test_screenshot*.png
 docs/
+
+# Generated multilingual introductions (source lives in intro/)
+public/intro/

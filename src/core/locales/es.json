@@ -229,5 +229,6 @@
   "theme_paper_rose": "Papel rosa",
   "theme_paper_sand": "Papel arena",
   "feedback_link": "Informar de un problema / Enviar comentarios",
-  "feedback_login_note": "Se requiere iniciar sesión en Google"
+  "feedback_login_note": "Se requiere iniciar sesión en Google",
+  "intro_link": "Acerca del proyecto"
 }
