@@ -150,7 +150,7 @@ export function initPrivacyUI(win = window, doc = document) {
     panel.querySelectorAll('[data-copy]').forEach(el => { el.textContent = strings[el.dataset.copy]; });
     panel.querySelector('.ct-privacy-status').textContent = controller.choice ? strings[controller.choice] + (controller.persistent ? '' : ' ' + strings.storage) : '';
     doc.querySelectorAll('[data-privacy-settings]').forEach(el => {
-      el.textContent = strings[el.dataset.privacyLabel || 'preferences'];
+      el.textContent = strings[el.dataset.privacyLabel || 'preferences'] + (el.hasAttribute('data-show-license') ? ' · GPL-3.0-only' : '');
       el.setAttribute('href', legalURL('index.html'));
       el.setAttribute('aria-controls', 'ct-privacy-notice');
       el.setAttribute('aria-expanded', String(!panel.hidden));
@@ -159,7 +159,7 @@ export function initPrivacyUI(win = window, doc = document) {
     doc.querySelectorAll('[data-legal]').forEach(el => {
       el.href = legalURL(el.dataset.legal);
       const key = el.dataset.copy;
-      if (key && strings[key]) el.textContent = strings[key];
+      if (key && strings[key]) el.textContent = strings[key] + (key === 'licenses' ? ' · GPL-3.0-only' : '');
     });
     doc.querySelectorAll('[data-privacy-copy]').forEach(el => { el.textContent = strings[el.dataset.privacyCopy] || ''; });
     doc.querySelectorAll('[data-legal-back]').forEach(el => { el.href = new URL(`../?lang=${lang()}`, base).href; });

@@ -12,7 +12,7 @@ const sourceRepo = 'https://github.com/mhsong282828221212123123123/CT-dashcam-st
 
 export function legalLinks(lang = 'en', prefix = './legal/') {
   const s = PRIVACY_STRINGS[lang] || PRIVACY_STRINGS.en;
-  return `<nav class="ct-legal-links"><a href="${prefix}index.html?lang=${lang}" data-privacy-settings>${escape(s.preferences)}</a><a href="${prefix}privacy.html?lang=${lang}" data-legal="privacy.html" data-copy="privacy">${escape(s.privacy)}</a><a href="${prefix}license.html?lang=${lang}" data-legal="license.html" data-copy="licenses">${escape(s.licenses)}</a><a href="${prefix}third-party.html?lang=${lang}" data-legal="third-party.html" data-copy="thirdParty">${escape(s.thirdParty)}</a></nav>`;
+  return `<nav class="ct-legal-links"><a href="${prefix}index.html?lang=${lang}" data-privacy-settings>${escape(s.preferences)}</a><a href="${prefix}privacy.html?lang=${lang}" data-legal="privacy.html" data-copy="privacy">${escape(s.privacy)}</a><a href="${prefix}license.html?lang=${lang}" data-legal="license.html" data-copy="licenses">${escape(s.licenses)} · GPL-3.0-only</a><a href="${prefix}third-party.html?lang=${lang}" data-legal="third-party.html" data-copy="thirdParty">${escape(s.thirdParty)}</a></nav>`;
 }
 
 // Small, deterministic renderer for our maintained legal Markdown; no untrusted

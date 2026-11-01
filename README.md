@@ -1,5 +1,7 @@
 # CT Dashcam Studio Web (CT Dash Studio WEB)
 
+**License: [GPL-3.0-only](LICENSE)** — original project code; third-party terms and provenance limits: [license audit](LICENSE_AUDIT.md).
+
 > **순수 웹 기술(TypeScript + Canvas + WebCodecs) 기반의 고성능 테슬라 블랙박스 뷰어 및 멀티채널 편집·추출 스튜디오**  
 > PC 설치 없이 브라우저(Edge, Chrome 등)에서 바로 테슬라 Dashcam/Sentry 영상 및 실제 차량 텔레메트리(속도, 스티어링 각도, 페달, FSD 모드, 방향지시등, GPS 미니맵)를 동기 재생하고 무손실 MP4로 내보낼 수 있습니다.
 
@@ -108,6 +110,6 @@ Original project code is licensed **GPL-3.0-only** where the project owner holds
 
 The viewer retains GA ID `G-E05V74Q9Q7` using worldwide Basic Consent Mode v2 opt-in. Intro/legal pages share the origin-local choice but introduce no new tracking. Rejection does not gate editing or maps. The compact Privacy & Licenses entry reopens preferences. Legal documents are canonical English; navigation and consent explanations cover all eight UI languages. `scripts/build-intro.mjs` also generates `public/legal/` from the reviewed sources. Generated files are ignored; no Markdown paths are used for deployed UI links.
 
-Build: `npm ci`, `npm test`, `npm run build` (includes TypeScript checking). Use `VITE_BASE_PATH=/CT-dashcam-studio-WEB/dev/` for the DEV artifact or `/CT-dashcam-studio-WEB/` for a production-path validation build. There is no configured lint command. The existing dual-branch workflow remains unchanged. This change is dev-only: production legal URLs are prepared by the build but are not live until the owner explicitly approves a main promotion.
+Build: `npm ci`, `npm test`, `npm run build` (includes TypeScript checking). Use `VITE_BASE_PATH=/CT-dashcam-studio-WEB/dev/` for the DEV artifact or `/CT-dashcam-studio-WEB/` for a production-path validation build. There is no configured lint command. The existing dual-branch workflow remains unchanged. The owner authorized promotion to main on 2026-11-01. Both production and DEV builds include the shared consent and legal pages under their respective base paths.
 
 For redistribution, retain LICENSE, THIRD_PARTY_NOTICES.md and licenses/, and provide the corresponding source/build scripts for the exact artifact revision. Generated legal pages link to that revision's source. Resolve the documented artwork/upstream and OSM attribution issues before claiming complete international release clearance.

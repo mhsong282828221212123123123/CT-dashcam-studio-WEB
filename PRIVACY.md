@@ -2,7 +2,7 @@
 
 Last updated: 2026-11-01. Canonical policy language: English.
 
-Deployment scope: this policy describes the revised source and development deployment. The production site remains on its previously approved revision until the owner authorizes promotion. Older deployments, including the unchanged production viewer, may still have the previous unconditional analytics integration and cannot be made consent-aware solely by changing dev. Do not assume that the revised behavior is already active on every deployed route.
+Deployment scope: this revised source is used for production and development following the owner-approved main promotion on 2026-11-01. Older cached deployments may not yet include the revised consent controls; reload to obtain the current site.
 
 ## Operator and contact
 

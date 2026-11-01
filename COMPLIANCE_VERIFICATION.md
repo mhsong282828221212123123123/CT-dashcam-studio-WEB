@@ -1,6 +1,6 @@
 # Compliance change verification — 2026-11-01
 
-Technical validation only; not a legal clearance certificate. Baseline dev c746802. Only dev is authorized for publication. Unchanged production remains at main 2977b2e until a separate owner-approved promotion.
+Technical validation only; not a legal clearance certificate. The initial DEV-only validation below used baseline dev c746802 and left main at 2977b2e. On 2026-11-01 the owner subsequently authorized main promotion and an explicit GPL-3.0-only label in the project UI/README. The initial deployment limitations below describe the pre-promotion state, not the revised production release. Core modules, maps and media processing remain unchanged.
 
 ## Commands and build scope
 
