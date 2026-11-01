@@ -1,0 +1,63 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Local privacy QA — not published</title>
+<style>body{font:13px system-ui;margin:15px}button{margin:4px;padding:8px}iframe{width:100%;height:740px;border:1px solid #777}pre{white-space:pre-wrap;word-break:break-word}canvas{width:300px;height:170px}</style>
+<h1>Local privacy integration QA</h1>
+<p>This test harness is outside public/ and is not in Pages artifacts. It uses generated test-pattern video, never user footage. Network observations below come from browser Resource Timing; they are not proof of server-side report receipt.</p>
+<button id="reset">Clear local test consent and reload viewer</button><button id="viewer">Viewer</button><button id="intro">English introduction</button><button id="korean">Korean introduction</button><button id="observe">Observe requests and state</button><button id="fixtures">Load generated video fixture</button><button id="map">Request sample map area (Paris landmark)</button>
+<pre id="result" aria-live="polite"></pre><canvas id="sample-map" width="600" height="340"></canvas>
+<iframe id="viewer-frame" title="Application under test" src="../?lang=en"></iframe>
+<script type="module">
+import { OpenStreetMapTileLoader } from '../src/core/mapLoader.ts';
+const frame = document.getElementById('viewer-frame'), result = document.getElementById('result');
+const base = new URL('../', location.href);
+let mapRequested = false, exported = null;
+const safeResource = entry => {
+  const u = new URL(entry.name);
+  if (!/google-analytics\.com|googletagmanager\.com|analytics\.google\.com|tile\.openstreetmap\.org/.test(u.hostname)) return null;
+  return { endpoint: u.origin+u.pathname, event:u.searchParams.get('en'), measurementId:u.searchParams.get('tid')||u.searchParams.get('id'), consent:u.searchParams.get('gcs'), page:u.searchParams.get('dl') };
+};
+function observe() {
+  const w = frame.contentWindow, d = frame.contentDocument;
+  const resources = w.performance.getEntriesByType('resource').map(safeResource).filter(Boolean);
+  const config = (w.dataLayer||[]).map(item => Array.from(item)).filter(row => row[0]==='config');
+  const data = {url:w.location.pathname,language:d.documentElement.lang,consent:w.__ctPrivacy?.choice,gaDisabled:w['ga-disable-G-E05V74Q9Q7'],gaTagCount:d.querySelectorAll('script[data-ct-analytics]').length,configCount:config.length,cookies:d.cookie.split(';').map(c=>c.trim().split('=')[0]).filter(Boolean),resources, mapRequests:performance.getEntriesByType('resource').map(safeResource).filter(r=>r?.endpoint.includes('tile.openstreetmap.org')),fixture:document.getElementById('fixtures').dataset.status||'not loaded',exported};
+  result.textContent=JSON.stringify(data,null,2);
+}
+frame.addEventListener('load',()=>{
+  exported=null;
+  const w=frame.contentWindow, original=w.URL.createObjectURL.bind(w.URL);
+  // Observe, without altering, the exact Blob passed by the existing export
+  // pipeline. This wrapper exists only in the unpublished local test harness.
+  w.URL.createObjectURL=blob=>{
+    if (blob.type==='video/mp4' && !(blob instanceof w.File)) blob.arrayBuffer().then(buffer=>{
+      const bytes=new Uint8Array(buffer), view=new DataView(buffer), boxes=[];
+      for(let offset=0;offset+8<=bytes.length;){const size=view.getUint32(offset),type=String.fromCharCode(...bytes.slice(offset+4,offset+8));boxes.push(type);if(size<8)break;offset+=size;}
+      exported={bytes:bytes.length,type:blob.type,boxes,validMp4:boxes.includes('ftyp')&&boxes.includes('moov')&&boxes.includes('mdat')};observe();
+    });
+    return original(blob);
+  };
+  observe();
+});
+document.getElementById('observe').onclick=observe;
+document.getElementById('reset').onclick=()=>{localStorage.removeItem('ct_analytics_consent');frame.src=new URL('?lang=en',base);};
+document.getElementById('viewer').onclick=()=>{frame.src=new URL('?lang=en',base);};
+document.getElementById('intro').onclick=()=>{frame.src=new URL('intro/en/',base);};
+document.getElementById('korean').onclick=()=>{frame.src=new URL('intro/kr/',base);};
+document.getElementById('fixtures').onclick=async()=>{
+  const button=document.getElementById('fixtures');
+  try {
+    const bytes=await(await fetch(new URL('fixtures/timing-30fps.mp4',location.href))).arrayBuffer();
+    const files=['front','back','left_repeater','right_repeater'].map(camera=>new frame.contentWindow.File([bytes],`2026-01-01_12-00-00-${camera}.mp4`,{type:'video/mp4'}));
+    await frame.contentWindow.app.loadFiles(files);
+    button.dataset.status='Loaded four generated 30fps MP4 camera files';
+  } catch(error){button.dataset.status=String(error);}
+  observe();
+};
+document.getElementById('map').onclick=()=>{
+  const canvas=document.getElementById('sample-map'),ctx=canvas.getContext('2d');
+  OpenStreetMapTileLoader.drawMinimap(ctx,0,0,600,340,48.8584,2.2945,0);
+  mapRequested=true; observe();
+};
+// Render the already requested sample tiles after they become available; this
+// harness doesn't alter or prefetch through the map loader.
+setInterval(()=>{if(mapRequested)OpenStreetMapTileLoader.drawMinimap(document.getElementById('sample-map').getContext('2d'),0,0,600,340,48.8584,2.2945,0);},1000);
+</script></html>

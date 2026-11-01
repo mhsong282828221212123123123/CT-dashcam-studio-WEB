@@ -1,15 +1,12 @@
 <!DOCTYPE html>
 <html lang="ko" data-theme="graphite">
   <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E05V74Q9Q7"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-E05V74Q9Q7');
-    </script>
+    <!-- Basic Consent Mode: this first-party module initializes denied defaults
+         and loads the existing Google tag only after an analytics grant. -->
+    <link rel="stylesheet" href="/legal/privacy.css" />
+    <script type="module" src="/legal/consent.js" data-ct-privacy data-measurement-id="G-E05V74Q9Q7"></script>
+    <meta name="license" content="GPL-3.0-only" />
+    <link rel="license" href="%BASE_URL%legal/license.html" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <!-- 기본 메타태그 -->
@@ -323,6 +320,7 @@
                 <a class="feedback-link" href="https://forms.gle/Lh1doyRZNAZ6cqRk9" target="_blank" rel="noopener noreferrer" data-i18n="feedback_link">문제 신고·의견 보내기</a>
                 <small class="feedback-note" data-i18n="feedback_login_note">Google 로그인 필요</small>
                 <a class="intro-about-link" data-intro-link data-i18n="intro_link" href="./intro/en/" target="_blank" rel="noopener noreferrer">소개</a>
+                <nav class="ct-legal-links"><a href="./legal/index.html?lang=ko" data-privacy-settings>개인정보 및 라이선스</a><a href="./legal/privacy.html?lang=ko" data-legal="privacy.html" data-copy="privacy">개인정보 처리방침</a><a href="./legal/license.html?lang=ko" data-legal="license.html" data-copy="licenses">오픈소스 라이선스</a><a href="./legal/third-party.html?lang=ko" data-legal="third-party.html" data-copy="thirdParty">제3자 라이선스</a></nav>
               </div>
             </div>
           </div>
@@ -452,6 +450,7 @@
               <a class="feedback-link" href="https://forms.gle/Lh1doyRZNAZ6cqRk9" target="_blank" rel="noopener noreferrer" data-i18n="feedback_link">문제 신고·의견 보내기</a>
               <small class="feedback-note" data-i18n="feedback_login_note">Google 로그인 필요</small>
             </div>
+            <a class="ct-legal-short" href="./legal/index.html?lang=ko" data-privacy-settings>개인정보 및 라이선스</a>
             <a class="footer-brand" data-intro-link href="./intro/en/" target="_blank" rel="noopener noreferrer">
               <img src="./ct-icon-v3-180.png" alt="CT Dash" class="brand-logo-img footer-logo-img" />
               <span>CT Dash Studio WEB</span>

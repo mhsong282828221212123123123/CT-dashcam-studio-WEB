@@ -1,0 +1,2133 @@
+{
+  "lockfileVersion": 3,
+  "packages": [
+    {
+      "path": "node_modules/@esbuild/aix-ppc64",
+      "name": "@esbuild/aix-ppc64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/android-arm",
+      "name": "@esbuild/android-arm",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/android-arm64",
+      "name": "@esbuild/android-arm64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/android-x64",
+      "name": "@esbuild/android-x64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/darwin-arm64",
+      "name": "@esbuild/darwin-arm64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/darwin-x64",
+      "name": "@esbuild/darwin-x64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/freebsd-arm64",
+      "name": "@esbuild/freebsd-arm64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/freebsd-x64",
+      "name": "@esbuild/freebsd-x64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/linux-arm",
+      "name": "@esbuild/linux-arm",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/linux-arm64",
+      "name": "@esbuild/linux-arm64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/linux-ia32",
+      "name": "@esbuild/linux-ia32",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/linux-loong64",
+      "name": "@esbuild/linux-loong64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/linux-mips64el",
+      "name": "@esbuild/linux-mips64el",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/linux-ppc64",
+      "name": "@esbuild/linux-ppc64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/linux-riscv64",
+      "name": "@esbuild/linux-riscv64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/linux-s390x",
+      "name": "@esbuild/linux-s390x",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/linux-x64",
+      "name": "@esbuild/linux-x64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/netbsd-x64",
+      "name": "@esbuild/netbsd-x64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/openbsd-x64",
+      "name": "@esbuild/openbsd-x64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/sunos-x64",
+      "name": "@esbuild/sunos-x64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/win32-arm64",
+      "name": "@esbuild/win32-arm64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/win32-ia32",
+      "name": "@esbuild/win32-ia32",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@esbuild/win32-x64",
+      "name": "@esbuild/win32-x64",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/evanw/esbuild.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@jridgewell/sourcemap-codec",
+      "name": "@jridgewell/sourcemap-codec",
+      "version": "1.6.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/jridgewell/sourcemaps.git",
+        "directory": "packages/sourcemap-codec"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/@jridgewell/sourcemap-codec/LICENSE",
+          "sha256": "769d154fbde32a915af110b1123650bc79f4cbe675acc66e005265bf069c6c6c"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/@napi-rs/lzma-linux-x64-gnu",
+      "name": "@napi-rs/lzma-linux-x64-gnu",
+      "version": "1.5.1",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@puppeteer/browsers",
+      "name": "@puppeteer/browsers",
+      "version": "3.2.5",
+      "declaredLicense": "Apache-2.0",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/puppeteer/puppeteer/tree/main/packages/browsers"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-android-arm-eabi",
+      "name": "@rollup/rollup-android-arm-eabi",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-android-arm64",
+      "name": "@rollup/rollup-android-arm64",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-darwin-arm64",
+      "name": "@rollup/rollup-darwin-arm64",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-darwin-x64",
+      "name": "@rollup/rollup-darwin-x64",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-freebsd-arm64",
+      "name": "@rollup/rollup-freebsd-arm64",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-freebsd-x64",
+      "name": "@rollup/rollup-freebsd-x64",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-linux-arm-gnueabihf",
+      "name": "@rollup/rollup-linux-arm-gnueabihf",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-linux-arm-musleabihf",
+      "name": "@rollup/rollup-linux-arm-musleabihf",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-linux-arm64-gnu",
+      "name": "@rollup/rollup-linux-arm64-gnu",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-linux-arm64-musl",
+      "name": "@rollup/rollup-linux-arm64-musl",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-linux-loong64-gnu",
+      "name": "@rollup/rollup-linux-loong64-gnu",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-linux-loong64-musl",
+      "name": "@rollup/rollup-linux-loong64-musl",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-linux-ppc64-gnu",
+      "name": "@rollup/rollup-linux-ppc64-gnu",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-linux-ppc64-musl",
+      "name": "@rollup/rollup-linux-ppc64-musl",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-linux-riscv64-gnu",
+      "name": "@rollup/rollup-linux-riscv64-gnu",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-linux-riscv64-musl",
+      "name": "@rollup/rollup-linux-riscv64-musl",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-linux-s390x-gnu",
+      "name": "@rollup/rollup-linux-s390x-gnu",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-linux-x64-gnu",
+      "name": "@rollup/rollup-linux-x64-gnu",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-linux-x64-musl",
+      "name": "@rollup/rollup-linux-x64-musl",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-openbsd-x64",
+      "name": "@rollup/rollup-openbsd-x64",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-openharmony-arm64",
+      "name": "@rollup/rollup-openharmony-arm64",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-win32-arm64-msvc",
+      "name": "@rollup/rollup-win32-arm64-msvc",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-win32-ia32-msvc",
+      "name": "@rollup/rollup-win32-ia32-msvc",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-win32-x64-gnu",
+      "name": "@rollup/rollup-win32-x64-gnu",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/rollup/rollup.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@rollup/rollup-win32-x64-msvc",
+      "name": "@rollup/rollup-win32-x64-msvc",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/rollup/rollup.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/@types/dom-webcodecs",
+      "name": "@types/dom-webcodecs",
+      "version": "0.1.19",
+      "declaredLicense": "MIT",
+      "dev": false,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+        "directory": "types/dom-webcodecs"
+      },
+      "dependencyKind": "transitive type declarations",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/@types/dom-webcodecs/LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/@types/estree",
+      "name": "@types/estree",
+      "version": "1.0.9",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+        "directory": "types/estree"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/@types/estree/LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/@types/node",
+      "name": "@types/node",
+      "version": "22.20.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+        "directory": "types/node"
+      },
+      "dependencyKind": "direct development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/@types/node/LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/@types/wicg-file-system-access",
+      "name": "@types/wicg-file-system-access",
+      "version": "2020.9.8",
+      "declaredLicense": "MIT",
+      "dev": false,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+        "directory": "types/wicg-file-system-access"
+      },
+      "dependencyKind": "transitive type declarations",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/@types/wicg-file-system-access/LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/@vitejs/plugin-basic-ssl",
+      "name": "@vitejs/plugin-basic-ssl",
+      "version": "1.2.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vitejs/vite-plugin-basic-ssl.git"
+      },
+      "dependencyKind": "direct development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/@vitejs/plugin-basic-ssl/LICENSE",
+          "sha256": "2eba289ed550548c7fce86e72ad7b5f5bb177f5762bb372cdfa7b1fdd627e3b2"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/@vitest/expect",
+      "name": "@vitest/expect",
+      "version": "2.1.9",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vitest-dev/vitest.git",
+        "directory": "packages/expect"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/@vitest/expect/LICENSE",
+          "sha256": "ddc110f3b89cc397cee99d3d64c4f746928b7a3bac02fed15101eb4d367079f6"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/@vitest/mocker",
+      "name": "@vitest/mocker",
+      "version": "2.1.9",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vitest-dev/vitest.git",
+        "directory": "packages/mocker"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/@vitest/mocker/LICENSE",
+          "sha256": "ddc110f3b89cc397cee99d3d64c4f746928b7a3bac02fed15101eb4d367079f6"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/@vitest/pretty-format",
+      "name": "@vitest/pretty-format",
+      "version": "2.1.9",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vitest-dev/vitest.git",
+        "directory": "packages/pretty-format"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/@vitest/pretty-format/LICENSE",
+          "sha256": "ddc110f3b89cc397cee99d3d64c4f746928b7a3bac02fed15101eb4d367079f6"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/@vitest/runner",
+      "name": "@vitest/runner",
+      "version": "2.1.9",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vitest-dev/vitest.git",
+        "directory": "packages/runner"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/@vitest/runner/LICENSE",
+          "sha256": "ddc110f3b89cc397cee99d3d64c4f746928b7a3bac02fed15101eb4d367079f6"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/@vitest/snapshot",
+      "name": "@vitest/snapshot",
+      "version": "2.1.9",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vitest-dev/vitest.git",
+        "directory": "packages/snapshot"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/@vitest/snapshot/LICENSE",
+          "sha256": "ddc110f3b89cc397cee99d3d64c4f746928b7a3bac02fed15101eb4d367079f6"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/@vitest/spy",
+      "name": "@vitest/spy",
+      "version": "2.1.9",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vitest-dev/vitest.git",
+        "directory": "packages/spy"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/@vitest/spy/LICENSE",
+          "sha256": "ddc110f3b89cc397cee99d3d64c4f746928b7a3bac02fed15101eb4d367079f6"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/@vitest/utils",
+      "name": "@vitest/utils",
+      "version": "2.1.9",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vitest-dev/vitest.git",
+        "directory": "packages/utils"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/@vitest/utils/LICENSE",
+          "sha256": "ddc110f3b89cc397cee99d3d64c4f746928b7a3bac02fed15101eb4d367079f6"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/ansi-regex",
+      "name": "ansi-regex",
+      "version": "6.4.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "chalk/ansi-regex",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/ansi-regex/license",
+          "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/ansi-styles",
+      "name": "ansi-styles",
+      "version": "6.2.3",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "chalk/ansi-styles",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/ansi-styles/license",
+          "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/assertion-error",
+      "name": "assertion-error",
+      "version": "2.0.1",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git@github.com:chaijs/assertion-error.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/assertion-error/LICENSE",
+          "sha256": "2130216d5ab4c02134f8247f32999feda0abe1eaf028218baeac445c19ce4cea"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/cac",
+      "name": "cac",
+      "version": "6.7.14",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "url": "egoist/cac",
+        "type": "git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/cac/LICENSE",
+          "sha256": "709131d7af352b81204ada2a3d812e245a83576e327b364f92ba24c578ba9408"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/chai",
+      "name": "chai",
+      "version": "5.3.3",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/chaijs/chai"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/chai/LICENSE",
+          "sha256": "b181da80336ff9dd1043fc8be1a764d7382363433319aa872e4d2cb5ce2a3066"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/check-error",
+      "name": "check-error",
+      "version": "2.1.3",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+ssh://git@github.com/chaijs/check-error.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/check-error/LICENSE",
+          "sha256": "e5aee0714b6ecc416454b968d1017570ef609f20d8722ab84b07acd550b78198"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/chromium-bidi",
+      "name": "chromium-bidi",
+      "version": "157.0.8090-0",
+      "declaredLicense": "Apache-2.0",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/GoogleChromeLabs/chromium-bidi.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/chromium-bidi/LICENSE",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/cliui",
+      "name": "cliui",
+      "version": "9.0.1",
+      "declaredLicense": "ISC",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "yargs/cliui",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/cliui/LICENSE.txt",
+          "sha256": "2dc0465729366c3a7890dfa9e972a1ba7048a26c02116fb8b419a6a1ac110149"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/cliui/node_modules/string-width",
+      "name": "string-width",
+      "version": "7.2.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "sindresorhus/string-width",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/cliui/node_modules/string-width/license",
+          "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/debug",
+      "name": "debug",
+      "version": "4.4.3",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git://github.com/debug-js/debug.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/debug/LICENSE",
+          "sha256": "3a61c6c96caf5c1d9b623fb9b04c822b783dfcb78aa7e49c76a3f643e6ed7f95"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/deep-eql",
+      "name": "deep-eql",
+      "version": "5.0.2",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git@github.com:chaijs/deep-eql.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/deep-eql/LICENSE",
+          "sha256": "e5aee0714b6ecc416454b968d1017570ef609f20d8722ab84b07acd550b78198"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/devtools-protocol",
+      "name": "devtools-protocol",
+      "version": "0.0.1696802",
+      "declaredLicense": "BSD-3-Clause",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "https://github.com/ChromeDevTools/devtools-protocol",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/devtools-protocol/LICENSE",
+          "sha256": "7a209dd1b94cabdb5ea9c6f9164b9546ffa5daaa671e7767d49510db055f5c51"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/emoji-regex",
+      "name": "emoji-regex",
+      "version": "10.6.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/mathiasbynens/emoji-regex.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/emoji-regex/LICENSE-MIT.txt",
+          "sha256": "483acb265f182907d1caf6cff9c16c96f31325ed23792832cc5d8b12d5f88c8a"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/es-module-lexer",
+      "name": "es-module-lexer",
+      "version": "1.7.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/guybedford/es-module-lexer.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/es-module-lexer/LICENSE",
+          "sha256": "fecc38b5e10d889686b3862e7ade17e8b3e5c94b24b7256b05a354d8524b3274"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/esbuild",
+      "name": "esbuild",
+      "version": "0.21.5",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/evanw/esbuild.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "possible generated helper; tool is not bundled",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/esbuild/LICENSE.md",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/escalade",
+      "name": "escalade",
+      "version": "3.2.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "lukeed/escalade",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/escalade/license",
+          "sha256": "9a9edad7baae52622bddf3c15b2ef8a33d2c89f2d25408ad13e8a7481c6b0c97"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/estree-walker",
+      "name": "estree-walker",
+      "version": "3.0.3",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/Rich-Harris/estree-walker"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/estree-walker/LICENSE",
+          "sha256": "8a6dcbabe7179f9c8489c08a7d874d0f1e093ae7449e03756ccf87cb9d0e296e"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/expect-type",
+      "name": "expect-type",
+      "version": "1.4.0",
+      "declaredLicense": "Apache-2.0",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/mmkal/expect-type.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/expect-type/LICENSE",
+          "sha256": "7c6cc83c84eaa249a85bf12fe3eedd831bb50c696e8890b5248223ae68c7b408"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/fsevents",
+      "name": "fsevents",
+      "version": "2.3.3",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": true,
+      "installed": false,
+      "repository": null,
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/get-caller-file",
+      "name": "get-caller-file",
+      "version": "2.0.5",
+      "declaredLicense": "ISC",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/stefanpenner/get-caller-file.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/get-caller-file/LICENSE.md",
+          "sha256": "902dbb4154679fb2b8d7c33878183f45b268d01eae5e5033dddaa8852d45f213"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/get-east-asian-width",
+      "name": "get-east-asian-width",
+      "version": "1.7.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "sindresorhus/get-east-asian-width",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/get-east-asian-width/license",
+          "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/loupe",
+      "name": "loupe",
+      "version": "3.2.1",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/chaijs/loupe"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/loupe/LICENSE",
+          "sha256": "592141f7b861426ceeff937d85ad04ada5f66e386c5a8696ed1bd680f2cdb552"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/magic-string",
+      "name": "magic-string",
+      "version": "0.30.21",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Rich-Harris/magic-string.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/magic-string/LICENSE",
+          "sha256": "1cbe51b907662f6cb1492b16c359384a595180bf0e4d101603ed525e75c4e484"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/mitt",
+      "name": "mitt",
+      "version": "3.0.1",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "developit/mitt",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/mitt/LICENSE",
+          "sha256": "1cab22f196264195a4caec8ca5630170fdde76ee8f43346e47021d087332d3b0"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/modern-tar",
+      "name": "modern-tar",
+      "version": "0.8.6",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ayuhito/modern-tar.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/modern-tar/LICENSE",
+          "sha256": "dbcbef54fa7e111b69b12a9787051f31f5378b40711b6c57c5a82d99dc8a9e0d"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/mp4-muxer",
+      "name": "mp4-muxer",
+      "version": "5.2.2",
+      "declaredLicense": "MIT",
+      "dev": false,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Vanilagy/mp4-muxer.git"
+      },
+      "dependencyKind": "direct runtime",
+      "browserDistribution": "runtime library",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/mp4-muxer/LICENSE",
+          "sha256": "75c54aae7ef6ad652f684f9dd3b71e4dcef86ccebd88cf441ceed7f5eec037c5"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/ms",
+      "name": "ms",
+      "version": "2.1.3",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "vercel/ms",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/ms/license.md",
+          "sha256": "1662fae9b5314d11cf51284e2dcd1f006a354f7343f08712a730fcff9a359801"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/nanoid",
+      "name": "nanoid",
+      "version": "3.3.20",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "ai/nanoid",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/nanoid/LICENSE",
+          "sha256": "da4db1480d9beea3483a2eda5c53b22238d0827d57da162b48f122e04d2d9987"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/pathe",
+      "name": "pathe",
+      "version": "1.1.2",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "unjs/pathe",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/pathe/LICENSE",
+          "sha256": "cb00dc7c358014d300dba2462e57d3f477299c169c7ab14d8fe5e347eca44f48"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/pathval",
+      "name": "pathval",
+      "version": "2.0.1",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+ssh://git@github.com/chaijs/pathval.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/pathval/LICENSE",
+          "sha256": "5d45910e7ed82fecc3e29b40a5b3a17ceb609fda19f860aa2ec180d87f4f9d4a"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/picocolors",
+      "name": "picocolors",
+      "version": "1.1.1",
+      "declaredLicense": "ISC",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "alexeyraspopov/picocolors",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/picocolors/LICENSE",
+          "sha256": "6582629e2979466878f6014313dcc2f3756c9616148682227ce3063dde310750"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/postcss",
+      "name": "postcss",
+      "version": "8.5.31",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "postcss/postcss",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/postcss/LICENSE",
+          "sha256": "5be1f3465bba68a626777f984878814aaf35e7ef8e9fd314d469bcf887050fb8"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/puppeteer-core",
+      "name": "puppeteer-core",
+      "version": "25.14.0",
+      "declaredLicense": "Apache-2.0",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/puppeteer/puppeteer/tree/main/packages/puppeteer-core"
+      },
+      "dependencyKind": "direct development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/rollup",
+      "name": "rollup",
+      "version": "4.64.10",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/rollup/rollup.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/rollup/LICENSE.md",
+          "sha256": "fa1bd040c5bdeefe65b3821cebf474f2733ce65df13089bd151dda1778e62fe8"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/siginfo",
+      "name": "siginfo",
+      "version": "2.0.0",
+      "declaredLicense": "ISC",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/emilbayes/siginfo.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/siginfo/LICENSE",
+          "sha256": "3bdddf0b9b08aaa2fe4365b803fc958ed32c0597ca0bd727be8d9fcb8b248d18"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/source-map-js",
+      "name": "source-map-js",
+      "version": "1.2.2",
+      "declaredLicense": "BSD-3-Clause",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "7rulnik/source-map-js",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/source-map-js/LICENSE",
+          "sha256": "6cb0631f71c7749763fd3dd1d5bee52dd1070ec17f2edc1710079ad070bd2fbd"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/stackback",
+      "name": "stackback",
+      "version": "0.0.2",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git://github.com/shtylman/node-stackback.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": []
+    },
+    {
+      "path": "node_modules/std-env",
+      "name": "std-env",
+      "version": "3.10.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "unjs/std-env",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/std-env/LICENCE",
+          "sha256": "a6f36438e46fb911859f3b9c4cad045ba64e1af3d8f4512c60258fa2d7552d28"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/string-width",
+      "name": "string-width",
+      "version": "8.3.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "sindresorhus/string-width",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/string-width/license",
+          "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/strip-ansi",
+      "name": "strip-ansi",
+      "version": "7.2.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "chalk/strip-ansi",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/strip-ansi/license",
+          "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/tinybench",
+      "name": "tinybench",
+      "version": "2.9.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "tinylibs/tinybench",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/tinybench/LICENSE",
+          "sha256": "cebc084d54e6dd99e53292ddb4bc1cdb63d9bfcd9ce438fe3aa6eb106d79e2ea"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/tinyexec",
+      "name": "tinyexec",
+      "version": "0.3.2",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/tinylibs/tinyexec.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/tinyexec/LICENSE",
+          "sha256": "f95f668fe64081ddb4153b322e34fdd719b991285ed08177d5ad7133b7988d92"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/tinypool",
+      "name": "tinypool",
+      "version": "1.1.1",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/tinylibs/tinypool.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/tinypool/LICENSE",
+          "sha256": "0d506ca1b2adc4ee63a9e2384a85d6cf9f014b4cf3d00c162cd60216450324fa"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/tinyrainbow",
+      "name": "tinyrainbow",
+      "version": "1.2.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/tinylibs/tinyrainbow.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/tinyrainbow/LICENCE",
+          "sha256": "cebc084d54e6dd99e53292ddb4bc1cdb63d9bfcd9ce438fe3aa6eb106d79e2ea"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/tinyspy",
+      "name": "tinyspy",
+      "version": "3.0.2",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/tinylibs/tinyspy.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/tinyspy/LICENCE",
+          "sha256": "cebc084d54e6dd99e53292ddb4bc1cdb63d9bfcd9ce438fe3aa6eb106d79e2ea"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/typed-query-selector",
+      "name": "typed-query-selector",
+      "version": "2.12.3",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "g-plane/typed-query-selector",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/typed-query-selector/LICENSE",
+          "sha256": "e5a82d3d14a3b0fffb34243e6cc465d7b5c9e1ca2ef047ee5842ef50f9999e7e"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/typescript",
+      "name": "typescript",
+      "version": "5.9.3",
+      "declaredLicense": "Apache-2.0",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/microsoft/TypeScript.git"
+      },
+      "dependencyKind": "direct development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/typescript/LICENSE.txt",
+          "sha256": "a7d00bfd54525bc694b6e32f64c7ebcf5e6b7ae3657be5cc12767bce74654a47"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/undici-types",
+      "name": "undici-types",
+      "version": "6.21.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/nodejs/undici.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/undici-types/LICENSE",
+          "sha256": "a6db8096b2707bc0102d256917d4d33f298ba36d8c3f25de067a2b5bb379db27"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/vite",
+      "name": "vite",
+      "version": "5.4.21",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vitejs/vite.git",
+        "directory": "packages/vite"
+      },
+      "dependencyKind": "direct development",
+      "browserDistribution": "modulepreload helper only; tool is not bundled",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/vite/LICENSE.md",
+          "sha256": "04d9940b3b8b372bff74437c3b153eda8a89642669c4209a4f67135eb3132bc9"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/vite-node",
+      "name": "vite-node",
+      "version": "2.1.9",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vitest-dev/vitest.git",
+        "directory": "packages/vite-node"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/vite-node/LICENSE",
+          "sha256": "ddc110f3b89cc397cee99d3d64c4f746928b7a3bac02fed15101eb4d367079f6"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/vitest",
+      "name": "vitest",
+      "version": "2.1.9",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vitest-dev/vitest.git",
+        "directory": "packages/vitest"
+      },
+      "dependencyKind": "direct development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/vitest/LICENSE.md",
+          "sha256": "2e440dfce9b15e91e0d687c314940c28058637a299d9231fbbf79fc02165c7de"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/webdriver-bidi-protocol",
+      "name": "webdriver-bidi-protocol",
+      "version": "1.0.1",
+      "declaredLicense": "Apache-2.0",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/GoogleChromeLabs/webdriver-bidi-protocol.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/webdriver-bidi-protocol/LICENSE",
+          "sha256": "b08840544230421823a071f4dace39a58be90a54537f36c4b283c93d93d70cc6"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/why-is-node-running",
+      "name": "why-is-node-running",
+      "version": "2.3.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/mafintosh/why-is-node-running.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/why-is-node-running/LICENSE",
+          "sha256": "6a134e51aa31496c15a741592fc5d782b2dbf8d8b6b8524e15c8520ae0cd6374"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/wrap-ansi",
+      "name": "wrap-ansi",
+      "version": "9.0.2",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "chalk/wrap-ansi",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/wrap-ansi/license",
+          "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/wrap-ansi/node_modules/string-width",
+      "name": "string-width",
+      "version": "7.2.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "sindresorhus/string-width",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/wrap-ansi/node_modules/string-width/license",
+          "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/ws",
+      "name": "ws",
+      "version": "8.22.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/websockets/ws.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/ws/LICENSE",
+          "sha256": "2b29dcfe0d6471f7e8c92c5fb38c9f93edee10330937055440192f1832b1ecef"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/y18n",
+      "name": "y18n",
+      "version": "5.0.8",
+      "declaredLicense": "ISC",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": "yargs/y18n",
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/y18n/LICENSE",
+          "sha256": "2034cce3b6fafcddd642c4175e01d3ddfc332a53b9f20fdc46b1466dc89ac469"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/yargs",
+      "name": "yargs",
+      "version": "18.2.0",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/yargs/yargs.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/yargs/LICENSE",
+          "sha256": "2f1a503bfab84b3ba7393627308b3274501e459e3b5185bbb56bbf16cb1602d4"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/yargs-parser",
+      "name": "yargs-parser",
+      "version": "22.0.0",
+      "declaredLicense": "ISC",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/yargs/yargs-parser.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/yargs-parser/LICENSE.txt",
+          "sha256": "365496ca1f56da40b23c9815fc40fa9005847b2f8f8fd1c1a4929ef25ec8cd1d"
+        }
+      ]
+    },
+    {
+      "path": "node_modules/zod",
+      "name": "zod",
+      "version": "4.6.7",
+      "declaredLicense": "MIT",
+      "dev": true,
+      "optional": false,
+      "installed": true,
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/colinhacks/zod.git"
+      },
+      "dependencyKind": "transitive development",
+      "browserDistribution": "not distributed as a runtime package",
+      "localLicenseEvidence": [
+        {
+          "path": "node_modules/zod/LICENSE",
+          "sha256": "3f1189b28e3866e0d979968d466b78f813f76827cfdca1fbb124cc0a5c8841f8"
+        }
+      ]
+    }
+  ],
+  "reviewed": "2026-11-01",
+  "scope": "Locked npm packages; metadata for optional packages not installed, license/notice hashes for locally installed packages."
+}

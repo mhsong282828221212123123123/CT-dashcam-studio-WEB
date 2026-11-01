@@ -1,0 +1,125 @@
+{
+  "reviewed": "2026-11-01",
+  "assets": [
+    {
+      "path": "intro/scene.svg",
+      "sha256": "9ca743908d4ef8780c91673232f7759f4af18fc10ebad43df9e626f330f7d764",
+      "bytes": 2886,
+      "status": "Source-created vector; third-party similarity not independently cleared"
+    },
+    {
+      "path": "public/apple-touch-icon.png",
+      "sha256": "c500e266ecfacb01484ac309a5f1d2c3160dd0737a9cafff64c406a84cab0ab1",
+      "bytes": 30347,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/ct-favicon-v2.ico",
+      "sha256": "d98d19a79aadfb874c8f3e463e4fef09510e2c774cd62cc077b4618f1009fd8b",
+      "bytes": 85604,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/ct-favicon-v3.ico",
+      "sha256": "d98d19a79aadfb874c8f3e463e4fef09510e2c774cd62cc077b4618f1009fd8b",
+      "bytes": 85604,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/ct-icon-v2-180.png",
+      "sha256": "c500e266ecfacb01484ac309a5f1d2c3160dd0737a9cafff64c406a84cab0ab1",
+      "bytes": 30347,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/ct-icon-v2-192.png",
+      "sha256": "46b3235f90a7757faf5216d034ecfb79f7d05751952df81c97f59a60954f4fde",
+      "bytes": 34434,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/ct-icon-v2-32.png",
+      "sha256": "fe060a58e0988ac2bafd30d0010c08293fec08c4563c11ff87a86b0868207c03",
+      "bytes": 2216,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/ct-icon-v2-512.png",
+      "sha256": "932d292f2660e805e19c3e32e01b66a41c9e8db205455712c3cc150fb9041e08",
+      "bytes": 192757,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/ct-icon-v2-maskable-512.png",
+      "sha256": "0c93757832c8cbbfa400261842d0ebc202fa1fde2752697882e8946b026e6935",
+      "bytes": 107960,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/ct-icon-v2.svg",
+      "sha256": "5cab125d1a08a75b80fd2498895185501d4e2683ad767a2ebb3eaeb67e12046c",
+      "bytes": 257170,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/ct-icon-v3-180.png",
+      "sha256": "c500e266ecfacb01484ac309a5f1d2c3160dd0737a9cafff64c406a84cab0ab1",
+      "bytes": 30347,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/ct-icon-v3-192.png",
+      "sha256": "46b3235f90a7757faf5216d034ecfb79f7d05751952df81c97f59a60954f4fde",
+      "bytes": 34434,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/ct-icon-v3-32.png",
+      "sha256": "fe060a58e0988ac2bafd30d0010c08293fec08c4563c11ff87a86b0868207c03",
+      "bytes": 2216,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/ct-icon-v3-512.png",
+      "sha256": "932d292f2660e805e19c3e32e01b66a41c9e8db205455712c3cc150fb9041e08",
+      "bytes": 192757,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/ct-icon-v3-maskable-512.png",
+      "sha256": "0c93757832c8cbbfa400261842d0ebc202fa1fde2752697882e8946b026e6935",
+      "bytes": 107960,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/favicon.ico",
+      "sha256": "d98d19a79aadfb874c8f3e463e4fef09510e2c774cd62cc077b4618f1009fd8b",
+      "bytes": 85604,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/icon-192.png",
+      "sha256": "46b3235f90a7757faf5216d034ecfb79f7d05751952df81c97f59a60954f4fde",
+      "bytes": 34434,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/icon-512.png",
+      "sha256": "932d292f2660e805e19c3e32e01b66a41c9e8db205455712c3cc150fb9041e08",
+      "bytes": 192757,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/icon.svg",
+      "sha256": "5cab125d1a08a75b80fd2498895185501d4e2683ad767a2ebb3eaeb67e12046c",
+      "bytes": 257170,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    },
+    {
+      "path": "public/models/steering_hud.png",
+      "sha256": "595bfc1d7ef7f05a3214f9f271c0ed610a98ba4e9a76162a2ba9b71d86a46d7f",
+      "bytes": 204477,
+      "status": "Provenance/redistribution evidence requires owner confirmation"
+    }
+  ]
+}

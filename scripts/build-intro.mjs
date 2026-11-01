@@ -2,6 +2,7 @@ import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { buildLegal, legalLinks } from './build-legal.mjs';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
 export const INTRO_CONTENT = JSON.parse(readFileSync(new URL('../intro/content.json', import.meta.url), 'utf8'));
@@ -45,6 +46,7 @@ export function renderIntro(lang, { basePath = '/CT-dashcam-studio-WEB/', assets
 <meta name="twitter:card" content="summary"><meta name="theme-color" content="#171817">
 <link rel="icon" href="${appRoot}ct-favicon-v3.ico"><script>${startTheme}</script>
 <link rel="stylesheet" href="${assetRoot}${assets.palettes||'palettes.css'}"><link rel="stylesheet" href="${assetRoot}${assets.style||'intro.css'}">
+<meta name="license" content="GPL-3.0-only"><link rel="license" href="${appRoot}legal/license.html"><link rel="stylesheet" href="${appRoot}legal/privacy.css"><script type="module" src="${appRoot}legal/consent.js" data-ct-privacy></script>
 <script type="application/ld+json">${JSON.stringify(structured).replace(/</g,'\\u003c')}</script><script defer src="${assetRoot}${assets.script||'intro.js'}"></script>
 </head><body id="top">
 <a class="skip-link" href="#main">${escape(c.navFeatures)}</a><div class="reading-progress" aria-hidden="true"></div>
@@ -57,13 +59,14 @@ export function renderIntro(lang, { basePath = '/CT-dashcam-studio-WEB/', assets
 <section class="versions-section wrap" id="versions"><div class="section-heading" data-reveal><p class="eyebrow">${escape(c.versionsLabel)}</p><h2>${lines(c.versionsTitle)}</h2></div><div class="version-options"><article data-reveal><div class="version-symbol" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="5" y="8" width="38" height="29" rx="4"/><path d="M5 16h38M17 42h14m-7-5v5"/></svg></div><span class="version-platform">WEB / PC · ANDROID · iPHONE</span><h3>${escape(c.webTitle)}</h3><p>${escape(c.webBody)}</p><small>${escape(c.webNote)}</small><a class="button primary" href="${web}">${escape(c.openWeb)}${icon}</a></article><article data-reveal style="--reveal-delay:100ms"><div class="version-symbol" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="m6 10 15-2v15H6Zm19-3 17-2v18H25ZM6 27h15v15L6 40Zm19 0h17v18l-17-2Z"/></svg></div><span class="version-platform">WINDOWS x64 / PORTABLE</span><h3>${escape(c.winTitle)}</h3><p>${escape(c.winBody)}</p><small>${escape(c.winNote)}</small><small class="windows-languages">${escape(c.language)}: 한국어 · English · 日本語 · 简体中文 · 繁體中文</small><a class="button secondary" href="${PC_REPO}/releases" ${external}>${escape(c.getWindows)}${icon}</a></article></div></section>
 <section class="faq-section wrap" data-reveal><h2>${escape(c.faqTitle)}</h2><div>${c.faq.map(([q,a])=>`<details><summary>${escape(q)}<span aria-hidden="true">+</span></summary><p>${escape(a)}</p></details>`).join('')}</div></section>
 <section class="closing wrap" data-reveal><img src="${appRoot}ct-icon-v3-180.png" width="56" height="56" alt="" loading="lazy"><h2>${lines(c.closingTitle)}</h2><p>${escape(c.closingBody)}</p><a class="button primary" href="${web}">${escape(c.openWeb)}${icon}</a></section>
-</main><footer class="site-footer wrap"><div><strong>CT Dashcam Studio</strong><p>${escape(c.footer)}</p></div><nav><a href="${WEB_REPO}" ${external}>Web ${escape(c.source)}</a><a href="${PC_REPO}" ${external}>Windows ${escape(c.source)}</a><a href="https://forms.gle/Lh1doyRZNAZ6cqRk9" ${external}>${escape(c.feedback)}<small>${escape(c.feedbackNote)}</small></a><a href="#top">${escape(c.backTop)} ↑</a></nav><nav class="footer-languages" aria-label="${escape(c.language)}">${localeLinks}</nav></footer>
+</main><footer class="site-footer wrap"><div><strong>CT Dashcam Studio</strong><p>${escape(c.footer)}</p></div><nav><a href="${WEB_REPO}" ${external}>Web ${escape(c.source)}</a><a href="${PC_REPO}" ${external}>Windows ${escape(c.source)}</a><a href="https://forms.gle/Lh1doyRZNAZ6cqRk9" ${external}>${escape(c.feedback)}<small>${escape(c.feedbackNote)}</small></a><a href="#top">${escape(c.backTop)} ↑</a></nav>${legalLinks(c.lang, appRoot+'legal/')}<nav class="footer-languages" aria-label="${escape(c.language)}">${localeLinks}</nav></footer>
 </body></html>`;
 }
 export function renderSitemap() {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n  <url><loc>${PRODUCTION}</loc></url>\n${Object.values(INTRO_CONTENT).map(c=>`  <url><loc>${PRODUCTION}intro/${c.slug}/</loc>${Object.values(INTRO_CONTENT).map(other=>`<xhtml:link rel="alternate" hreflang="${other.lang}" href="${PRODUCTION}intro/${other.slug}/"/>`).join('')}<xhtml:link rel="alternate" hreflang="x-default" href="${PRODUCTION}intro/en/"/></url>`).join('\n')}\n</urlset>\n`;
 }
 export function buildIntro({ basePath = process.env.VITE_BASE_PATH || '/CT-dashcam-studio-WEB/', outputDir = path.join(repo,'public','intro') } = {}) {
+  buildLegal({ basePath });
   mkdirSync(path.join(outputDir,'assets'), {recursive:true});
   const themeSource=readFileSync(path.join(repo,'src','themes.css'),'utf8');
   const marker='/* Common controls and layout for every palette. */';

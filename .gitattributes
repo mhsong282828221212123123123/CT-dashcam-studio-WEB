@@ -1,0 +1,3 @@
+# Preserve official license and copied notice bytes on every checkout platform.
+LICENSE -text -whitespace
+licenses/*.txt -text -whitespace
