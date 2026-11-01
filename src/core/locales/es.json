@@ -227,5 +227,7 @@
   "theme_paper_blue": "Papel azul",
   "theme_paper_violet": "Papel violeta",
   "theme_paper_rose": "Papel rosa",
-  "theme_paper_sand": "Papel arena"
+  "theme_paper_sand": "Papel arena",
+  "feedback_link": "Informar de un problema / Enviar comentarios",
+  "feedback_login_note": "Se requiere iniciar sesión en Google"
 }

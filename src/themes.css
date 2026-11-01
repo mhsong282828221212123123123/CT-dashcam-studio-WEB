@@ -569,3 +569,18 @@ html[data-theme] .speed-cluster .preview-speed-select {
     padding: 0 8px !important; font-size: 13px !important;
   }
 }
+
+/* Feedback opens externally so editing stays on the current page. */
+.workspace-feedback { display: none; margin-top: 12px; text-align: center; }
+.feedback-link { color: var(--text-muted); font-size: 11px; text-decoration: none; }
+.feedback-link:hover { color: var(--text-main); text-decoration: underline; }
+.feedback-link:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 3px; }
+.feedback-note { color: var(--text-muted); font-size: 10px; }
+.footer-feedback { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+body.view-mobile .footer-feedback { display: none; }
+body.view-mobile .workspace-feedback { display: flex; flex-direction: column; gap: 4px; }
+.workspace-feedback .feedback-link { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 6px 12px; border: 1px solid var(--control-border); border-radius: 6px; font-size: 13px; background: var(--control-bg); }
+@media (max-width: 850px), (pointer: coarse), ((orientation: landscape) and (max-height: 600px)) {
+  body:not(.view-desktop) .footer-feedback { display: none; }
+  body:not(.view-desktop) .workspace-feedback { display: flex; flex-direction: column; gap: 4px; }
+}

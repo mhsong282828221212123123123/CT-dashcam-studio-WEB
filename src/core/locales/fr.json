@@ -227,5 +227,7 @@
   "theme_paper_blue": "Papier bleu",
   "theme_paper_violet": "Papier violet",
   "theme_paper_rose": "Papier rose",
-  "theme_paper_sand": "Papier sable"
+  "theme_paper_sand": "Papier sable",
+  "feedback_link": "Signaler un problème / Donner un avis",
+  "feedback_login_note": "Connexion Google requise"
 }
