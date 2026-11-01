@@ -5,6 +5,9 @@ export function detectTutorialPlatform(device: { userAgent?: string; platform?: 
   if (/iPhone|iPad|iPod/i.test(device.userAgent || '') || (device.platform === 'MacIntel' && (device.maxTouchPoints || 0) > 1)) return 'ios';
   return /Android/i.test(device.userAgent || '') ? 'android' : 'pc';
 }
+export function tutorialLoadAction(platform: TutorialPlatform): string {
+  return platform === 'pc' ? 'btn_open_folder' : 'btn_open_folder_mobile';
+}
 export function tutorialStep(platform: TutorialPlatform, index: number) {
   const step = Number.isFinite(index) ? Math.max(0, Math.min(2, Math.trunc(index))) : 0;
   const heading = ['load', 'range', 'export'][step];
@@ -17,11 +20,11 @@ const cursor = '<svg class="tutorial-cursor" viewBox="0 0 24 28"><path d="M2 1v2
 const road = '<div class="tutorial-road"><i></i><i></i><i></i><span class="tutorial-car"></span></div>';
 
 function demo(platform: TutorialPlatform, step: number): string {
-  const files = ['front', 'back', 'left_repeater', 'right_repeater'].map(name => `<div class="tutorial-file"><i></i><span>13-00-23-${name}.mp4</span></div>`).join('');
+  const folders = ['TeslaCam', 'RecentClips', 'SavedClips', 'SentryClips'].map(name => `<div class="tutorial-file tutorial-folder"><i></i><span>${name}/</span></div>`).join('');
   let content: string;
   if (step === 0) {
-    const action = platform === 'ios' ? 'btn_open_files' : platform === 'pc' ? 'btn_open_folder' : 'btn_open_folder_mobile';
-    content = `<div class="tutorial-demo-load"><span class="tutorial-demo-action">${t(action)}</span><div class="tutorial-file-picker">${files}</div><div class="tutorial-loaded-view">${road}<span>13:00:23</span></div>${cursor}</div>`;
+    const action = tutorialLoadAction(platform);
+    content = `<div class="tutorial-demo-load"><span class="tutorial-demo-action">${t(action)}</span><div class="tutorial-file-picker">${folders}</div><div class="tutorial-loaded-view">${road}<span>13:00:23</span></div>${cursor}</div>`;
   } else if (step === 1) {
     content = `${road}<div class="tutorial-demo-timeline"><div class="tutorial-demo-range"></div><span class="tutorial-demo-playhead"></span></div><div class="tutorial-demo-points"><span>${t('btn_in')}</span><span>${t('btn_out')}</span></div><div class="tutorial-demo-times">00:05 — 00:20</div>${cursor}`;
   } else {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectTutorialPlatform, tutorialStep, TutorialPlatform } from '../src/core/tutorial';
+import { detectTutorialPlatform, tutorialLoadAction, tutorialStep, TutorialPlatform } from '../src/core/tutorial';
 import { TRANSLATIONS, SupportedLang } from '../src/core/i18n';
 import { TUTORIAL_STRINGS } from '../src/core/locales/tutorial';
 
@@ -18,6 +18,11 @@ describe('platform-specific getting-started tutorial', () => {
     expect([0,1,2].map(step => tutorialStep(platform,step).heading)).toEqual(['tutorial_load','tutorial_range','tutorial_export']);
     expect(tutorialStep(platform,0).body).toBe(`tutorial_${platform}_load`);
     expect(tutorialStep(platform,2).body).toBe(`tutorial_${platform}_export`);
+  });
+  it('uses folder import as the normal flow on all platforms, including iPhone', () => {
+    expect(tutorialLoadAction('pc')).toBe('btn_open_folder');
+    expect(tutorialLoadAction('android')).toBe('btn_open_folder_mobile');
+    expect(tutorialLoadAction('ios')).toBe('btn_open_folder_mobile');
   });
   it('shows the USB warning specifically on the iPhone import step', () => {
     expect(tutorialStep('ios',0).warning).toBe(true);

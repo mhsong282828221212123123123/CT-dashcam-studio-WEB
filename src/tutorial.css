@@ -113,3 +113,6 @@
 
 .tutorial-preview-launch { position: absolute; top: 8px; right: 8px; z-index: 2; min-height: 32px; padding: 5px 10px; border: 1px solid var(--control-border); border-radius: 5px; background: var(--bg-sidebar); }
 .canvas-container:not(.is-empty) .tutorial-preview-launch { display: none; }
+
+.tutorial-folder i { position: relative; width: 11px; height: 8px; border-radius: 1px; background: var(--selected-bg); }
+.tutorial-folder i::before { content: ''; position: absolute; top: -4px; left: -1px; width: 6px; height: 3px; border: 1px solid var(--selected-border); border-bottom: 0; border-radius: 2px 2px 0 0; }
