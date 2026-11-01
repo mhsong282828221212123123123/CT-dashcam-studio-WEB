@@ -7,6 +7,8 @@ import { buildLegal, legalLinks } from './build-legal.mjs';
 const repo = fileURLToPath(new URL('../', import.meta.url));
 export const INTRO_CONTENT = JSON.parse(readFileSync(new URL('../intro/content.json', import.meta.url), 'utf8'));
 export const PRODUCTION = 'https://mhsong282828221212123123123.github.io/CT-dashcam-studio-WEB/';
+// SEO language tags are independent of the existing UI locale IDs and URL slugs.
+const hreflang = lang => ({ 'zh-CN': 'zh-Hans', 'zh-TW': 'zh-Hant' }[lang] || lang);
 const WEB_REPO = 'https://github.com/mhsong282828221212123123123/CT-dashcam-studio-WEB';
 const PC_REPO = 'https://github.com/mhsong282828221212123123123/CT-dashcam-studio';
 const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -32,8 +34,8 @@ export function renderIntro(lang, { basePath = '/CT-dashcam-studio-WEB/', assets
   const canonical = `${PRODUCTION}intro/${c.slug}/`;
   const web = `${appRoot}?lang=${c.lang}`;
   const scene = assetRoot + (assets.scene || 'scene.svg');
-  const localeLinks = Object.values(INTRO_CONTENT).map(other=>`<a href="${localeRoot}${other.slug}/" lang="${other.lang}" hreflang="${other.lang}"${other.lang===c.lang?' aria-current="page"':''}>${escape(other.name)}</a>`).join('');
-  const alternates = Object.values(INTRO_CONTENT).map(other=>`<link rel="alternate" hreflang="${other.lang}" href="${PRODUCTION}intro/${other.slug}/">`).join('\n');
+  const localeLinks = Object.values(INTRO_CONTENT).map(other=>`<a href="${localeRoot}${other.slug}/" lang="${other.lang}" hreflang="${hreflang(other.lang)}"${other.lang===c.lang?' aria-current="page"':''}>${escape(other.name)}</a>`).join('');
+  const alternates = Object.values(INTRO_CONTENT).map(other=>`<link rel="alternate" hreflang="${hreflang(other.lang)}" href="${PRODUCTION}intro/${other.slug}/">`).join('\n');
   const structured = {'@context':'https://schema.org','@type':'WebPage',name:c.seoTitle,description:c.seoDescription,url:canonical,inLanguage:c.lang,about:{'@type':'SoftwareApplication',name:'CT Dashcam Studio',applicationCategory:'MultimediaApplication',operatingSystem:'Web browser, Windows',isAccessibleForFree:true}};
   const startTheme = `(function(){try{var k=location.pathname.includes('/dev/')?'ct_theme_dev':'ct_theme',v=localStorage.getItem(k)||localStorage.getItem('ct_theme');if(v==='classic')v='midnight';if(${JSON.stringify(themeIds)}.includes(v))document.documentElement.dataset.theme=v}catch(e){}})();`;
   return `<!doctype html>
@@ -63,7 +65,9 @@ export function renderIntro(lang, { basePath = '/CT-dashcam-studio-WEB/', assets
 </body></html>`;
 }
 export function renderSitemap() {
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n  <url><loc>${PRODUCTION}</loc></url>\n${Object.values(INTRO_CONTENT).map(c=>`  <url><loc>${PRODUCTION}intro/${c.slug}/</loc>${Object.values(INTRO_CONTENT).map(other=>`<xhtml:link rel="alternate" hreflang="${other.lang}" href="${PRODUCTION}intro/${other.slug}/"/>`).join('')}<xhtml:link rel="alternate" hreflang="x-default" href="${PRODUCTION}intro/en/"/></url>`).join('\n')}\n</urlset>\n`;
+  const variants = Object.values(INTRO_CONTENT);
+  const alternatives = variants.map(other => `    <xhtml:link rel="alternate" hreflang="${hreflang(other.lang)}" href="${PRODUCTION}intro/${other.slug}/"/>`).join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${variants.map(c => `  <url>\n    <loc>${PRODUCTION}intro/${c.slug}/</loc>\n${alternatives}\n    <xhtml:link rel="alternate" hreflang="x-default" href="${PRODUCTION}intro/en/"/>\n  </url>`).join('\n')}\n</urlset>\n`;
 }
 export function buildIntro({ basePath = process.env.VITE_BASE_PATH || '/CT-dashcam-studio-WEB/', outputDir = path.join(repo,'public','intro') } = {}) {
   buildLegal({ basePath });
