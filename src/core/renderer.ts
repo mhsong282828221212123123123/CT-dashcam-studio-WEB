@@ -4,6 +4,8 @@ import { OpenStreetMapTileLoader } from './mapLoader';
 import { CameraKey } from './constants';
 import { drawQRCode } from './qrCode';
 
+const REAR_BOTTOM_CROP = 0.05;
+
 export interface RenderOptions {
   layout: '기본 (1:3 세로배치)' | '2x2 분할 (전후/좌우)' | '단일 카메라';
   single_cam: CameraKey;
@@ -16,6 +18,7 @@ export interface RenderOptions {
   pedal: boolean;
   timestamp: boolean;
   qr: boolean;
+  rear_crop: boolean;
   brightness: number; // -100 ~ 100, default 0
   contrast: number; // 0.5 ~ 2.0, default 1.0
   playbackSpeed: number;
@@ -47,6 +50,7 @@ export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   pedal: true,
   timestamp: true,
   qr: true,
+  rear_crop: false,
   brightness: 0,
   contrast: 1.0,
   playbackSpeed: 1.0,
@@ -77,7 +81,8 @@ export class OverlayRenderer {
     h: number,
     source: CanvasImageSource | null | undefined,
     label: string,
-    scale = 1.0
+    scale = 1.0,
+    bottomCrop = 0
   ): void {
     ctx.save();
     ctx.beginPath();
@@ -105,6 +110,10 @@ export class OverlayRenderer {
             sy = (sh - sCropH) / 2;
           }
 
+          // Keep the top of the cover crop fixed and zoom uniformly into it.
+          sx += sCropW * bottomCrop / 2;
+          sCropW *= 1 - bottomCrop;
+          sCropH *= 1 - bottomCrop;
           ctx.drawImage(source, sx, sy, sCropW, sCropH, x, y, w, h);
         }
       } catch {
@@ -394,6 +403,7 @@ export class OverlayRenderer {
     }
 
     const { colBoxMap, fsdDividers, offsetX, availW, frontH, bottomH, qrPx, qrPadR } = this.computeTelemetryLayout(options, outW, outH);
+    const rearCrop = options.rear_crop ? REAR_BOTTOM_CROP : 0;
     const hasBottomHud = bottomH > 0;
     const mapW = options.map ? offsetX : 0;
 
@@ -407,7 +417,7 @@ export class OverlayRenderer {
       const halfH = Math.floor(frontH / 2);
 
       this.drawSubSlotCover(ctx, 0, 0, halfW, halfH, frames.front, 'FRONT', scale);
-      this.drawSubSlotCover(ctx, 0, halfH, halfW, frontH - halfH, frames.back, 'REAR', scale);
+      this.drawSubSlotCover(ctx, 0, halfH, halfW, frontH - halfH, frames.back, 'REAR', scale, rearCrop);
       this.drawSubSlotCover(ctx, halfW, 0, outW - halfW, halfH, frames.left_repeater, 'LEFT REPEATER', scale);
       this.drawSubSlotCover(ctx, halfW, halfH, outW - halfW, frontH - halfH, frames.right_repeater, 'RIGHT REPEATER', scale);
 
@@ -430,7 +440,8 @@ export class OverlayRenderer {
         left_pillar: 'LEFT PILLAR',
         right_pillar: 'RIGHT PILLAR',
       };
-      this.drawSubSlotCover(ctx, 0, 0, outW, frontH, frames[key], labelMap[key] || key.toUpperCase(), scale);
+      this.drawSubSlotCover(ctx, 0, 0, outW, frontH, frames[key], labelMap[key] || key.toUpperCase(), scale,
+        key === 'back' ? rearCrop : 0);
     } else {
       // 기본 (1:3 세로배치)
       const subW = Math.round(480 * scale);
@@ -439,7 +450,7 @@ export class OverlayRenderer {
       this.drawSubSlotCover(ctx, 0, 0, frontW, frontH, frames.front, 'FRONT MAIN', scale);
 
       const subH = Math.floor(frontH / 3);
-      this.drawSubSlotCover(ctx, frontW, 0, subW, subH, frames.back, 'REAR', scale);
+      this.drawSubSlotCover(ctx, frontW, 0, subW, subH, frames.back, 'REAR', scale, rearCrop);
       this.drawSubSlotCover(ctx, frontW, subH, subW, subH, frames.left_repeater, 'LEFT REPEATER', scale);
       this.drawSubSlotCover(ctx, frontW, subH * 2, subW, frontH - subH * 2, frames.right_repeater, 'RIGHT REPEATER', scale);
     }
