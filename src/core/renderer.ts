@@ -4,7 +4,7 @@ import { OpenStreetMapTileLoader } from './mapLoader';
 import { CameraKey } from './constants';
 import { drawQRCode } from './qrCode';
 
-const REAR_BOTTOM_CROP = 0.12;
+const REAR_BOTTOM_CROP = 0.15;
 
 export interface RenderOptions {
   layout: '기본 (1:3 세로배치)' | '2x2 분할 (전후/좌우)' | '단일 카메라';
