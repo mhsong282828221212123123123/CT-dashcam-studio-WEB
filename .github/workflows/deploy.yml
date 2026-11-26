@@ -1,9 +1,8 @@
-name: Deploy production and dev to GitHub Pages
+name: Deploy dev to GitHub Pages
 
 on:
   push:
     branches:
-      - main
       - dev
   workflow_dispatch:
 
@@ -12,121 +11,6 @@ permissions:
   pages: write
   id-token: write
 
-# A Pages deployment replaces the entire site. Publish both branches and the preview together.
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
-  build-preview:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Check out the reviewed PR 1 preview
-        uses: actions/checkout@v4
-        with:
-          ref: a741640fdca979366cba2f3f40e8c1730f19db44
-          persist-credentials: false
-
-      - name: Set up Node.js for the preview
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Build PR 1 for /preview/pr-1/
-        env:
-          VITE_BASE_PATH: /CT-dashcam-studio-WEB/preview/pr-1/
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm test
-          pnpm build
-          node --input-type=module <<'JS'
-          import { execFileSync } from 'node:child_process';
-          import { writeFileSync } from 'node:fs';
-          const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-          const info = { channel: 'preview', pullRequest: 1, commit };
-          writeFileSync('dist/deployment.json', JSON.stringify(info, null, 2) + '\n');
-          JS
-
-      - name: Upload the preview build
-        uses: actions/upload-artifact@v4
-        with:
-          name: pr-1-preview
-          path: dist/
-          if-no-files-found: error
-          retention-days: 1
-
-  build:
-    needs: build-preview
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout production source
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          path: production-source
-
-      - name: Checkout dev source
-        uses: actions/checkout@v4
-        with:
-          ref: dev
-          path: dev-source
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: |
-            production-source/package-lock.json
-            dev-source/package-lock.json
-
-      - name: Build production from main
-        working-directory: production-source
-        env:
-          VITE_BASE_PATH: /CT-dashcam-studio-WEB/
-        run: |
-          npm ci
-          npm test
-          npm run build
-          node scripts/write-deployment-info.mjs production
-          mkdir -p ../site_out
-          cp -r dist/. ../site_out/
-
-      - name: Build test site from dev
-        working-directory: dev-source
-        env:
-          VITE_BASE_PATH: /CT-dashcam-studio-WEB/dev/
-        run: |
-          npm ci
-          npm test
-          npm run build
-          node scripts/write-deployment-info.mjs dev
-          mkdir -p ../site_out/dev
-          cp -r dist/. ../site_out/dev/
-
-      - name: Add the PR 1 preview
-        uses: actions/download-artifact@v4
-        with:
-          name: pr-1-preview
-          path: site_out/preview/pr-1/
-
-      - name: Upload all three sites as one Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site_out
-
   deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+    uses: mhsong282828221212123123123/CT-dashcam-studio-WEB/.github/workflows/deploy.yml@main
