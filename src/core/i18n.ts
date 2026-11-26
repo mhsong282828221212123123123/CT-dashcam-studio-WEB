@@ -1618,9 +1618,10 @@ export class I18nManager {
       fr: 'Ouvrir le design en aperçu',
       es: 'Abrir el diseño de vista previa',
     };
-    const base = import.meta.env.BASE_URL.replace(/\/dev\/$/, '/');
+    const base = import.meta.env.BASE_URL;
+    const classicBase = base.endsWith('/classic/');
     document.querySelectorAll<HTMLAnchorElement>('[data-preview-link]').forEach(link => {
-      link.href = `${base}preview/pr-1/`;
+      link.href = classicBase ? base.slice(0, -'classic/'.length) : `${base.replace(/\/dev\/$/, '/')}preview/pr-1/`;
       link.title = previewLabel[lang];
       link.setAttribute('aria-label', previewLabel[lang]);
     });
