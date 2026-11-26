@@ -3,11 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { BrandLogo } from '@/components/atoms/brand-logo';
 import { cn } from '@/lib/utils';
 
-const previewSuffix = 'preview/pr-1/';
 const base = import.meta.env.BASE_URL;
-const originalStudio = base.endsWith(`/${previewSuffix}`)
-  ? base.slice(0, -previewSuffix.length)
-  : null;
+const originalStudio = `${base.replace(/preview\/pr-1\/$/, '')}classic/`;
 
 export const StudioBrandLink = ({
   className,
@@ -18,7 +15,6 @@ export const StudioBrandLink = ({
 }) => {
   const { t } = useTranslation();
   const logo = <BrandLogo className={logoClassName} />;
-  if (!originalStudio) return <span className={className}>{logo}</span>;
 
   return (
     <a

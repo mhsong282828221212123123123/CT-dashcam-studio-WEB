@@ -39,7 +39,9 @@ export default defineConfig(({ mode }) => {
         generateSW: {
           globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
           navigateFallback: 'index.html',
-          navigateFallbackDenylist: basePath.includes('/dev/') ? [] : [/\/dev\//],
+          navigateFallbackDenylist: basePath.endsWith('/preview/pr-1/')
+            ? []
+            : [/\/(?:classic|dev|intro|preview)(?:\/|$)/],
           runtimeCaching: [
             {
               urlPattern: /\.woff2$/,
