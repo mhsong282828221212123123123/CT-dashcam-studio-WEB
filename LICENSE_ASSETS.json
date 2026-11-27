@@ -2,10 +2,100 @@
   "reviewed": "2026-11-01",
   "assets": [
     {
-      "path": "intro/scene.svg",
-      "sha256": "9ca743908d4ef8780c91673232f7759f4af18fc10ebad43df9e626f330f7d764",
-      "bytes": 2886,
-      "status": "Source-created vector; third-party similarity not independently cleared"
+      "path": "intro/media/back-poster.jpg",
+      "sha256": "9a34b9b5873b99cb4750ceaf88c02d4de7ed86272730602efc36dc284f6ac190",
+      "bytes": 11838,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
+    },
+    {
+      "path": "intro/media/back.mp4",
+      "sha256": "9cc57c8ea2a2ae89aff8dc12dba112ea24a64f139add6b6436e540bc6c3da549",
+      "bytes": 197203,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
+    },
+    {
+      "path": "intro/media/front-poster.jpg",
+      "sha256": "0efc965d956233961f49024a39db103062b4ad4a2115bcfcd96e031d58cdb901",
+      "bytes": 29172,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
+    },
+    {
+      "path": "intro/media/front.mp4",
+      "sha256": "5d8912852856642e979ce56f3adad1b6c172345b7c2f4a71672f992dbf92976a",
+      "bytes": 588436,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
+    },
+    {
+      "path": "intro/media/left-poster.jpg",
+      "sha256": "013c5afd2842b7ba491a811c4ea19a10313c11ff5f1163749c2665d14a36cdea",
+      "bytes": 21256,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
+    },
+    {
+      "path": "intro/media/left.mp4",
+      "sha256": "8412771f6ad110621e2807453a1e91eed9a038ba5828c065498e44c520a882c2",
+      "bytes": 329660,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
+    },
+    {
+      "path": "intro/media/right-poster.jpg",
+      "sha256": "2b55c10b43843198f5b88e58391b4eb3bc81544d1275635dd659752e7ac3ce26",
+      "bytes": 14782,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
+    },
+    {
+      "path": "intro/media/right.mp4",
+      "sha256": "cd1cb4d72ed685f0e4bca7677a3c0251a18813f912fa98cea23b8528ea96500b",
+      "bytes": 310330,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
+    },
+    {
+      "path": "intro/media/strip-0.jpg",
+      "sha256": "8c288cb773e9f71f3bbf20439e3ccfb48486335451128a1f778560a5e8accaee",
+      "bytes": 2583,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
+    },
+    {
+      "path": "intro/media/strip-1.jpg",
+      "sha256": "65f69d542406d252ef7355ad94452caf1715f0fd0b0432733c61eb1e4367665f",
+      "bytes": 2594,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
+    },
+    {
+      "path": "intro/media/strip-2.jpg",
+      "sha256": "f62969ba3e1485ca296c0b884b494617e8b8f56fc5d0fad524791d4247549e98",
+      "bytes": 2761,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
+    },
+    {
+      "path": "intro/media/strip-3.jpg",
+      "sha256": "3713e679f07fa83fa08a4c48662fbadd28af58554c329c4ea888a9bc3a0a748c",
+      "bytes": 2698,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
+    },
+    {
+      "path": "intro/media/strip-4.jpg",
+      "sha256": "19482903bd72504bdde4cdbdf651a7c59c6592225478ef58d7d0814f6bc4e7a6",
+      "bytes": 2934,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
+    },
+    {
+      "path": "intro/media/strip-5.jpg",
+      "sha256": "3887d06d6c40d016d19b6c9104230b6ce49dd788e16a022e249d1dfbcfc0ba48",
+      "bytes": 2731,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
+    },
+    {
+      "path": "intro/media/strip-6.jpg",
+      "sha256": "f411010ab676afe32906775ddcff50f33a83a1d1e569a574fda99d55f4a6a46d",
+      "bytes": 2930,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
+    },
+    {
+      "path": "intro/media/strip-7.jpg",
+      "sha256": "5b431077e3263caa145e6ef33809eda4b02d91b9fdd4740cbc93c2e0d91174ac",
+      "bytes": 3028,
+      "status": "Owner-recorded TeslaCam highway driving footage (metadata stripped)"
     },
     {
       "path": "public/apple-touch-icon.png",
