@@ -26,7 +26,7 @@ jobs:
       - name: Check out the reviewed editor source
         uses: actions/checkout@v4
         with:
-          ref: f68badf0d42764428335243ed5754c3263b4d561
+          ref: fe01aeb301d004a8eca02f0b0c4d81aa9351c63c
           persist-credentials: false
 
       - name: Set up Node.js for the editor
