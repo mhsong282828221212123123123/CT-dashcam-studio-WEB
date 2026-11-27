@@ -159,6 +159,7 @@
   "install_title_android": "안드로이드 (Galaxy / Chrome / 삼성 인터넷)",
   "install_title_desktop": "PC 데스크톱 (Windows / Edge / Chrome)",
   "install_title_ios": "아이폰 / iPad (Safari)",
+  "intro_link": "소개",
   "label_fps": "출력 FPS:",
   "label_lang": "언어 (Language)",
   "label_layout": "화면 레이아웃:",

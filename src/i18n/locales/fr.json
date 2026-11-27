@@ -159,6 +159,7 @@
   "install_title_android": "Android (Galaxy / Chrome / Samsung Internet)",
   "install_title_desktop": "Bureau (Windows / Edge / Chrome)",
   "install_title_ios": "iPhone / iPad (Safari)",
+  "intro_link": "Info",
   "label_fps": "FPS de sortie :",
   "label_lang": "Langue (Language)",
   "label_layout": "Disposition :",

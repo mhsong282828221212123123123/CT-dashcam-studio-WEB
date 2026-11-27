@@ -159,6 +159,7 @@
   "install_title_android": "安卓设备 (Galaxy / Chrome / 三星浏览器)",
   "install_title_desktop": "桌面端 PC (Windows / Edge / Chrome)",
   "install_title_ios": "iPhone / iPad (Safari)",
+  "intro_link": "介绍",
   "label_fps": "输出帧率:",
   "label_lang": "语言 (Language)",
   "label_layout": "画面布局:",
