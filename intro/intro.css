@@ -535,6 +535,12 @@ h3 {
 .camera-stage[data-layout="front-focus"] [data-cam="front"] {
   grid-column: 1;
   grid-row: 1 / 4;
+  aspect-ratio: auto;
+}
+
+.camera-stage[data-layout="front-focus"] [data-cam="front"] .cam-video {
+  position: absolute;
+  inset: 0;
 }
 
 .camera-stage[data-layout="quad"] {
@@ -1432,16 +1438,6 @@ h3 {
 
   .data-section {
     padding-block: 68px;
-  }
-
-  .camera-stage[data-layout="front-focus"] {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: auto auto;
-  }
-
-  .camera-stage[data-layout="front-focus"] [data-cam="front"] {
-    grid-column: 1 / -1;
-    grid-row: 1;
   }
 
   .camera-stage[data-layout="front-focus"] .cam-badge {
