@@ -14,8 +14,6 @@ const PC_REPO = 'https://github.com/mhsong282828221212123123123/CT-dashcam-studi
 const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const lines = value => escape(value).replace(/\n/g, '<br>');
 const external = 'target="_blank" rel="noopener noreferrer"';
-const themes = ['Graphite','Midnight','Forest','Burgundy','Amber','Paper Green','Paper Blue','Paper Violet','Paper Rose','Paper Sand'];
-const themeIds = ['graphite','midnight','forest','burgundy','amber','paper','paper-blue','paper-violet','paper-rose','paper-sand'];
 
 const iconArrow = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>';
 const wheelSvg = '<svg class="hud-wheel js-steer-wheel" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="25"/><circle cx="32" cy="32" r="6"/><path d="M8 28h18m12 0h18M32 38v19"/></svg>';
@@ -113,7 +111,6 @@ export function renderIntro(lang, { basePath = '/CT-dashcam-studio-WEB/', assets
   const localeLinks = Object.values(INTRO_CONTENT).map(other=>`<a href="${localeRoot}${other.slug}/" lang="${other.lang}" hreflang="${hreflang(other.lang)}"${other.lang===c.lang?' aria-current="page"':''}>${escape(other.name)}</a>`).join('');
   const alternates = Object.values(INTRO_CONTENT).map(other=>`<link rel="alternate" hreflang="${hreflang(other.lang)}" href="${PRODUCTION}intro/${other.slug}/">`).join('\n');
   const structured = {'@context':'https://schema.org','@type':'WebPage',name:c.seoTitle,description:c.seoDescription,url:canonical,inLanguage:c.lang,about:{'@type':'SoftwareApplication',name:'CT Dashcam Studio',applicationCategory:'MultimediaApplication',operatingSystem:'Web browser, Windows',isAccessibleForFree:true}};
-  const startTheme = `(function(){try{var k=location.pathname.includes('/dev/')?'ct_theme_dev':'ct_theme',v=localStorage.getItem(k)||localStorage.getItem('ct_theme');if(v==='classic')v='midnight';if(${JSON.stringify(themeIds)}.includes(v))document.documentElement.dataset.theme=v}catch(e){}})();`;
   const layoutIds = ['front-focus', 'quad', 'single'];
   const camPills = [
     ['front', 'FRONT'],
@@ -123,20 +120,20 @@ export function renderIntro(lang, { basePath = '/CT-dashcam-studio-WEB/', assets
   ];
 
   return `<!doctype html>
-<html lang="${c.lang}" data-theme="graphite"><head>
+<html lang="${c.lang}"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escape(c.seoTitle)}</title><meta name="description" content="${escape(c.seoDescription)}">
 <link rel="canonical" href="${canonical}">${alternates}<link rel="alternate" hreflang="x-default" href="${PRODUCTION}intro/en/">
 <meta name="robots" content="${isDev||hub?'noindex,follow':'index,follow'}">
 <meta property="og:type" content="website"><meta property="og:title" content="${escape(c.seoTitle)}"><meta property="og:description" content="${escape(c.seoDescription)}"><meta property="og:url" content="${canonical}"><meta property="og:image" content="${PRODUCTION}ct-icon-v3-512.png">
-<meta name="twitter:card" content="summary"><meta name="theme-color" content="#171817">
-<link rel="icon" href="${appRoot}ct-favicon-v3.ico"><script>${startTheme}</script>
-<link rel="stylesheet" href="${assetRoot}${assets.palettes||'palettes.css'}"><link rel="stylesheet" href="${assetRoot}${assets.style||'intro.css'}">
+<meta name="twitter:card" content="summary"><meta name="theme-color" content="#0b0d11">
+<link rel="icon" href="${appRoot}ct-favicon-v3.ico">
+<link rel="stylesheet" href="${assetRoot}${assets.style||'intro.css'}">
 <meta name="license" content="GPL-3.0-only"><link rel="license" href="${appRoot}legal/license.html"><link rel="stylesheet" href="${appRoot}legal/privacy.css"><script type="module" src="${appRoot}legal/consent.js" data-ct-privacy></script>
 <script type="application/ld+json">${JSON.stringify(structured).replace(/</g,'\\u003c')}</script><script defer src="${assetRoot}${assets.script||'intro.js'}"></script>
 </head><body id="top">
 <a class="skip-link" href="#main">${escape(c.navFeatures)}</a><div class="reading-progress" aria-hidden="true"></div>
-<header class="site-header wrap"><a class="brand" href="${web}"><img src="${appRoot}ct-icon-v3-180.png" width="30" height="30" alt=""><span>CT Dashcam Studio</span>${isDev?'<small>DEV</small>':''}</a><nav class="header-nav"><a href="#features">${escape(c.navFeatures)}</a><a href="#versions">${escape(c.navVersions)}</a></nav><div class="header-tools"><select id="intro-theme" aria-label="${escape(c.theme)}">${themeIds.map((id,i)=>`<option value="${id}">${themes[i]}</option>`).join('')}</select><details class="language-menu"><summary>${escape(c.name)}</summary><nav aria-label="${escape(c.language)}">${localeLinks}</nav></details></div></header>
+<header class="site-header wrap"><a class="brand" href="${web}"><img src="${appRoot}ct-icon-v3-180.png" width="30" height="30" alt=""><span>CT Dashcam Studio</span>${isDev?'<small>DEV</small>':''}</a><nav class="header-nav"><a href="#features">${escape(c.navFeatures)}</a><a href="#versions">${escape(c.navVersions)}</a></nav><div class="header-tools"><details class="language-menu"><summary>${escape(c.name)}</summary><nav aria-label="${escape(c.language)}">${localeLinks}</nav></details></div></header>
 <main id="main">
 <section class="hero wrap">
   <div class="hero-copy">
@@ -185,12 +182,7 @@ export function buildIntro({ basePath = process.env.VITE_BASE_PATH || '/CT-dashc
   rmSync(assetsDir, { recursive: true, force: true });
   mkdirSync(assetsDir, { recursive: true });
 
-  const themeSource = readFileSync(path.join(repo,'src','themes.css'),'utf8');
-  const marker = '/* Common controls and layout for every palette. */';
-  if (!themeSource.includes(marker)) throw new Error('Viewer palette boundary missing');
-
   const sourceFiles = {
-    palettes: Buffer.from(themeSource.split(marker)[0], 'utf8'),
     style: readFileSync(path.join(repo,'intro','intro.css')),
     script: readFileSync(path.join(repo,'intro','intro.js')),
     front: readFileSync(path.join(repo,'intro','media','front.mp4')),
@@ -208,7 +200,6 @@ export function buildIntro({ basePath = process.env.VITE_BASE_PATH || '/CT-dashc
   };
 
   const extMap = {
-    palettes: 'css',
     style: 'css',
     script: 'js',
     front: 'mp4',

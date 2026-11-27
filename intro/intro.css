@@ -1,7 +1,33 @@
 :root {
+  color-scheme: dark;
   --font-base: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --scroll-progress: 0;
+  --bg-app: #0b0d11;
+  --bg-sidebar: #11151d;
+  --bg-card: #161b26;
+  --canvas-bg: #080a0e;
+  --header-bg: #131822;
+  --dialog-bg: #151a24;
+  --control-bg: #1a202c;
+  --hover-bg: #232b3b;
+  --control-border: #2a3345;
+  --border-subtle: #1e2533;
+  --border-active: #38bdf8;
+  --text-main: #f1f5f9;
+  --text-muted: #9aa6b8;
+  --text-dim: #64748b;
+  --primary-bg: #f1f5f9;
+  --primary-text: #0b0d11;
+  --selected-bg: #162a3d;
+  --selected-border: #38bdf8;
+  --selected-text: #e0f2fe;
+  --focus-color: #38bdf8;
+  --track-bg: #1e2636;
+  --range-color: #38bdf8;
+  --range-fill: rgb(56 189 248 / 22%);
+  --accent-blue: #38bdf8;
+  --accent-green: #34d399;
 }
 
 * {
@@ -15,7 +41,7 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg-app);
+  background: radial-gradient(900px 460px at 72% -80px, rgb(56 189 248 / 9%), transparent 70%), var(--bg-app);
   color: var(--text-main);
   font-family: var(--font-base);
   line-height: 1.6;
@@ -145,7 +171,6 @@ video {
   gap: 10px;
 }
 
-#intro-theme,
 .language-menu summary {
   background: var(--control-bg);
   color: var(--text-main);
@@ -154,11 +179,6 @@ video {
   padding: 7px 11px;
   min-height: 36px;
   font-size: 12px;
-}
-
-#intro-theme {
-  max-width: 126px;
-  cursor: pointer;
 }
 
 .language-menu {
@@ -1394,15 +1414,10 @@ h3 {
     height: 24px;
   }
 
-  #intro-theme,
   .language-menu summary {
     font-size: 11px;
     padding: 6px 8px;
     min-height: 34px;
-  }
-
-  #intro-theme {
-    max-width: 114px;
   }
 
   .hero {

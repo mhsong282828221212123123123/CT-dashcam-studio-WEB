@@ -1,32 +1,5 @@
 (() => {
   const root = document.documentElement;
-  const themes = [
-    'graphite',
-    'midnight',
-    'forest',
-    'burgundy',
-    'amber',
-    'paper',
-    'paper-blue',
-    'paper-violet',
-    'paper-rose',
-    'paper-sand',
-  ];
-
-  const selector = document.getElementById('intro-theme');
-  if (selector) {
-    selector.value = root.dataset.theme || 'graphite';
-    selector.addEventListener('change', () => {
-      if (!themes.includes(selector.value)) return;
-      root.dataset.theme = selector.value;
-      const background = getComputedStyle(root).getPropertyValue('--bg-app').trim();
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', background);
-      try {
-        localStorage.setItem(location.pathname.includes('/dev/') ? 'ct_theme_dev' : 'ct_theme', selector.value);
-      } catch {}
-    });
-  }
-
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   const items = Array.from(document.querySelectorAll('[data-reveal]'));
   let revealObserver;
