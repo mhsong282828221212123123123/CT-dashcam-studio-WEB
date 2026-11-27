@@ -560,7 +560,7 @@ h3 {
 .cam-video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   background: #0a0d12;
 }
 
@@ -1435,19 +1435,20 @@ h3 {
   }
 
   .camera-stage[data-layout="front-focus"] {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto auto;
   }
 
   .camera-stage[data-layout="front-focus"] [data-cam="front"] {
-    grid-column: auto;
-    grid-row: auto;
+    grid-column: 1 / -1;
+    grid-row: 1;
   }
 
-  .camera-stage[data-layout="front-focus"] [data-cam="back"],
-  .camera-stage[data-layout="front-focus"] [data-cam="left"],
-  .camera-stage[data-layout="front-focus"] [data-cam="right"] {
-    display: none;
+  .camera-stage[data-layout="front-focus"] .cam-badge {
+    inset: 4px auto auto 4px;
+    max-width: calc(100% - 8px);
+    padding-inline: 4px;
+    letter-spacing: 0.02em;
   }
 
   .demo-hud {
