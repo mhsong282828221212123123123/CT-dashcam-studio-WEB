@@ -179,7 +179,7 @@
   "modal_confirm": "OK",
   "pause_with_space": "Pause (Space)",
   "pc_mode_title": "View PC Version",
-  "pillar_cam_na": "B-pillar cameras are not available in 4-channel clips",
+  "pillar_cam_na": "Only available on HW4 vehicles",
   "play_with_space": "▶ Play (Space)",
   "preview_empty_description": "Open a TeslaCam folder, then select a clip to view your footage.",
   "preview_empty_title": "Select a clip to preview",

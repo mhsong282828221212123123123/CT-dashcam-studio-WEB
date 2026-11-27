@@ -7,6 +7,7 @@ import { OptionSelect } from '@/components/molecules/option-select';
 import { PanelHeader } from '@/components/molecules/panel-header';
 import { SliderField } from '@/components/molecules/slider-field';
 import { SwitchRow } from '@/components/molecules/switch-row';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/molecules/tooltip';
 import { TELEMETRY_STYLES } from '@/core/telemetry-style';
 import { hasPillarCameras, setOption, useStudio } from '@/studio/store';
 
@@ -79,7 +80,8 @@ export const OverlaysPanel = () => {
   const activeClip = useStudio((state) => state.activeClip);
   const [crying, setCrying] = useState(false);
   const emotionRef = useRef<HTMLSpanElement>(null);
-  const pipAvailable = hasPillarCameras(activeClip) && options.layout !== 'single';
+  const pillars = hasPillarCameras(activeClip);
+  const pipAvailable = pillars && options.layout !== 'single';
 
   const onQrChange = (checked: boolean) => {
     setOption('qr', checked);
@@ -131,12 +133,27 @@ export const OverlaysPanel = () => {
                 key={key}
                 when={key === 'qr'}
                 fallback={
-                  <SwitchRow
-                    label={plainLabel(t(`chk_${key}`))}
-                    checked={options[key]}
-                    disabled={key === 'pillar_pip' && !pipAvailable}
-                    onCheckedChange={(checked) => setOption(key, checked)}
-                  />
+                  key === 'pillar_pip' && !pillars ? (
+                    <Tooltip>
+                      <TooltipTrigger render={<div className="cursor-not-allowed" />}>
+                        <SwitchRow
+                          label={plainLabel(t('chk_pillar_pip'))}
+                          description={t('pillar_cam_na')}
+                          checked={options.pillar_pip}
+                          disabled
+                          onCheckedChange={(checked) => setOption('pillar_pip', checked)}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent side="right">{t('pillar_cam_na')}</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <SwitchRow
+                      label={plainLabel(t(`chk_${key}`))}
+                      checked={options[key]}
+                      disabled={key === 'pillar_pip' && !pipAvailable}
+                      onCheckedChange={(checked) => setOption(key, checked)}
+                    />
+                  )
                 }
               >
                 <SwitchRow

@@ -20,6 +20,7 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from '@/components/molecules/context-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/molecules/tooltip';
 import { CAMERA_KEYS } from '@/core/constants';
 import { cn } from '@/lib/utils';
 import {
@@ -96,15 +97,28 @@ const StageMenu = () => {
             onValueChange={chooseCamera}
           >
             <For each={CAMERA_KEYS}>
-              {(camera) => (
-                <ContextMenuRadioItem
-                  key={camera}
-                  value={camera}
-                  disabled={isPillar(camera) && !pillars}
-                >
-                  {t(`cam_${camera}`)}
-                </ContextMenuRadioItem>
-              )}
+              {(camera) => {
+                const item = (
+                  <ContextMenuRadioItem
+                    key={camera}
+                    value={camera}
+                    disabled={isPillar(camera) && !pillars}
+                  >
+                    {t(`cam_${camera}`)}
+                  </ContextMenuRadioItem>
+                );
+                if (isPillar(camera) && !pillars) {
+                  return (
+                    <Tooltip key={camera}>
+                      <TooltipTrigger render={<div className="cursor-not-allowed" />}>
+                        {item}
+                      </TooltipTrigger>
+                      <TooltipContent side="right">{t('pillar_cam_na')}</TooltipContent>
+                    </Tooltip>
+                  );
+                }
+                return item;
+              }}
             </For>
           </ContextMenuRadioGroup>
         </ContextMenuSubContent>

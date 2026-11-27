@@ -179,7 +179,7 @@
   "modal_confirm": "確認",
   "pause_with_space": "一時停止 (Space)",
   "pc_mode_title": "PC版で表示",
-  "pillar_cam_na": "4チャンネル映像にはBピラーカメラがありません",
+  "pillar_cam_na": "HW4車両でのみ使用できます",
   "play_with_space": "▶ 再生 (Space)",
   "preview_empty_description": "TeslaCamフォルダーを開き、クリップを選択すると映像を確認できます。",
   "preview_empty_title": "プレビューするクリップを選択",
