@@ -2,12 +2,12 @@ import { Show } from '@jellybrick/react-solid-flow';
 import { ArrowUpRight, CircleHelp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { Button } from '@/components/atoms/button';
+import { Button, buttonVariants } from '@/components/atoms/button';
 import { Swap } from '@/components/atoms/swap';
 import { formatFolderGroup } from '@/core/clip-scanner';
 import { useLayoutMode } from '@/hooks/use-layout-mode';
 import { normalizeLang } from '@/i18n';
-import { introUrl } from '@/lib/links';
+import { introUrl, NACS_MAP_URL } from '@/lib/links';
 import { cn } from '@/lib/utils';
 import { openTutorial } from '@/studio/playback';
 import { formatTimecode } from '@/studio/range';
@@ -53,19 +53,32 @@ export const PlayerHeader = ({ className }: { className?: string }) => {
         <Show when={compact}>
           <StudioBrandLink logoClassName="size-7" />
         </Show>
-        <Swap id={clipId ?? 'none'} className="min-w-0">
-          <ClipTitle compact={compact} />
-        </Swap>
-        <Button
-          variant="tonal"
-          size={compact ? 'xs' : 'sm'}
-          nativeButton={false}
-          render={<a href={introHref} aria-label={t('intro_link')} />}
-          title={t('intro_link')}
-        >
-          <span>{t('intro_link')}</span>
-          <ArrowUpRight className="size-3.5" />
-        </Button>
+        <div className="flex min-w-0 items-center gap-x-2.5 gap-y-1 max-sm:flex-wrap">
+          <Swap id={clipId ?? 'none'} className="min-w-0">
+            <ClipTitle compact={compact} />
+          </Swap>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Button
+              variant="tonal"
+              size={compact ? 'xs' : 'sm'}
+              nativeButton={false}
+              render={<a href={introHref} aria-label={t('intro_link')} />}
+              title={t('intro_link')}
+            >
+              <span>{t('intro_link')}</span>
+              <ArrowUpRight className="size-3.5" />
+            </Button>
+            <a
+              href={NACS_MAP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonVariants({ variant: 'tonal', size: compact ? 'xs' : 'sm' })}
+            >
+              NACS맵
+              <ArrowUpRight aria-hidden="true" className="size-3.5" />
+            </a>
+          </div>
+        </div>
       </div>
       <div className="flex shrink-0 items-center">
         <LayoutMenu iconOnly={compact} />
